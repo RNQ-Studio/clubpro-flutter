@@ -5,49 +5,54 @@ import 'package:go_router/go_router.dart';
 
 import 'onboarding_notifier.dart';
 
-/// Data class for a single onboarding page.
-class _OnboardingPage {
-  const _OnboardingPage({
+/// Satu halaman onboarding. App menyediakan isinya lewat [OnboardingScreen.pages].
+class OnboardingPage {
+  const OnboardingPage({
     required this.icon,
     required this.title,
     required this.description,
     required this.color,
+    this.illustration,
   });
 
   final IconData icon;
   final String title;
   final String description;
   final Color color;
+
+  /// Pengganti ikon bundar (mis. logo app) bila diisi.
+  final Widget? illustration;
 }
 
 /// Premium onboarding screen with a PageView, dot indicator and CTA button.
 class OnboardingScreen extends ConsumerStatefulWidget {
-  const OnboardingScreen({super.key});
+  const OnboardingScreen({
+    super.key,
+    this.pages = defaultPages,
+    this.completeLocation = '/',
+  });
 
-  @override
-  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
-}
+  final List<OnboardingPage> pages;
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  final _pageController = PageController();
-  int _currentPage = 0;
+  /// Tujuan setelah "Mulai Sekarang" / "Lewati".
+  final String completeLocation;
 
-  static const _pages = [
-    _OnboardingPage(
+  static const defaultPages = [
+    OnboardingPage(
       icon: Icons.bolt_rounded,
       title: 'Cepat & Efisien',
       description: 'Arsitektur modern dengan Riverpod, Go Router, dan Drift '
           'untuk pengalaman pengembangan yang cepat dan andal.',
       color: Color(0xFF18181B),
     ),
-    _OnboardingPage(
+    OnboardingPage(
       icon: Icons.shield_rounded,
       title: 'Aman & Terpercaya',
       description: 'Autentikasi biometrik, auto-refresh token, dan penyimpanan '
           'terenkripsi untuk menjaga data pengguna tetap aman.',
       color: Color(0xFF27272A),
     ),
-    _OnboardingPage(
+    OnboardingPage(
       icon: Icons.palette_rounded,
       title: 'Siap Produksi',
       description:
@@ -58,6 +63,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   ];
 
   @override
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  final _pageController = PageController();
+  int _currentPage = 0;
+
+  List<OnboardingPage> get _pages => widget.pages;
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
@@ -65,7 +80,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _completeOnboarding() async {
     await ref.read(onboardingProvider.notifier).completeOnboarding();
-    if (mounted) context.go('/');
+    if (mounted) context.go(widget.completeLocation);
   }
 
   @override
@@ -152,7 +167,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 class _OnboardingPageWidget extends StatelessWidget {
   const _OnboardingPageWidget({required this.page});
 
-  final _OnboardingPage page;
+  final OnboardingPage page;
 
   @override
   Widget build(BuildContext context) {
@@ -161,14 +176,15 @@ class _OnboardingPageWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: page.color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(page.icon, size: 72, color: page.color),
-          ),
+          page.illustration ??
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: page.color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(page.icon, size: 72, color: page.color),
+              ),
           const SizedBox(height: 40),
           Text(
             page.title,

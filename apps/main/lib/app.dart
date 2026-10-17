@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 
+import 'branding/club_brand.dart';
 import 'router/app_router.dart';
 
 class App extends StatelessWidget {
@@ -47,7 +48,7 @@ class _AppRouterState extends ConsumerState<_AppRouter> {
     final locale = ref.watch(localeProvider).asData?.value;
 
     return MaterialApp.router(
-      title: 'Starter Main',
+      title: ClubBrand.name,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,

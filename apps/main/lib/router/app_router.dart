@@ -2,6 +2,8 @@ import 'package:go_router/go_router.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 
+import '../branding/club_brand.dart';
+import '../branding/club_logo.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/settings/presentation/settings_route.dart';
 import '../features/profile/presentation/profile_route.dart';
@@ -14,7 +16,15 @@ final appRouter = GoRouter(
   redirect: authRedirect,
   observers: [AppNavigatorObserver()],
   routes: [
-    ...authRoutes,
+    ...buildAuthRoutes(
+      splash: () => const SplashScreen(
+        title: ClubBrand.name,
+        tagline: ClubBrand.tagline,
+        logo: ClubLogo(size: 80),
+      ),
+      onboarding: () =>
+          const OnboardingScreen(pages: ClubBrand.onboardingPages),
+    ),
     settingsRoute,
     profileRoute,
     GoRoute(

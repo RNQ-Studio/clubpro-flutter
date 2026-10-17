@@ -1,18 +1,38 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../auth/presentation/auth_provider.dart';
+import '../../auth/presentation/auth_state.dart';
 import 'onboarding_notifier.dart';
 
 /// Premium splash screen with animated fade-in branding.
 ///
 /// After 2 seconds navigates to:
 /// - `/onboarding` — if the user has not completed onboarding yet.
-/// - `/login`      — if the user has not logged in.
-/// - `/`           — if the user is already authenticated.
+/// - `/login`      — if [requireLogin] and the user has not logged in.
+/// - `/`           — otherwise.
 class SplashScreen extends ConsumerStatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({
+    super.key,
+    this.title,
+    this.tagline = 'Build something great',
+    this.logo,
+    this.requireLogin = false,
+  });
+
+  /// Nama yang ditampilkan; null = nama app dari platform.
+  final String? title;
+  final String tagline;
+
+  /// Pengganti logo aset bawaan.
+  final Widget? logo;
+
+  /// `true` = pengguna yang belum login diarahkan ke `/login`, bukan `/`.
+  final bool requireLogin;
 
   @override
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
@@ -47,6 +67,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _loadAppName() async {
+    if (widget.title != null) {
+      _appName = widget.title!;
+      return;
+    }
     try {
       final info = await PackageInfo.fromPlatform();
       if (mounted) {
@@ -61,17 +85,50 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Future<void> _checkNavigation() async {
     if (!mounted) return;
 
-    // Check onboarding status.
-    final onboardingAsync = ref.read(onboardingProvider);
-    final hasOnboarded = onboardingAsync.asData?.value ?? false;
+    // Tunggu status onboarding benar-benar terbaca (bukan nilai sementara).
+    bool hasOnboarded;
+    try {
+      hasOnboarded = await ref.read(onboardingProvider.future);
+    } catch (_) {
+      hasOnboarded = false;
+    }
+    if (!mounted) return;
 
     if (!hasOnboarded) {
-      if (mounted) context.go('/onboarding');
+      context.go('/onboarding');
       return;
     }
 
-    // Always go to home — login is optional via home menu.
-    if (mounted) context.go('/');
+    if (!widget.requireLogin) {
+      context.go('/');
+      return;
+    }
+
+    final auth = await _resolvedAuthState();
+    if (!mounted) return;
+    context.go(auth is AuthAuthenticated ? '/' : '/login');
+  }
+
+  /// Status auth setelah pengecekan sesi selesai (bukan Initial/Loading).
+  Future<AuthState> _resolvedAuthState() async {
+    bool settled(AuthState s) => s is! AuthInitial && s is! AuthLoading;
+
+    final current = ref.read(authProvider);
+    if (settled(current)) return current;
+
+    final completer = Completer<AuthState>();
+    final sub = ref.listenManual<AuthState>(authProvider, (_, next) {
+      if (settled(next) && !completer.isCompleted) completer.complete(next);
+    });
+    try {
+      // Router tetap mengalihkan /login → / bila sesi selesai dipulihkan belakangan.
+      return await completer.future.timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => ref.read(authProvider),
+      );
+    } finally {
+      sub.close();
+    }
   }
 
   @override
@@ -82,6 +139,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Menjaga provider onboarding (autoDispose) tetap hidup sampai dibaca.
+    ref.watch(onboardingProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -112,12 +171,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: Image.asset(
-                        'packages/features_shared/assets/logo.png',
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      ),
+                      child: widget.logo ??
+                          Image.asset(
+                            'packages/features_shared/assets/logo.png',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -130,7 +190,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Build something great',
+                    widget.tagline,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onPrimary.withValues(alpha: 0.7),
                         ),
