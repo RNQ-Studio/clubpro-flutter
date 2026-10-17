@@ -17,7 +17,6 @@ class App extends StatelessWidget {
       overrides: [
         storageServiceProvider.overrideWithValue(storage),
         appDatabaseProvider.overrideWithValue(database),
-
       ],
       child: const _AppRouter(),
     );

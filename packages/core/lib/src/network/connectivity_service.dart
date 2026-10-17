@@ -14,7 +14,7 @@ class ConnectivityService extends _$ConnectivityService {
   @override
   Stream<bool> build() {
     _connectivity = Connectivity();
-    
+
     // Listen to changes and map them to a simple boolean (online/offline)
     return _connectivity.onConnectivityChanged.map((results) {
       return _hasActiveConnection(results);

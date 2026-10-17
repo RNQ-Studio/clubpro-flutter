@@ -20,7 +20,8 @@ class QuotesLocalDataSource {
     final query = _db.select(_db.quotes)
       ..where(
         (t) =>
-            t.syncAction.isNull() | t.syncAction.equals('create') |
+            t.syncAction.isNull() |
+            t.syncAction.equals('create') |
             t.syncAction.equals('update'),
       )
       ..orderBy([
@@ -60,8 +61,7 @@ class QuotesLocalDataSource {
 
     // If the item was already synced (has server ID and syncAction is null),
     // mark it for update. If it's still pending create, keep 'create'.
-    final syncAction =
-        existing.syncAction == 'create' ? 'create' : 'update';
+    final syncAction = existing.syncAction == 'create' ? 'create' : 'update';
 
     final updated = companion.copyWith(
       isSynced: const Value(false),
@@ -87,13 +87,11 @@ class QuotesLocalDataSource {
 
     if (existing.serverId == null) {
       // Never synced — delete immediately
-      await (_db.delete(_db.quotes)
-            ..where((t) => t.localId.equals(localId)))
+      await (_db.delete(_db.quotes)..where((t) => t.localId.equals(localId)))
           .go();
     } else {
       // Has been synced — soft-delete for server sync
-      await (_db.update(_db.quotes)
-            ..where((t) => t.localId.equals(localId)))
+      await (_db.update(_db.quotes)..where((t) => t.localId.equals(localId)))
           .write(
         const QuotesCompanion(
           isSynced: Value(false),
@@ -130,8 +128,7 @@ class QuotesLocalDataSource {
   ///
   /// Called after a `DELETE` sync action succeeds on the server.
   Future<void> deletePermanently(int localId) async {
-    await (_db.delete(_db.quotes)
-          ..where((t) => t.localId.equals(localId)))
+    await (_db.delete(_db.quotes)..where((t) => t.localId.equals(localId)))
         .go();
   }
 
@@ -145,8 +142,7 @@ class QuotesLocalDataSource {
   ) async {
     await _db.transaction(() async {
       // Delete only previously-synced rows
-      await (_db.delete(_db.quotes)
-            ..where((t) => t.isSynced.equals(true)))
+      await (_db.delete(_db.quotes)..where((t) => t.isSynced.equals(true)))
           .go();
 
       // Insert fresh server data

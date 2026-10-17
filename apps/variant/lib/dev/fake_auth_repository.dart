@@ -30,7 +30,8 @@ class FakeAuthRepository implements AuthRepository {
   Future<User?> getCurrentUser() async => _currentUser;
 
   @override
-  Future<User> updateProfile({required String name, required String email}) async {
+  Future<User> updateProfile(
+      {required String name, required String email}) async {
     _currentUser = User(
       id: _currentUser?.id ?? 'dev-001',
       name: name,

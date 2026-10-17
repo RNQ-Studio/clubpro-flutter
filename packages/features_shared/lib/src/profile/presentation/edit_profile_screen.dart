@@ -82,7 +82,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+                const Icon(Icons.error_outline_rounded,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text('Gagal memperbarui profil: $e'),
@@ -177,7 +178,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       label: 'Nama Lengkap',
                       hint: 'Masukkan nama lengkap Anda',
                       prefixIcon: const Icon(Icons.person_outline_rounded),
-                      validator: (val) => InputValidators.required(val, label: 'Nama'),
+                      validator: (val) =>
+                          InputValidators.required(val, label: 'Nama'),
                     ),
                     const SizedBox(height: 20),
 

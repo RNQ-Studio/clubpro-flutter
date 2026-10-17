@@ -113,20 +113,24 @@ class QuotesRepositoryImpl implements QuotesRepository {
     // Check server availability first
     final isOnline = await _remoteDataSource.checkHealth();
     if (!isOnline) {
-      print('QuotesRepository.syncQuotes: server unreachable (health check returned false), skipping sync');
+      print(
+          'QuotesRepository.syncQuotes: server unreachable (health check returned false), skipping sync');
       return;
     }
 
-    print('QuotesRepository.syncQuotes: Server is online, getting unsynced quotes...');
+    print(
+        'QuotesRepository.syncQuotes: Server is online, getting unsynced quotes...');
     // Get all unsynced items
     final unsyncedQuotes = await _localDataSource.getUnsyncedQuotes();
-    print('QuotesRepository.syncQuotes: found ${unsyncedQuotes.length} unsynced quotes');
+    print(
+        'QuotesRepository.syncQuotes: found ${unsyncedQuotes.length} unsynced quotes');
 
     for (final quote in unsyncedQuotes) {
       try {
         switch (quote.syncAction) {
           case 'create':
-            print('QuotesRepository.syncQuotes: creating quote localId=${quote.localId} on server...');
+            print(
+                'QuotesRepository.syncQuotes: creating quote localId=${quote.localId} on server...');
             final created = await _remoteDataSource.create(
               text: quote.text,
               author: quote.author,
@@ -137,14 +141,17 @@ class QuotesRepositoryImpl implements QuotesRepository {
               quote.localId,
               serverId: created.id,
             );
-            print('QuotesRepository.syncQuotes: quote localId=${quote.localId} synced with serverId=${created.id}');
+            print(
+                'QuotesRepository.syncQuotes: quote localId=${quote.localId} synced with serverId=${created.id}');
 
           case 'update':
             if (quote.id == null) {
-              print('QuotesRepository.syncQuotes: cannot update quote localId=${quote.localId} — no server ID');
+              print(
+                  'QuotesRepository.syncQuotes: cannot update quote localId=${quote.localId} — no server ID');
               continue;
             }
-            print('QuotesRepository.syncQuotes: updating quote serverId=${quote.id} on server...');
+            print(
+                'QuotesRepository.syncQuotes: updating quote serverId=${quote.id} on server...');
             await _remoteDataSource.update(
               id: quote.id!,
               text: quote.text,
@@ -153,7 +160,8 @@ class QuotesRepositoryImpl implements QuotesRepository {
               isActive: quote.isActive,
             );
             await _localDataSource.markAsSynced(quote.localId);
-            print('QuotesRepository.syncQuotes: quote localId=${quote.localId} updated on server');
+            print(
+                'QuotesRepository.syncQuotes: quote localId=${quote.localId} updated on server');
 
           case 'delete':
             if (quote.id == null) {
@@ -161,30 +169,39 @@ class QuotesRepositoryImpl implements QuotesRepository {
               await _localDataSource.deletePermanently(quote.localId);
               continue;
             }
-            print('QuotesRepository.syncQuotes: deleting quote serverId=${quote.id} on server...');
+            print(
+                'QuotesRepository.syncQuotes: deleting quote serverId=${quote.id} on server...');
             await _remoteDataSource.delete(quote.id!);
             await _localDataSource.deletePermanently(quote.localId);
-            print('QuotesRepository.syncQuotes: quote localId=${quote.localId} deleted on server');
+            print(
+                'QuotesRepository.syncQuotes: quote localId=${quote.localId} deleted on server');
 
           default:
-            print('QuotesRepository.syncQuotes: unknown syncAction "${quote.syncAction}" for localId=${quote.localId}');
+            print(
+                'QuotesRepository.syncQuotes: unknown syncAction "${quote.syncAction}" for localId=${quote.localId}');
         }
       } catch (e) {
         // Log but don't rethrow — continue syncing remaining items
-        print('QuotesRepository.syncQuotes: failed to sync localId=${quote.localId} (action=${quote.syncAction}), error: $e');
+        print(
+            'QuotesRepository.syncQuotes: failed to sync localId=${quote.localId} (action=${quote.syncAction}), error: $e');
       }
     }
 
     // After syncing all pending items, refresh local data from server
     try {
-      print('QuotesRepository.syncQuotes: fetching latest quotes from server...');
+      print(
+          'QuotesRepository.syncQuotes: fetching latest quotes from server...');
       final remoteQuotes = await _remoteDataSource.fetchAll();
-      print('QuotesRepository.syncQuotes: fetched ${remoteQuotes.length} quotes from server. Updating local DB...');
-      final companions = remoteQuotes.map((q) => q.toDatabaseCompanion()).toList();
+      print(
+          'QuotesRepository.syncQuotes: fetched ${remoteQuotes.length} quotes from server. Updating local DB...');
+      final companions =
+          remoteQuotes.map((q) => q.toDatabaseCompanion()).toList();
       await _localDataSource.replaceAllWithServerData(companions);
-      print('QuotesRepository.syncQuotes: local DB successfully updated with server quotes.');
+      print(
+          'QuotesRepository.syncQuotes: local DB successfully updated with server quotes.');
     } catch (e) {
-      print('QuotesRepository.syncQuotes: failed to refresh from server after sync, error: $e');
+      print(
+          'QuotesRepository.syncQuotes: failed to refresh from server after sync, error: $e');
     }
   }
 }

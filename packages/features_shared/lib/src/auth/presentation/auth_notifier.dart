@@ -79,10 +79,11 @@ class AuthNotifier extends _$AuthNotifier {
     required String email,
   }) async {
     if (state is! AuthAuthenticated) return;
-    
+
     final repository = ref.read(authRepositoryProvider);
     try {
-      final updatedUser = await repository.updateProfile(name: name, email: email);
+      final updatedUser =
+          await repository.updateProfile(name: name, email: email);
       state = AuthAuthenticated(updatedUser);
     } catch (e) {
       rethrow;
@@ -119,7 +120,7 @@ class AuthNotifier extends _$AuthNotifier {
 
   Future<void> uploadAvatar(String filePath) async {
     if (state is! AuthAuthenticated) return;
-    
+
     final repository = ref.read(authRepositoryProvider);
     try {
       final updatedUser = await repository.uploadAvatar(filePath);

@@ -19,7 +19,10 @@ class UserModel extends User {
         email: json['email'] as String,
         phone: json['phone'] as String?,
         avatarUrl: json['avatar_url'] as String?,
-        roles: (json['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        roles: (json['roles'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
         token: json['token'] as String?,
       );
 

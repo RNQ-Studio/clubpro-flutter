@@ -29,9 +29,10 @@ class HomeUserHeader extends StatelessWidget {
             child: CircleAvatar(
               radius: 32,
               backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              backgroundImage: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
-                  ? NetworkImage(profile.avatarUrl!)
-                  : null,
+              backgroundImage:
+                  profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
+                      ? NetworkImage(profile.avatarUrl!)
+                      : null,
               child: profile.avatarUrl == null || profile.avatarUrl!.isEmpty
                   ? Icon(
                       Icons.person,
@@ -66,7 +67,8 @@ class HomeUserHeader extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(6),
@@ -79,7 +81,8 @@ class HomeUserHeader extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (profile.phone != null && profile.phone!.isNotEmpty) ...[
+                      if (profile.phone != null &&
+                          profile.phone!.isNotEmpty) ...[
                         const SizedBox(width: 8),
                         Text(
                           '•  ${profile.phone}',

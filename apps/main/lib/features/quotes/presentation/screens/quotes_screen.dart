@@ -182,8 +182,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                       .withValues(alpha: 0.5),
                   contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 ),
-                onChanged: (value) =>
-                    setState(() => _searchQuery = value),
+                onChanged: (value) => setState(() => _searchQuery = value),
               ),
             ),
 
@@ -221,7 +220,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
             // Premium background sync loading indicator
             if (quotesAsync.isLoading && quotesAsync.hasValue) ...[
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Column(
                   children: [
                     const ClipRRect(
@@ -267,9 +267,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 ),
                 error: (error, _) => _ErrorState(
                   message: l10n.quotesLoadError,
-                  onRetry: () => ref
-                      .read(quotesProvider.notifier)
-                      .refreshQuotes(),
+                  onRetry: () =>
+                      ref.read(quotesProvider.notifier).refreshQuotes(),
                   retryLabel: l10n.quotesRetry,
                 ),
                 data: (quotes) {
@@ -293,7 +292,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                             Icon(
                               Icons.collections_bookmark_rounded,
                               size: 14,
-                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                              color: colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.7),
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -302,7 +302,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                                   : 'Menampilkan ${filtered.length} kutipan',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                color: colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -310,9 +311,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                       ),
                       Expanded(
                         child: RefreshIndicator(
-                          onRefresh: () => ref
-                              .read(quotesProvider.notifier)
-                              .refreshQuotes(),
+                          onRefresh: () =>
+                              ref.read(quotesProvider.notifier).refreshQuotes(),
                           child: ListView.builder(
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
                             itemCount: filtered.length,
@@ -375,9 +375,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
 
     if (confirmed == true && context.mounted) {
       try {
-        await ref
-            .read(quotesProvider.notifier)
-            .removeQuote(quote.localId);
+        await ref.read(quotesProvider.notifier).removeQuote(quote.localId);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.quotesDeleteSuccess)),
@@ -560,14 +558,16 @@ class _QuoteCard extends StatelessWidget {
                     Icon(
                       Icons.access_time_rounded,
                       size: 12,
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      color:
+                          colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       'Ditambahkan ${AppDateUtils.timeAgo(quote.createdAt!)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontSize: 11,
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        color:
+                            colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                       ),
                     ),
                   ],

@@ -116,9 +116,7 @@ class _QuoteFormScreenState extends ConsumerState<QuoteFormScreen> {
     if (_isEditMode) {
       final quotesAsync = ref.watch(quotesProvider);
       quotesAsync.whenData((quotes) {
-        final match = quotes
-            .where((q) => q.localId == widget.localId)
-            .toList();
+        final match = quotes.where((q) => q.localId == widget.localId).toList();
         if (match.isNotEmpty) _populateForm(match.first);
       });
     }
@@ -239,9 +237,8 @@ class _QuoteFormScreenState extends ConsumerState<QuoteFormScreen> {
                       ? l10n.quotesFilterActive
                       : l10n.quotesFilterInactive,
                   style: TextStyle(
-                    color: _isActive
-                        ? Colors.green
-                        : colorScheme.onSurfaceVariant,
+                    color:
+                        _isActive ? Colors.green : colorScheme.onSurfaceVariant,
                   ),
                 ),
                 secondary: Icon(

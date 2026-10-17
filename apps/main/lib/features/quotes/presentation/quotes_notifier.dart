@@ -25,10 +25,11 @@ class QuotesNotifier extends _$QuotesNotifier {
     ref.listen(connectivityServiceProvider, (previous, next) {
       final isOnline = next.value ?? false;
       final wasOnline = previous?.value ?? false;
-      
+
       // Trigger sync ONLY when transitioning from offline to online
       if (isOnline && !wasOnline) {
-        log('Connectivity changed from Offline to Online. Flushing sync queue...', name: 'QuotesNotifier');
+        log('Connectivity changed from Offline to Online. Flushing sync queue...',
+            name: 'QuotesNotifier');
         syncInBackground();
       }
     });
@@ -183,9 +184,8 @@ class QuotesNotifier extends _$QuotesNotifier {
   void syncInBackground() {
     Future(() async {
       try {
-        // Set state to loading while retaining the current local data
-        final previousState = state;
-        state = AsyncLoading<List<QuoteEntity>>().copyWithPrevious(previousState);
+        // Riverpod 3 otomatis membawa data sebelumnya saat state = AsyncLoading().
+        state = AsyncLoading<List<QuoteEntity>>();
 
         await _syncData();
         // Silently refresh state after successful sync

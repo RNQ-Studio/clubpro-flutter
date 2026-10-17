@@ -92,13 +92,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.1),
                               width: 4,
                             ),
                           ),
                           child: CircleAvatar(
                             radius: 50,
-                            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primaryContainer,
                             backgroundImage: profile.avatarUrl != null
                                 ? NetworkImage(profile.avatarUrl!)
                                 : null,
@@ -109,7 +113,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                         : '?',
                                     style: TextStyle(
                                       fontSize: 36,
-                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   )
@@ -139,7 +145,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 color: Theme.of(context).colorScheme.primary,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Theme.of(context).scaffoldBackgroundColor,
+                                  color:
+                                      Theme.of(context).scaffoldBackgroundColor,
                                   width: 2.5,
                                 ),
                                 boxShadow: [

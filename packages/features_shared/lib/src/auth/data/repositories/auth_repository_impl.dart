@@ -29,7 +29,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await _remote.logout();
     } catch (_) {
-      // Fail-safe: even if backend logout fails (e.g. offline), 
+      // Fail-safe: even if backend logout fails (e.g. offline),
       // we must still clear the local user session.
     } finally {
       await _local.clearUser();
@@ -81,7 +81,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
   }) async {
     final updated = await _remote.updateProfile(name: name, email: email);
-    
+
     // Retrieve current user to keep the auth token!
     final currentUser = await _local.getUser();
     final merged = UserModel(
@@ -90,10 +90,12 @@ class AuthRepositoryImpl implements AuthRepository {
       email: updated.email,
       phone: updated.phone ?? currentUser?.phone,
       avatarUrl: updated.avatarUrl ?? currentUser?.avatarUrl,
-      roles: updated.roles.isNotEmpty ? updated.roles : (currentUser?.roles ?? const []),
+      roles: updated.roles.isNotEmpty
+          ? updated.roles
+          : (currentUser?.roles ?? const []),
       token: currentUser?.token,
     );
-    
+
     await _local.saveUser(merged);
     return merged;
   }
@@ -101,7 +103,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<User> uploadAvatar(String filePath) async {
     final updated = await _remote.uploadAvatar(filePath);
-    
+
     // Retrieve current user to keep the auth token!
     final currentUser = await _local.getUser();
     final merged = UserModel(
@@ -110,10 +112,12 @@ class AuthRepositoryImpl implements AuthRepository {
       email: updated.email,
       phone: updated.phone ?? currentUser?.phone,
       avatarUrl: updated.avatarUrl ?? currentUser?.avatarUrl,
-      roles: updated.roles.isNotEmpty ? updated.roles : (currentUser?.roles ?? const []),
+      roles: updated.roles.isNotEmpty
+          ? updated.roles
+          : (currentUser?.roles ?? const []),
       token: currentUser?.token,
     );
-    
+
     await _local.saveUser(merged);
     return merged;
   }

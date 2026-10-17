@@ -42,7 +42,10 @@ class AuthRemoteDataSource {
         email: userJson['email'] as String,
         phone: userJson['phone'] as String?,
         avatarUrl: userJson['avatar_url'] as String?,
-        roles: (userJson['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        roles: (userJson['roles'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
         token: token,
       );
     } on DioException catch (e) {
@@ -85,7 +88,10 @@ class AuthRemoteDataSource {
         email: userJson['email'] as String,
         phone: userJson['phone'] as String?,
         avatarUrl: userJson['avatar_url'] as String?,
-        roles: (userJson['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        roles: (userJson['roles'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
         token: token,
       );
     } on DioException catch (e) {
@@ -105,7 +111,10 @@ class AuthRemoteDataSource {
         email: userJson['email'] as String,
         phone: userJson['phone'] as String?,
         avatarUrl: userJson['avatar_url'] as String?,
-        roles: (userJson['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        roles: (userJson['roles'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
         token: null, // Token will be merged in repository layer
       );
     } on DioException catch (e) {
@@ -132,7 +141,10 @@ class AuthRemoteDataSource {
         email: userJson['email'] as String,
         phone: userJson['phone'] as String?,
         avatarUrl: userJson['avatar_url'] as String?,
-        roles: (userJson['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        roles: (userJson['roles'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
         token: null, // Token will be merged in repository layer
       );
     } on DioException catch (e) {
@@ -161,7 +173,10 @@ class AuthRemoteDataSource {
         email: userJson['email'] as String,
         phone: userJson['phone'] as String?,
         avatarUrl: userJson['avatar_url'] as String?,
-        roles: (userJson['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        roles: (userJson['roles'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
         token: null, // Token will be merged in repository layer
       );
     } on DioException catch (e) {

@@ -89,7 +89,9 @@ melos:
       description: Build web output for the variant app.
 
     test:
-      run: flutter test apps/main/test apps/variant/test packages/core/test packages/features_shared/test
+      # Per paket: menjalankan semua folder sekaligus dari root membuat aset paket
+      # (mis. features_shared/assets/logo.png) tidak ter-bundle untuk test app.
+      run: cd apps/main && flutter test && cd ../variant && flutter test && cd ../../packages/core && flutter test && cd ../features_shared && flutter test
       description: Run tests for all packages and apps.
 
     "test:core":

@@ -43,12 +43,10 @@ class Quotes extends Table {
   TextColumn get source => text().nullable()();
 
   /// Whether the quote is active.
-  BoolColumn get isActive =>
-      boolean().withDefault(const Constant(true))();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
 
   /// Whether this record has been synced with the server.
-  BoolColumn get isSynced =>
-      boolean().withDefault(const Constant(false))();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
   /// Pending sync action: 'create', 'update', 'delete', or null.
   TextColumn get syncAction => text().nullable()();

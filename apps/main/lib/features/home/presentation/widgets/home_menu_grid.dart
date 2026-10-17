@@ -20,13 +20,15 @@ const _menuItems = [
     color: Colors.indigo,
     isGallery: true,
   ),
-  _MenuItem(label: 'Kutipan', icon: Icons.format_quote_rounded, color: Colors.indigo),
+  _MenuItem(
+      label: 'Kutipan', icon: Icons.format_quote_rounded, color: Colors.indigo),
   _MenuItem(
       label: 'Menu 02', icon: Icons.military_tech, color: Colors.deepOrange),
   _MenuItem(label: 'Menu 03', icon: Icons.show_chart, color: Colors.teal),
   _MenuItem(label: 'Menu 04', icon: Icons.storage, color: Colors.amber),
   _MenuItem(label: 'Menu 05', icon: Icons.group_add, color: Colors.green),
-  _MenuItem(label: 'Profil', icon: Icons.person_outline_rounded, color: Colors.cyan),
+  _MenuItem(
+      label: 'Profil', icon: Icons.person_outline_rounded, color: Colors.cyan),
   _MenuItem(label: 'Menu 07', icon: Icons.people, color: Color(0xFF00695C)),
   _MenuItem(label: 'Menu 08', icon: Icons.bar_chart, color: Colors.deepPurple),
   _MenuItem(label: 'Menu 09', icon: Icons.search, color: Colors.teal),
@@ -76,7 +78,7 @@ class _MenuCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     final cellBgColor = colorScheme.primaryContainer;
     final iconColor = colorScheme.onPrimaryContainer;
 
@@ -98,9 +100,9 @@ class _MenuCell extends StatelessWidget {
           Text(
             item.label,
             style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: colorScheme.onSurface.withValues(alpha: 0.8),
-                ),
+              fontWeight: FontWeight.w500,
+              color: colorScheme.onSurface.withValues(alpha: 0.8),
+            ),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,

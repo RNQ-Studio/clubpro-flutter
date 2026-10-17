@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'auth_provider.dart';
 import 'auth_state.dart';
 
-
 /// Compatible with GoRouter's [redirect] callback: `redirect: authRedirect`.
 ///
 /// Returns null during [AuthInitial] and [AuthLoading] to prevent a flash

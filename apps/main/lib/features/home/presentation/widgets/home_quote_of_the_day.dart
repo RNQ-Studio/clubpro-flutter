@@ -16,7 +16,6 @@ class HomeQuoteOfTheDay extends ConsumerStatefulWidget {
 
 class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
   PageController? _pageController;
-  int _currentPage = 0;
 
   @override
   void dispose() {
@@ -44,7 +43,7 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
     if (qotd == null) return [];
 
     final result = <QuoteEntity>[qotd];
-    
+
     // Add other active quotes, excluding QOTD
     final others = activeQuotes.where((q) => q.id != qotd.id).toList();
     result.addAll(others);
@@ -52,15 +51,18 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
     return result;
   }
 
-  void _copyToClipboard(BuildContext context, QuoteEntity quote, AppLocalizations l10n) {
-    final textToCopy = '"${quote.text}"\n\n— ${quote.author}${quote.source != null && quote.source!.isNotEmpty ? " (${quote.source})" : ""}';
+  void _copyToClipboard(
+      BuildContext context, QuoteEntity quote, AppLocalizations l10n) {
+    final textToCopy =
+        '"${quote.text}"\n\n— ${quote.author}${quote.source != null && quote.source!.isNotEmpty ? " (${quote.source})" : ""}';
     Clipboard.setData(ClipboardData(text: textToCopy)).then((_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const Icon(Icons.check_circle_rounded,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -95,7 +97,8 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: _buildShimmerLoading(theme),
       ),
-      error: (err, _) => const SizedBox.shrink(), // Silently hide or show minimal on error
+      error: (err, _) =>
+          const SizedBox.shrink(), // Silently hide or show minimal on error
       data: (quotes) {
         final carouselQuotes = _getCarouselQuotes(quotes);
 
@@ -122,25 +125,20 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
     if (_pageController == null) {
       final initialPage = N > 1 ? (5000 ~/ N) * N : 0;
       _pageController = PageController(initialPage: initialPage);
-      _currentPage = initialPage;
     }
 
     return SizedBox(
       height: 200,
       child: PageView.builder(
         controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _currentPage = index;
-          });
-        },
         itemCount: N > 1 ? 10000 : 1,
         itemBuilder: (context, index) {
           final quoteIndex = index % N;
           final quote = quotes[quoteIndex];
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: _buildPremiumQuoteCard(context, quote, quoteIndex == 0, l10n, theme, isDark),
+            child: _buildPremiumQuoteCard(
+                context, quote, quoteIndex == 0, l10n, theme, isDark),
           );
         },
       ),
@@ -167,7 +165,8 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
           ]
         : [
             colorScheme.primary,
-            colorScheme.primary.withBlue((colorScheme.primary.blue + 40).clamp(0, 255)),
+            colorScheme.primary
+                .withBlue((colorScheme.primary.blue + 40).clamp(0, 255)),
           ];
 
     return Container(
@@ -180,7 +179,8 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: (isDark ? Colors.black : colorScheme.primary).withOpacity(isDark ? 0.4 : 0.25),
+            color: (isDark ? Colors.black : colorScheme.primary)
+                .withOpacity(isDark ? 0.4 : 0.25),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -200,7 +200,7 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
                 color: Colors.white.withOpacity(0.06),
               ),
             ),
-            
+
             // Content
             Material(
               color: Colors.transparent,
@@ -210,7 +210,8 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
                 splashColor: Colors.white.withOpacity(0.08),
                 highlightColor: Colors.white.withOpacity(0.04),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -219,7 +220,8 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.12),
                               borderRadius: BorderRadius.circular(20),
@@ -232,13 +234,18 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  isQotd ? Icons.auto_awesome_rounded : Icons.lightbulb_outline_rounded,
+                                  isQotd
+                                      ? Icons.auto_awesome_rounded
+                                      : Icons.lightbulb_outline_rounded,
                                   color: Colors.amber,
                                   size: 14,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  (isQotd ? l10n.quoteOfTheDayTitle : 'Kutipan Pilihan').toUpperCase(),
+                                  (isQotd
+                                          ? l10n.quoteOfTheDayTitle
+                                          : 'Kutipan Pilihan')
+                                      .toUpperCase(),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 10,
@@ -261,7 +268,8 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
                                 size: 16,
                               ),
                               tooltip: l10n.quotesSave,
-                              onPressed: () => _copyToClipboard(context, quote, l10n),
+                              onPressed: () =>
+                                  _copyToClipboard(context, quote, l10n),
                               constraints: const BoxConstraints(),
                               padding: const EdgeInsets.all(6),
                             ),
@@ -325,7 +333,8 @@ class _HomeQuoteOfTheDayState extends ConsumerState<HomeQuoteOfTheDay> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+  Widget _buildEmptyState(
+      BuildContext context, AppLocalizations l10n, ThemeData theme) {
     final colorScheme = theme.colorScheme;
     return Container(
       width: double.infinity,
