@@ -24,6 +24,7 @@ export 'src/auth/presentation/google_login_screen.dart';
 
 // profile — domain
 export 'src/profile/domain/entities/profile.dart';
+export 'src/profile/domain/entities/member_profile.dart';
 export 'src/profile/domain/repositories/profile_repository.dart';
 export 'src/profile/domain/usecases/get_profile_use_case.dart';
 export 'src/profile/domain/usecases/update_profile_use_case.dart';
@@ -35,6 +36,10 @@ export 'src/profile/data/repositories/profile_repository_impl.dart';
 export 'src/profile/presentation/profile_provider.dart';
 export 'src/profile/presentation/profile_screen.dart';
 export 'src/profile/presentation/edit_profile_screen.dart';
+export 'src/profile/presentation/member_profile_form.dart';
+export 'src/profile/presentation/profile_setup_screen.dart';
+export 'src/profile/presentation/widgets/profile_avatar_picker.dart';
+export 'src/profile/presentation/widgets/profile_completion_card.dart';
 
 // notifications — domain
 export 'src/notifications/domain/entities/app_notification.dart';

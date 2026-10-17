@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'auth_provider.dart';
+import '../domain/entities/user.dart';
 import 'auth_state.dart';
 
 /// Compatible with GoRouter's [redirect] callback: `redirect: authRedirect`.
@@ -32,17 +33,29 @@ const publicAuthPaths = {'/splash', '/onboarding', '/login'};
 
 /// Varian [authRedirect] untuk app yang wajib login: setelah status sesi
 /// diketahui, pengguna yang belum login di rute non-publik diarahkan ke /login.
-String? requireAuthRedirect(BuildContext context, GoRouterState state) {
-  final base = authRedirect(context, state);
-  if (base != null) return base;
+String? requireAuthRedirect(BuildContext context, GoRouterState state) =>
+    requireAuthRedirectWith()(context, state);
 
-  final authState = ProviderScope.containerOf(context).read(authProvider);
-  if (authState is AuthInitial || authState is AuthLoading) return null;
+/// Seperti [requireAuthRedirect], dengan tujuan sesudah login yang ditentukan
+/// app (mis. form data diri bila profil belum lengkap). Pakai fungsi yang sama
+/// di `GoogleLoginScreen.onLoggedIn` agar keduanya selalu sepakat.
+String? Function(BuildContext, GoRouterState) requireAuthRedirectWith({
+  String Function(User user)? afterLogin,
+}) =>
+    (context, state) {
+      final authState = ProviderScope.containerOf(context).read(authProvider);
+      if (authState is AuthInitial || authState is AuthLoading) return null;
 
-  final isPublic = publicAuthPaths.contains(state.matchedLocation);
-  if (authState is! AuthAuthenticated && !isPublic) return '/login';
-  return null;
-}
+      final location = state.matchedLocation;
+      if (location == '/splash' || location == '/onboarding') return null;
+
+      if (authState is AuthAuthenticated) {
+        return location == '/login'
+            ? (afterLogin?.call(authState.user) ?? '/')
+            : null;
+      }
+      return publicAuthPaths.contains(location) ? null : '/login';
+    };
 
 class AuthGuard extends ConsumerWidget {
   const AuthGuard({super.key, required this.child});

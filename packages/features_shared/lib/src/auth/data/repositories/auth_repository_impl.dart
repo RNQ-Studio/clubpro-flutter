@@ -1,8 +1,8 @@
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
-import '../google_sign_in_service.dart';
 import '../datasources/auth_remote_data_source.dart';
+import '../google_sign_in_service.dart';
 import '../models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -17,6 +17,16 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remote;
   final AuthLocalDataSource _local;
   final GoogleSignInService? _google;
+
+  @override
+  Future<User> login({
+    required String email,
+    required String password,
+  }) async {
+    final user = await _remote.login(email: email, password: password);
+    await _local.saveUser(user);
+    return user;
+  }
 
   @override
   Future<User> loginWithGoogle() async {
@@ -34,16 +44,6 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> clearSession() async {
     await _local.clearUser();
     await _google?.signOut();
-  }
-
-  @override
-  Future<User> login({
-    required String email,
-    required String password,
-  }) async {
-    final user = await _remote.login(email: email, password: password);
-    await _local.saveUser(user);
-    return user;
   }
 
   @override
@@ -81,17 +81,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
     try {
       final fresh = await _remote.getMe();
-      final merged = UserModel(
-        id: fresh.id,
-        name: fresh.name,
-        email: fresh.email,
-        phone: fresh.phone ?? cached.phone,
-        avatarUrl: fresh.avatarUrl ?? cached.avatarUrl,
-        roles: fresh.roles.isNotEmpty ? fresh.roles : cached.roles,
-        token: cached.token,
-      );
-      await _local.saveUser(merged);
-      return merged;
+      return _keepToken(fresh, cached);
     } catch (_) {
       // Gracefully fallback to cached user on connection failure/offline
       return cached;
@@ -99,48 +89,20 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<User> updateProfile({
-    required String name,
-    required String email,
-  }) async {
-    final updated = await _remote.updateProfile({'name': name, 'email': email});
-
-    // Retrieve current user to keep the auth token!
-    final currentUser = await _local.getUser();
-    final merged = UserModel(
-      id: updated.id,
-      name: updated.name,
-      email: updated.email,
-      phone: updated.phone ?? currentUser?.phone,
-      avatarUrl: updated.avatarUrl ?? currentUser?.avatarUrl,
-      roles: updated.roles.isNotEmpty
-          ? updated.roles
-          : (currentUser?.roles ?? const []),
-      token: currentUser?.token,
-    );
-
-    await _local.saveUser(merged);
-    return merged;
+  Future<User> updateProfile(Map<String, Object?> fields) async {
+    final updated = await _remote.updateProfile(fields);
+    return _keepToken(updated, await _local.getUser());
   }
 
   @override
   Future<User> uploadAvatar(String filePath) async {
     final updated = await _remote.uploadAvatar(filePath);
+    return _keepToken(updated, await _local.getUser());
+  }
 
-    // Retrieve current user to keep the auth token!
-    final currentUser = await _local.getUser();
-    final merged = UserModel(
-      id: updated.id,
-      name: updated.name,
-      email: updated.email,
-      phone: updated.phone ?? currentUser?.phone,
-      avatarUrl: updated.avatarUrl ?? currentUser?.avatarUrl,
-      roles: updated.roles.isNotEmpty
-          ? updated.roles
-          : (currentUser?.roles ?? const []),
-      token: currentUser?.token,
-    );
-
+  /// Data user terbaru dari server + token sesi yang sedang dipakai.
+  Future<UserModel> _keepToken(UserModel fresh, UserModel? current) async {
+    final merged = fresh.copyWith(token: current?.token);
     await _local.saveUser(merged);
     return merged;
   }

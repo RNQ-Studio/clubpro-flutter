@@ -17,6 +17,9 @@ abstract class AuthRepository {
     required String password,
   });
   Future<User?> getCurrentUser();
-  Future<User> updateProfile({required String name, required String email});
+
+  /// Simpan sebagian data diri: hanya kunci di [fields] yang diubah
+  /// (kunci API, mis. `birth_date`); nilai kosong mengosongkan isian.
+  Future<User> updateProfile(Map<String, Object?> fields);
   Future<User> uploadAvatar(String filePath);
 }

@@ -23,9 +23,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<void> updateProfile(Profile profile) async {
-    await _authRepository.updateProfile(
-      name: profile.name,
-      email: profile.email,
-    );
+    await _authRepository.updateProfile({
+      'name': profile.name,
+      'email': profile.email,
+    });
   }
 }

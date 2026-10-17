@@ -11,10 +11,14 @@ import '../features/ui_gallery/screens/ui_gallery_home_screen.dart';
 import '../features/quotes/presentation/screens/quotes_screen.dart';
 import '../features/quotes/presentation/screens/quote_form_screen.dart';
 
+/// Sesudah login: data diri belum lengkap → form data diri, selain itu Beranda.
+String afterLoginLocation(User user) =>
+    user.completion.isComplete ? '/' : AppRoutes.profileSetup;
+
 final appRouter = GoRouter(
   initialLocation: '/splash',
   // Semua halaman selain splash/onboarding/login wajib login.
-  redirect: requireAuthRedirect,
+  redirect: requireAuthRedirectWith(afterLogin: afterLoginLocation),
   observers: [AppNavigatorObserver()],
   routes: [
     ...buildAuthRoutes(
@@ -28,11 +32,17 @@ final appRouter = GoRouter(
         pages: ClubBrand.onboardingPages,
         completeLocation: '/login',
       ),
-      login: () => const GoogleLoginScreen(
+      login: () => GoogleLoginScreen(
         title: ClubBrand.name,
         subtitle: ClubBrand.loginSubtitle,
-        logo: ClubLogo(size: 112),
+        logo: const ClubLogo(size: 112),
+        onLoggedIn: (context, state) =>
+            context.go(afterLoginLocation(state.user)),
       ),
+    ),
+    GoRoute(
+      path: AppRoutes.profileSetup,
+      builder: (context, state) => const ProfileSetupScreen(),
     ),
     settingsRoute,
     profileRoute,

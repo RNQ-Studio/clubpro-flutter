@@ -99,20 +99,13 @@ class AuthNotifier extends _$AuthNotifier {
     }
   }
 
-  Future<void> updateUserProfile({
-    required String name,
-    required String email,
-  }) async {
+  /// Simpan sebagian data diri. Error diteruskan ke pemanggil (form) agar
+  /// pesan validasi bisa ditampilkan; state tetap terautentikasi.
+  Future<void> updateProfile(Map<String, Object?> fields) async {
     if (state is! AuthAuthenticated) return;
-
-    final repository = ref.read(authRepositoryProvider);
-    try {
-      final updatedUser =
-          await repository.updateProfile(name: name, email: email);
-      state = AuthAuthenticated(updatedUser);
-    } catch (e) {
-      rethrow;
-    }
+    final updatedUser =
+        await ref.read(authRepositoryProvider).updateProfile(fields);
+    state = AuthAuthenticated(updatedUser);
   }
 
   /// Authenticate using device biometrics (fingerprint / Face ID).

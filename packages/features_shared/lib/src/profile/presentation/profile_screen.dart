@@ -2,237 +2,276 @@ import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 
+import '../../auth/domain/entities/user.dart';
 import '../../auth/presentation/auth_provider.dart';
-import 'profile_provider.dart';
+import '../../auth/presentation/auth_state.dart';
+import 'widgets/profile_avatar_picker.dart';
+import 'widgets/profile_completion_card.dart';
 
-class ProfileScreen extends ConsumerStatefulWidget {
+/// Profil anggota: data diri, petunjuk kelengkapan / penanda profil lengkap,
+/// pengaturan, dan keluar.
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
-  @override
-  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  bool _isUploading = false;
-
-  Future<void> _pickAndUploadAvatar() async {
-    final picker = ImagePicker();
-    try {
-      final image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 85,
-      );
-
-      if (image == null) return;
-
-      setState(() {
-        _isUploading = true;
-      });
-
-      await ref.read(authProvider.notifier).uploadAvatar(image.path);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Foto profil berhasil diperbarui')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengunggah foto: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isUploading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final profileAsync = ref.watch(profileProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profile),
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Keluar dari akun?'),
+        content: const Text(
+            'Anda perlu masuk lagi dengan Google untuk membuka aplikasi.'),
         actions: [
-          profileAsync.maybeWhen(
-            data: (profile) => profile != null
-                ? IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    onPressed: () => context.push(AppRoutes.editProfile),
-                    tooltip: 'Ubah Profil',
-                  )
-                : const SizedBox.shrink(),
-            orElse: () => const SizedBox.shrink(),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Keluar'),
           ),
         ],
       ),
-      body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => Center(child: Text(l10n.errorGeneral)),
-        data: (profile) => profile == null
-            ? Center(child: Text(l10n.errorGeneral))
-            : ListView(
-                padding: const EdgeInsets.all(24),
+    );
+    if (confirmed == true) await ref.read(authProvider.notifier).logout();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    if (authState is! AuthAuthenticated) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final user = authState.user;
+    final completion = user.completion;
+    final theme = Theme.of(context);
+    void edit() => context.push(AppRoutes.editProfile);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profil'),
+        actions: [
+          IconButton(
+            tooltip: 'Ubah data diri',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: edit,
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(authProvider.notifier).checkCurrentUser(),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          children: [
+            const Center(child: ProfileAvatarPicker(radius: 52)),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    user.name,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (completion.isComplete) ...[
+                  const SizedBox(width: 6),
+                  const Tooltip(
+                    message: 'Profil lengkap',
+                    child: Icon(Icons.verified_rounded,
+                        key: Key('profile-verified-icon'),
+                        color: Color(0xFF178A5B),
+                        size: 22),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              user.email,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ProfileCompletionCard(
+              completion: completion,
+              onComplete: completion.isComplete ? null : edit,
+            ),
+            _DetailsSection(
+              title: 'Data Pribadi',
+              icon: Icons.badge_outlined,
+              rows: [
+                ('Jenis kelamin', user.gender?.label),
+                ('Tempat, tanggal lahir', _birth(user)),
+                ('Nomor HP / WhatsApp', user.phone),
+                ('Alamat', user.address),
+              ],
+            ),
+            _DetailsSection(
+              title: 'Panahan',
+              icon: Icons.sports_score_outlined,
+              rows: [
+                ('Mulai berlatih', _archerySince(user.archeryStartedAt)),
+                ('Jenis busur', user.bowType?.label),
+              ],
+            ),
+            _DetailsSection(
+              title: 'Kesehatan & Kontak Darurat',
+              icon: Icons.health_and_safety_outlined,
+              rows: [
+                ('Golongan darah', user.bloodType?.label),
+                ('Kontak darurat', _emergency(user)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Card(
+              elevation: 0,
+              color: theme.colorScheme.surfaceContainerLow,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
                 children: [
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Stack(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.1),
-                              width: 4,
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            radius: 50,
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primaryContainer,
-                            backgroundImage: profile.avatarUrl != null
-                                ? NetworkImage(profile.avatarUrl!)
-                                : null,
-                            child: profile.avatarUrl == null
-                                ? Text(
-                                    profile.name.isNotEmpty
-                                        ? profile.name[0].toUpperCase()
-                                        : '?',
-                                    style: TextStyle(
-                                      fontSize: 36,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimaryContainer,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        ),
-                        if (_isUploading)
-                          Positioned.fill(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.4),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        if (!_isUploading)
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color:
-                                      Theme.of(context).scaffoldBackgroundColor,
-                                  width: 2.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.15),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  customBorder: const CircleBorder(),
-                                  onTap: _pickAndUploadAvatar,
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(8),
-                                    child: Icon(
-                                      Icons.camera_alt_rounded,
-                                      size: 20,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                  ListTile(
+                    leading: const Icon(Icons.settings_outlined),
+                    title: const Text('Pengaturan'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push(AppRoutes.settings),
                   ),
-                  const SizedBox(height: 32),
-                  Card(
-                    elevation: 0,
-                    color: Theme.of(context).colorScheme.surfaceContainerLow,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        children: [
-                          ListTile(
-                            leading: Icon(
-                              Icons.person_outline_rounded,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            title: Text(l10n.name),
-                            subtitle: Text(profile.name),
-                          ),
-                          const Divider(indent: 56, endIndent: 16),
-                          ListTile(
-                            leading: Icon(
-                              Icons.email_outlined,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            title: Text(l10n.email),
-                            subtitle: Text(profile.email),
-                          ),
-                        ],
+                  const Divider(height: 1, indent: 56),
+                  ListTile(
+                    key: const Key('logout'),
+                    leading: Icon(Icons.logout_rounded,
+                        color: theme.colorScheme.error),
+                    title: Text(
+                      'Keluar',
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Card(
-                    elevation: 0,
-                    color: Theme.of(context).colorScheme.surfaceContainerLow,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.logout_rounded,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      title: Text(
-                        l10n.logout,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      onTap: () => ref.read(authProvider.notifier).logout(),
-                    ),
+                    onTap: () => _confirmLogout(context, ref),
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String? _birth(User user) {
+    final date = user.birthDate == null
+        ? null
+        : AppDateUtils.longDateId(user.birthDate!);
+    final parts = [user.birthPlace, date]
+        .whereType<String>()
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
+    return parts.isEmpty ? null : parts.join(', ');
+  }
+
+  static String? _emergency(User user) {
+    final parts = [user.emergencyContactName, user.emergencyContactPhone]
+        .whereType<String>()
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  /// "Juli 2019 (7 tahun)" / "Mei 2026 (5 bulan)".
+  static String? _archerySince(DateTime? start, {DateTime? now}) {
+    if (start == null) return null;
+    final today = now ?? DateTime.now();
+    final months = (today.year - start.year) * 12 + (today.month - start.month);
+    final duration = months >= 12
+        ? '${months ~/ 12} tahun'
+        : months > 0
+            ? '$months bulan'
+            : 'bulan ini';
+    return '${AppDateUtils.monthYearId(start)} ($duration)';
+  }
+}
+
+class _DetailsSection extends StatelessWidget {
+  const _DetailsSection({
+    required this.title,
+    required this.icon,
+    required this.rows,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<(String, String?)> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Card(
+            elevation: 0,
+            margin: EdgeInsets.zero,
+            color: theme.colorScheme.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                children: [
+                  for (final (label, value) in rows)
+                    ListTile(
+                      dense: true,
+                      title: Text(
+                        label,
+                        style:
+                            theme.textTheme.bodySmall?.copyWith(color: muted),
+                      ),
+                      subtitle: Text(
+                        (value == null || value.trim().isEmpty)
+                            ? 'Belum diisi'
+                            : value,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: (value == null || value.trim().isEmpty)
+                              ? muted.withValues(alpha: 0.7)
+                              : theme.colorScheme.onSurface,
+                          fontStyle: (value == null || value.trim().isEmpty)
+                              ? FontStyle.italic
+                              : null,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
