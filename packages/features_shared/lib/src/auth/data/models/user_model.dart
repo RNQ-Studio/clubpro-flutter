@@ -9,9 +9,13 @@ class UserModel extends User {
     super.avatarUrl,
     super.roles,
     this.token,
+    this.refreshToken,
   });
 
   final String? token;
+
+  /// Disimpan terpisah dari JSON user (lihat AuthLocalDataSource).
+  final String? refreshToken;
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
         id: json['id'].toString(),
@@ -35,4 +39,15 @@ class UserModel extends User {
         'roles': roles,
         if (token != null) 'token': token,
       };
+
+  UserModel copyWith({String? token, String? refreshToken}) => UserModel(
+        id: id,
+        name: name,
+        email: email,
+        phone: phone,
+        avatarUrl: avatarUrl,
+        roles: roles,
+        token: token ?? this.token,
+        refreshToken: refreshToken ?? this.refreshToken,
+      );
 }

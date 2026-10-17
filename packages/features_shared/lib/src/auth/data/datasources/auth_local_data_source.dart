@@ -9,7 +9,8 @@ class AuthLocalDataSource {
 
   final StorageService _storage;
 
-  static const _tokenKey = 'auth_token';
+  static const _tokenKey = AppConstants.keyAuthToken;
+  static const _refreshTokenKey = AppConstants.keyRefreshToken;
   static const _userKey = 'auth_user';
 
   Future<void> saveUser(UserModel user) async {
@@ -18,6 +19,10 @@ class AuthLocalDataSource {
       await _storage.write(_tokenKey, user.token!);
     } else {
       await _storage.delete(_tokenKey);
+    }
+    // Hanya ditulis saat login/refresh; pembaruan profil tidak membawanya.
+    if (user.refreshToken != null) {
+      await _storage.write(_refreshTokenKey, user.refreshToken!);
     }
   }
 
@@ -35,6 +40,7 @@ class AuthLocalDataSource {
 
   Future<void> clearUser() async {
     await _storage.delete(_tokenKey);
+    await _storage.delete(_refreshTokenKey);
     await _storage.delete(_userKey);
   }
 

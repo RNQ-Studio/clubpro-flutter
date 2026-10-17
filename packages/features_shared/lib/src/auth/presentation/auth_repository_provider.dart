@@ -2,9 +2,11 @@ import 'package:core/core.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/datasources/auth_local_data_source.dart';
+import '../data/google_sign_in_service.dart';
 import '../data/datasources/auth_remote_data_source.dart';
 import '../data/repositories/auth_repository_impl.dart';
 import '../domain/repositories/auth_repository.dart';
+import 'auth_notifier.dart';
 
 part 'auth_repository_provider.g.dart';
 
@@ -17,7 +19,18 @@ StorageService storageService(Ref ref) {
 
 @Riverpod(keepAlive: true)
 DioClient _dioClient(Ref ref) {
-  return DioClient(ref.watch(storageServiceProvider));
+  return DioClient(
+    ref.watch(storageServiceProvider),
+    // Refresh token ditolak → akhiri sesi agar router membuka /login.
+    onLogout: () => ref.read(authProvider.notifier).sessionExpired(),
+  );
+}
+
+@Riverpod(keepAlive: true)
+GoogleSignInService googleSignInService(Ref ref) {
+  return GoogleSignInService(
+    serverClientId: AppConfig.instance.googleServerClientId,
+  );
 }
 
 @Riverpod(keepAlive: true)
@@ -35,5 +48,6 @@ AuthRepository authRepository(Ref ref) {
   return AuthRepositoryImpl(
     remote: ref.watch(_authRemoteDataSourceProvider),
     local: ref.watch(_authLocalDataSourceProvider),
+    google: ref.watch(googleSignInServiceProvider),
   );
 }

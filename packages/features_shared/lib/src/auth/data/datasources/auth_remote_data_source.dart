@@ -13,43 +13,32 @@ class AuthRemoteDataSource {
     required String password,
   }) async {
     try {
-      // 1. Post to login endpoint
       final response = await _dio.post(
         'v1/auth/login',
         data: {'email': email, 'password': password},
       );
-
-      final responseData = response.data as Map<String, dynamic>;
-      final tokensData = responseData['data'] as Map<String, dynamic>;
-      final token = tokensData['access_token'] as String;
-
-      // 2. Fetch the user profile from /v1/auth/me using this token manually
-      final profileResponse = await _dio.get(
-        'v1/auth/me',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        ),
-      );
-
-      final profileData = profileResponse.data as Map<String, dynamic>;
-      final userJson = profileData['data'] as Map<String, dynamic>;
-
-      return UserModel(
-        id: userJson['id'].toString(), // Safely convert integer ID to string
-        name: userJson['name'] as String,
-        email: userJson['email'] as String,
-        phone: userJson['phone'] as String?,
-        avatarUrl: userJson['avatar_url'] as String?,
-        roles: (userJson['roles'] as List<dynamic>?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            const [],
-        token: token,
-      );
+      return _withProfile(_data(response));
     } on DioException catch (e) {
       throw e.error ?? ServerException(e.message ?? 'Login failed');
+    }
+  }
+
+  /// Tukar ID token Google dengan token backend, lalu ambil profil.
+  Future<({UserModel user, bool isNewUser})> loginWithGoogle(
+    String idToken,
+  ) async {
+    try {
+      final response = await _dio.post(
+        'v1/auth/google',
+        data: {'id_token': idToken},
+      );
+      final tokens = _data(response);
+      return (
+        user: await _withProfile(tokens),
+        isNewUser: tokens['is_new_user'] == true,
+      );
+    } on DioException catch (e) {
+      throw _googleLoginError(e);
     }
   }
 
@@ -59,41 +48,11 @@ class AuthRemoteDataSource {
     required String password,
   }) async {
     try {
-      // 1. Post to register endpoint
       final response = await _dio.post(
         'v1/auth/register',
         data: {'name': name, 'email': email, 'password': password},
       );
-
-      final responseData = response.data as Map<String, dynamic>;
-      final tokensData = responseData['data'] as Map<String, dynamic>;
-      final token = tokensData['access_token'] as String;
-
-      // 2. Fetch the user profile from /v1/auth/me using this token manually
-      final profileResponse = await _dio.get(
-        'v1/auth/me',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        ),
-      );
-
-      final profileData = profileResponse.data as Map<String, dynamic>;
-      final userJson = profileData['data'] as Map<String, dynamic>;
-
-      return UserModel(
-        id: userJson['id'].toString(), // Safely convert integer ID to string
-        name: userJson['name'] as String,
-        email: userJson['email'] as String,
-        phone: userJson['phone'] as String?,
-        avatarUrl: userJson['avatar_url'] as String?,
-        roles: (userJson['roles'] as List<dynamic>?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            const [],
-        token: token,
-      );
+      return _withProfile(_data(response));
     } on DioException catch (e) {
       throw e.error ?? ServerException(e.message ?? 'Register failed');
     }
@@ -102,53 +61,22 @@ class AuthRemoteDataSource {
   Future<UserModel> getMe() async {
     try {
       final response = await _dio.get('v1/auth/me');
-      final responseData = response.data as Map<String, dynamic>;
-      final userJson = responseData['data'] as Map<String, dynamic>;
-
-      return UserModel(
-        id: userJson['id'].toString(),
-        name: userJson['name'] as String,
-        email: userJson['email'] as String,
-        phone: userJson['phone'] as String?,
-        avatarUrl: userJson['avatar_url'] as String?,
-        roles: (userJson['roles'] as List<dynamic>?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            const [],
-        token: null, // Token will be merged in repository layer
-      );
+      // Token digabung di lapisan repository.
+      return UserModel.fromJson(_data(response));
     } on DioException catch (e) {
       throw e.error ?? ServerException(e.message ?? 'Failed to fetch profile');
     }
   }
 
-  Future<UserModel> updateProfile({
-    required String name,
-    required String email,
-  }) async {
+  /// Simpan sebagian data diri: hanya kunci di [fields] yang dikirim.
+  Future<UserModel> updateProfile(Map<String, Object?> fields) async {
     try {
-      final response = await _dio.put(
-        'v1/auth/me',
-        data: {'name': name, 'email': email},
-      );
-
-      final responseData = response.data as Map<String, dynamic>;
-      final userJson = responseData['data'] as Map<String, dynamic>;
-
-      return UserModel(
-        id: userJson['id'].toString(),
-        name: userJson['name'] as String,
-        email: userJson['email'] as String,
-        phone: userJson['phone'] as String?,
-        avatarUrl: userJson['avatar_url'] as String?,
-        roles: (userJson['roles'] as List<dynamic>?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            const [],
-        token: null, // Token will be merged in repository layer
-      );
+      final response = await _dio.put('v1/auth/me', data: fields);
+      return UserModel.fromJson(_data(response));
     } on DioException catch (e) {
-      throw e.error ?? ServerException(e.message ?? 'Update profile failed');
+      throw _validationError(e) ??
+          e.error ??
+          ServerException(e.message ?? 'Update profile failed');
     }
   }
 
@@ -159,28 +87,12 @@ class AuthRemoteDataSource {
         'avatar': await MultipartFile.fromFile(filePath, filename: fileName),
       });
 
-      final response = await _dio.post(
-        'v1/auth/avatar',
-        data: formData,
-      );
-
-      final responseData = response.data as Map<String, dynamic>;
-      final userJson = responseData['data'] as Map<String, dynamic>;
-
-      return UserModel(
-        id: userJson['id'].toString(),
-        name: userJson['name'] as String,
-        email: userJson['email'] as String,
-        phone: userJson['phone'] as String?,
-        avatarUrl: userJson['avatar_url'] as String?,
-        roles: (userJson['roles'] as List<dynamic>?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            const [],
-        token: null, // Token will be merged in repository layer
-      );
+      final response = await _dio.post('v1/auth/avatar', data: formData);
+      return UserModel.fromJson(_data(response));
     } on DioException catch (e) {
-      throw e.error ?? ServerException(e.message ?? 'Upload avatar failed');
+      throw _validationError(e) ??
+          e.error ??
+          ServerException(e.message ?? 'Upload avatar failed');
     }
   }
 
@@ -190,5 +102,51 @@ class AuthRemoteDataSource {
     } on DioException catch (e) {
       throw e.error ?? ServerException(e.message ?? 'Logout failed');
     }
+  }
+
+  /// Ambil `/me` dengan access token yang baru diterbitkan.
+  Future<UserModel> _withProfile(Map<String, dynamic> tokens) async {
+    final token = tokens['access_token'] as String;
+    final profileResponse = await _dio.get(
+      'v1/auth/me',
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+    return UserModel.fromJson(_data(profileResponse)).copyWith(
+      token: token,
+      refreshToken: tokens['refresh_token'] as String?,
+    );
+  }
+
+  static Map<String, dynamic> _data(Response<dynamic> response) =>
+      (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>;
+
+  static Object _googleLoginError(DioException e) {
+    final status = e.response?.statusCode;
+    return switch (status) {
+      401 => const ServerException(
+          'Akun Google tidak dapat diverifikasi. Silakan coba lagi.'),
+      403 => const ServerException(
+          'Akun Anda dinonaktifkan. Hubungi pengurus club.'),
+      429 => const ServerException(
+          'Terlalu banyak percobaan masuk. Coba lagi beberapa saat lagi.'),
+      503 => const ServerException(
+          'Login Google belum diaktifkan di server. Hubungi pengurus club.'),
+      _ => e.error ?? ServerException(e.message ?? 'Login Google gagal'),
+    };
+  }
+
+  /// Pesan validasi pertama dari server (422) agar bisa ditampilkan apa adanya.
+  static ServerException? _validationError(DioException e) {
+    if (e.response?.statusCode != 422) return null;
+    final body = e.response?.data;
+    if (body is! Map) return null;
+    final errors = body['errors'];
+    if (errors is Map && errors.isNotEmpty) {
+      final first = errors.values.first;
+      if (first is List && first.isNotEmpty) {
+        return ServerException(first.first.toString());
+      }
+    }
+    return ServerException((body['message'] ?? 'Data tidak valid').toString());
   }
 }

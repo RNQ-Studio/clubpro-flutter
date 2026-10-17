@@ -12,6 +12,7 @@ export 'src/auth/data/datasources/auth_local_data_source.dart';
 export 'src/auth/data/datasources/auth_remote_data_source.dart';
 export 'src/auth/data/repositories/auth_repository_impl.dart';
 export 'src/auth/data/biometric_auth_service.dart';
+export 'src/auth/data/google_sign_in_service.dart';
 
 // auth — presentation
 export 'src/auth/presentation/auth_guard.dart';
@@ -19,6 +20,7 @@ export 'src/auth/presentation/auth_provider.dart';
 export 'src/auth/presentation/auth_routes.dart';
 export 'src/auth/presentation/auth_state.dart';
 export 'src/auth/presentation/login_screen.dart';
+export 'src/auth/presentation/google_login_screen.dart';
 
 // profile — domain
 export 'src/profile/domain/entities/profile.dart';

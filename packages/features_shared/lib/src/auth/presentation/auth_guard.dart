@@ -27,6 +27,23 @@ String? authRedirect(BuildContext context, GoRouterState state) {
   return null;
 }
 
+/// Rute yang boleh dibuka tanpa login.
+const publicAuthPaths = {'/splash', '/onboarding', '/login'};
+
+/// Varian [authRedirect] untuk app yang wajib login: setelah status sesi
+/// diketahui, pengguna yang belum login di rute non-publik diarahkan ke /login.
+String? requireAuthRedirect(BuildContext context, GoRouterState state) {
+  final base = authRedirect(context, state);
+  if (base != null) return base;
+
+  final authState = ProviderScope.containerOf(context).read(authProvider);
+  if (authState is AuthInitial || authState is AuthLoading) return null;
+
+  final isPublic = publicAuthPaths.contains(state.matchedLocation);
+  if (authState is! AuthAuthenticated && !isPublic) return '/login';
+  return null;
+}
+
 class AuthGuard extends ConsumerWidget {
   const AuthGuard({super.key, required this.child});
 

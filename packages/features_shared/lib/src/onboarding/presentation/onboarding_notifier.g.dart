@@ -73,7 +73,7 @@ final class OnboardingNotifierProvider
 }
 
 String _$onboardingNotifierHash() =>
-    r'7d5439818b77826612dd9f4e7c0ee732300df55b';
+    r'91dc8d967a7ba0bcfe58d168dd9e41a96628966b';
 
 abstract class _$OnboardingNotifier extends $AsyncNotifier<bool> {
   FutureOr<bool> build();

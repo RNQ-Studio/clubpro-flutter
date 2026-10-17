@@ -13,7 +13,8 @@ import '../features/quotes/presentation/screens/quote_form_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
-  redirect: authRedirect,
+  // Semua halaman selain splash/onboarding/login wajib login.
+  redirect: requireAuthRedirect,
   observers: [AppNavigatorObserver()],
   routes: [
     ...buildAuthRoutes(
@@ -21,9 +22,17 @@ final appRouter = GoRouter(
         title: ClubBrand.name,
         tagline: ClubBrand.tagline,
         logo: ClubLogo(size: 80),
+        requireLogin: true,
       ),
-      onboarding: () =>
-          const OnboardingScreen(pages: ClubBrand.onboardingPages),
+      onboarding: () => const OnboardingScreen(
+        pages: ClubBrand.onboardingPages,
+        completeLocation: '/login',
+      ),
+      login: () => const GoogleLoginScreen(
+        title: ClubBrand.name,
+        subtitle: ClubBrand.loginSubtitle,
+        logo: ClubLogo(size: 112),
+      ),
     ),
     settingsRoute,
     profileRoute,

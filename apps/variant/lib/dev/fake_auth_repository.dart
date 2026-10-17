@@ -22,6 +22,22 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<User> loginWithGoogle() async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    _currentUser = const User(
+      id: 'dev-001',
+      name: 'Dev User',
+      email: 'dev@example.com',
+    );
+    return _currentUser!;
+  }
+
+  @override
+  Future<void> clearSession() async {
+    _currentUser = null;
+  }
+
+  @override
   Future<void> logout() async {
     _currentUser = null;
   }

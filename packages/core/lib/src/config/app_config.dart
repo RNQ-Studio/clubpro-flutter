@@ -3,7 +3,16 @@ abstract class AppConfig {
 
   String get baseUrl;
   Environment get environment;
+
+  /// Web client ID OAuth Google (serverClientId) untuk login Google; audiens
+  /// ID token yang diverifikasi backend. Diisi saat build:
+  /// `--dart-define=GOOGLE_SERVER_CLIENT_ID=xxxx.apps.googleusercontent.com`.
+  /// `null` = login Google belum dikonfigurasi.
+  String? get googleServerClientId =>
+      _googleServerClientId.isEmpty ? null : _googleServerClientId;
 }
+
+const _googleServerClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
 
 enum Environment {
   dev,

@@ -93,7 +93,51 @@ final class _DioClientProvider
   }
 }
 
-String _$_dioClientHash() => r'c02614c50d6daebcbf60da2e604f251c42cb8cae';
+String _$_dioClientHash() => r'a005edf1935e40cd4ff045e6a242c57efd4f2d35';
+
+@ProviderFor(googleSignInService)
+final googleSignInServiceProvider = GoogleSignInServiceProvider._();
+
+final class GoogleSignInServiceProvider extends $FunctionalProvider<
+    GoogleSignInService,
+    GoogleSignInService,
+    GoogleSignInService> with $Provider<GoogleSignInService> {
+  GoogleSignInServiceProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'googleSignInServiceProvider',
+          isAutoDispose: false,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$googleSignInServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<GoogleSignInService> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  GoogleSignInService create(Ref ref) {
+    return googleSignInService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GoogleSignInService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GoogleSignInService>(value),
+    );
+  }
+}
+
+String _$googleSignInServiceHash() =>
+    r'7c5e1b61240a2acb5a2d5cfd32741be2171deec2';
 
 @ProviderFor(_authRemoteDataSource)
 final _authRemoteDataSourceProvider = _AuthRemoteDataSourceProvider._();
@@ -222,4 +266,4 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'8f17b76cf246b45609e8ffe127dcc9d64ee22cb4';
+String _$authRepositoryHash() => r'220747c5facff8f0fb5492754fb64da0ab783650';

@@ -8,6 +8,8 @@ abstract final class ClubBrand {
   static const name = 'Anak Langit Archery';
   static const shortName = 'Anak Langit';
   static const tagline = 'Aplikasi Anggota Club Panahan';
+  static const loginSubtitle = 'Masuk untuk mengakses jadwal latihan, absensi, '
+      'prestasi, dan iuran bulanan club.';
 
   // Warna aksen mengikuti cincin target (biru, emas, merah) di atas tema monokrom.
   static const blue = Color(0xFF1E6FD9);

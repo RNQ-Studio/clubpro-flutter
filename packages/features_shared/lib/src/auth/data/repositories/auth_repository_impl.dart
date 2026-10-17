@@ -1,6 +1,7 @@
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
+import '../google_sign_in_service.dart';
 import '../datasources/auth_remote_data_source.dart';
 import '../models/user_model.dart';
 
@@ -8,11 +9,32 @@ class AuthRepositoryImpl implements AuthRepository {
   const AuthRepositoryImpl({
     required AuthRemoteDataSource remote,
     required AuthLocalDataSource local,
+    GoogleSignInService? google,
   })  : _remote = remote,
-        _local = local;
+        _local = local,
+        _google = google;
 
   final AuthRemoteDataSource _remote;
   final AuthLocalDataSource _local;
+  final GoogleSignInService? _google;
+
+  @override
+  Future<User> loginWithGoogle() async {
+    final google = _google;
+    if (google == null) {
+      throw StateError('GoogleSignInService belum disediakan.');
+    }
+    final idToken = await google.obtainIdToken();
+    final result = await _remote.loginWithGoogle(idToken);
+    await _local.saveUser(result.user);
+    return result.user;
+  }
+
+  @override
+  Future<void> clearSession() async {
+    await _local.clearUser();
+    await _google?.signOut();
+  }
 
   @override
   Future<User> login({
@@ -33,6 +55,7 @@ class AuthRepositoryImpl implements AuthRepository {
       // we must still clear the local user session.
     } finally {
       await _local.clearUser();
+      await _google?.signOut();
     }
   }
 
@@ -80,7 +103,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String name,
     required String email,
   }) async {
-    final updated = await _remote.updateProfile(name: name, email: email);
+    final updated = await _remote.updateProfile({'name': name, 'email': email});
 
     // Retrieve current user to keep the auth token!
     final currentUser = await _local.getUser();

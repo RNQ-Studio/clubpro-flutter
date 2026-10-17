@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/biometric_auth_service.dart';
+import '../data/google_sign_in_service.dart';
 import '../domain/usecases/get_current_user_use_case.dart';
 import '../domain/usecases/login_use_case.dart';
 import '../domain/usecases/logout_use_case.dart';
@@ -46,6 +47,30 @@ class AuthNotifier extends _$AuthNotifier {
       state = AuthAuthenticated(user);
     } catch (e) {
       state = AuthError(e.toString());
+    }
+  }
+
+  /// Masuk dengan akun Google. Batal memilih akun → kembali ke belum login
+  /// tanpa pesan error.
+  Future<void> loginWithGoogle() async {
+    state = const AuthLoading();
+    try {
+      final user = await ref.read(authRepositoryProvider).loginWithGoogle();
+      state = AuthAuthenticated(user);
+    } on GoogleSignInCancelled {
+      state = const AuthUnauthenticated();
+    } catch (e) {
+      state = AuthError(e.toString());
+    }
+  }
+
+  /// Dipanggil saat refresh token ditolak server: sesi berakhir, kembali ke login.
+  Future<void> sessionExpired() async {
+    if (state is AuthUnauthenticated) return;
+    try {
+      await ref.read(authRepositoryProvider).clearSession();
+    } finally {
+      state = const AuthUnauthenticated();
     }
   }
 

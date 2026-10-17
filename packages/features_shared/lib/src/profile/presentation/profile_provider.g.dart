@@ -83,4 +83,4 @@ final class ProfileProvider extends $FunctionalProvider<AsyncValue<Profile?>,
   }
 }
 
-String _$profileHash() => r'0465530c3e25f21c25966afbcde17dcb6124886a';
+String _$profileHash() => r'70f65d5d76e62e3f0c5a0fcc5adc73cfccb397ab';
