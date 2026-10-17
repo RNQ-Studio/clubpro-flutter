@@ -9,6 +9,7 @@ val keyProps = Properties().apply {
 
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android Gradle plugin.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -51,6 +52,14 @@ android {
                 signingConfigs.getByName("debug")
             }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        // Samakan dengan compileOptions (17). Tanpa ini Kotlin mengikuti JDK yang
+        // menjalankan Gradle (mis. JBR 21 Android Studio) → "Inconsistent JVM Target".
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
