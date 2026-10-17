@@ -37,7 +37,7 @@ apps/main/lib/features/quotes/
 
 ## 📡 API Backend
 
-**Base URL**: `https://ramadhanrosihadi.web.id/api/v1`
+**Base URL**: `https://anaklangit.manahpro.web.id/api/v1`
 
 | Method   | Endpoint          | Deskripsi              |
 |----------|-------------------|------------------------|

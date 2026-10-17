@@ -13,7 +13,7 @@ Pekerjaan bagian pertama ini bertujuan untuk mengimplementasikan fondasi Data La
 
 ## 📡 Referensi API Backend
 
-API backend menggunakan **Laravel Starter API** dengan base URL: `https://ramadhanrosihadi.web.id/api/v1`
+API backend menggunakan **Laravel Starter API** dengan base URL: `https://anaklangit.manahpro.web.id/api/v1`
 
 Semua response API mengikuti format standar Laravel Starter:
 ```json
@@ -79,8 +79,8 @@ Semua response API mengikuti format standar Laravel Starter:
 
 ### 1. Konfigurasi Base URL
 Ubah file `apps/main/lib/config/main_config.dart` agar mengarah ke API real:
-* Base URL untuk Production: `https://ramadhanrosihadi.web.id/api` (pastikan berakhiran `/api` agar endpoint `/v1/quotes` dapat diakses sebagai `/v1/quotes`).
-* Base URL untuk Staging/Dev dapat disesuaikan ke server lokal jika ada: `http://127.0.0.1:8000/api`.
+* Base URL untuk Production: `https://anaklangit.manahpro.web.id/api` (pastikan berakhiran `/api` agar endpoint `/v1/quotes` dapat diakses sebagai `/v1/quotes`).
+* Base URL untuk Dev dan Staging **sama**: `https://anaklangit.manahpro.web.id/api`. Backend ClubPro hanya satu; jangan arahkan ke server/domain lain.
 
 ### 2. Definisikan Tabel SQLite di Drift (`packages/core`)
 Buka file `packages/core/lib/src/storage/app_database.dart` dan lakukan:

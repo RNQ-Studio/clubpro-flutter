@@ -201,9 +201,9 @@ Contoh pola:
 
 ```dart
 String get baseUrl => switch (environment) {
-  Environment.dev => 'https://api-dev.example.com',
-  Environment.staging => 'https://api-staging.example.com',
-  Environment.prod => 'https://api.example.com',
+  Environment.dev => 'https://anaklangit.manahpro.web.id/api/',
+  Environment.staging => 'https://anaklangit.manahpro.web.id/api/',
+  Environment.prod => 'https://anaklangit.manahpro.web.id/api/',
 };
 ```
 

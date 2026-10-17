@@ -127,9 +127,9 @@ class ClientConfig extends AppConfig {
 
   @override
   String get baseUrl => switch (environment) {
-        Environment.dev => 'https://client-api-dev.example.com',
-        Environment.staging => 'https://client-api-staging.example.com',
-        Environment.prod => 'https://client-api.example.com',
+        Environment.dev => 'https://anaklangit.manahpro.web.id/api/',
+        Environment.staging => 'https://anaklangit.manahpro.web.id/api/',
+        Environment.prod => 'https://anaklangit.manahpro.web.id/api/',
       };
 }
 ```

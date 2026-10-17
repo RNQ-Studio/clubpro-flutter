@@ -16,7 +16,7 @@ Pekerjaan bagian kedua ini berfokus pada **State Management menggunakan Riverpod
 
 ## 📡 Referensi API (Ringkasan dari Bagian 1)
 
-Base URL: `https://ramadhanrosihadi.web.id/api/v1`
+Base URL: `https://anaklangit.manahpro.web.id/api/v1`
 
 | Method   | Endpoint             | Deskripsi                    |
 |----------|----------------------|------------------------------|

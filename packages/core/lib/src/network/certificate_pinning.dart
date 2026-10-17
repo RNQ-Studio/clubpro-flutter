@@ -22,7 +22,7 @@ class CertificatePinning {
   static const List<String> _trustedFingerprints = [
     // TODO: Replace with your production server fingerprints.
     // Run this to get the fingerprint:
-    // echo | openssl s_client -connect api.yourdomain.com:443 2>/dev/null | \
+    // echo | openssl s_client -connect anaklangit.manahpro.web.id:443 2>/dev/null | \
     //   openssl x509 -pubkey -noout | \
     //   openssl pkey -pubin -outform DER | \
     //   openssl dgst -sha256 -binary | base64

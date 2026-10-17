@@ -1,6 +1,6 @@
 # 🎓 Panduan Praktis: Menambahkan Fitur "Manajemen Kutipan" (Quotes Management) dengan API Real
 
-Panduan ini dirancang untuk mengajarkan Anda secara **komprehensif dan mendalam** bagaimana cara menggunakan seluruh fitur unggulan di *starter project* ini secara maksimal. Kita akan membangun modul baru **"Manajemen Kutipan" (Quotes Management)** dengan API real dari [DummyJSON Quotes API](https://dummyjson.com/quotes).
+Panduan ini dirancang untuk mengajarkan Anda secara **komprehensif dan mendalam** bagaimana cara menggunakan seluruh fitur unggulan di *starter project* ini secara maksimal. Kita akan membangun modul baru **"Manajemen Kutipan" (Quotes Management)** dengan API real dari backend ClubPro (`https://anaklangit.manahpro.web.id/api/v1/quotes`).
 
 Fitur ini akan diintegrasikan langsung ke dalam dashboard utama (menggantikan menu *placeholder*), menampilkan daftar kutipan dari server real, menyediakan formulir pembuatan kutipan baru, menangani validasi *input*, serta menyajikan indikator *loading* transisi yang sangat premium.
 
@@ -33,7 +33,7 @@ graph TD
     end
 
     %% External
-    API[https://dummyjson.com/quotes]
+    API[https://anaklangit.manahpro.web.id/api/v1/quotes]
 
     %% Relations
     Notifier <--> GetUC & CreateUC
@@ -48,33 +48,32 @@ graph TD
 
 ## ⚡ Ringkasan Endpoint API Real yang Digunakan
 
-Untuk memastikan integrasi API berjalan sukses, kita akan menggunakan backend publik terpercaya **DummyJSON API**:
+Integrasi memakai backend ClubPro (clubpro-laravel) di **`https://anaklangit.manahpro.web.id`** — satu-satunya backend proyek ini. `baseUrl` di `MainConfig` sudah `https://anaklangit.manahpro.web.id/api/`, jadi data source cukup memakai path relatif `v1/quotes`.
 
 1. **Ambil Semua Kutipan (GET)**
-   * **URL**: `https://dummyjson.com/quotes`
-   * **Response**:
+   * **URL**: `https://anaklangit.manahpro.web.id/api/v1/quotes`
+   * **Response** (envelope standar `ApiResponse`):
      ```json
      {
-       "quotes": [
-         { "id": 1, "quote": "Life is about making an impact, not making an income.", "author": "Kevin Kruse" }
+       "success": true,
+       "message": "OK",
+       "data": [
+         { "id": 1, "text": "Life is about making an impact, not making an income.", "author": "Kevin Kruse", "source": null, "is_active": true }
        ],
-       "total": 100,
-       "skip": 0,
-       "limit": 30
+       "meta": { "pagination": { "current_page": 1, "per_page": 15, "total": 1, "last_page": 1 } }
      }
      ```
 
 2. **Tambah Kutipan Baru (POST)**
-   * **URL**: `https://dummyjson.com/quotes/add`
+   * **URL**: `https://anaklangit.manahpro.web.id/api/v1/quotes`
    * **Payload**:
      ```json
      {
-       "quote": "Kutipan baru Anda",
-       "author": "Nama Penulis",
-       "userId": 1
+       "text": "Kutipan baru Anda",
+       "author": "Nama Penulis"
      }
      ```
-   * **Response**: Mengembalikan objek kutipan baru beserta ID unik yang di-generate server.
+   * **Response**: `201` dengan `data` berisi kutipan baru beserta `id` dari server.
 
 ---
 
@@ -157,7 +156,7 @@ class QuoteModel extends Quote {
   factory QuoteModel.fromJson(Map<String, dynamic> json) {
     return QuoteModel(
       id: json['id'] as int,
-      quote: json['quote'] as String,
+      quote: json['text'] as String,
       author: json['author'] as String,
     );
   }
@@ -165,7 +164,7 @@ class QuoteModel extends Quote {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'quote': quote,
+      'text': quote,
       'author': author,
     };
   }
@@ -189,14 +188,14 @@ class QuotesRemoteDataSource {
 
   final Dio _dio;
 
-  /// Mengambil semua data kutipan dari API real DummyJSON
+  /// Mengambil semua data kutipan dari backend ClubPro
   Future<List<QuoteModel>> fetchAll() async {
     try {
-      // Kita panggil langsung endpoint real dummyjson
-      final response = await _dio.get('https://dummyjson.com/quotes');
+      // Path relatif terhadap baseUrl AppConfig (https://anaklangit.manahpro.web.id/api/)
+      final response = await _dio.get('v1/quotes');
 
-      final data = response.data as Map<String, dynamic>;
-      final quotesList = data['quotes'] as List<dynamic>;
+      final body = response.data as Map<String, dynamic>;
+      final quotesList = body['data'] as List<dynamic>;
 
       return quotesList
           .map((json) => QuoteModel.fromJson(json as Map<String, dynamic>))
@@ -207,22 +206,22 @@ class QuotesRemoteDataSource {
     }
   }
 
-  /// Membuat kutipan baru ke API real DummyJSON
+  /// Membuat kutipan baru di backend ClubPro
   Future<QuoteModel> create({
     required String quote,
     required String author,
   }) async {
     try {
       final response = await _dio.post(
-        'https://dummyjson.com/quotes/add',
+        'v1/quotes',
         data: {
-          'quote': quote,
+          'text': quote,
           'author': author,
-          'userId': 1, // Dummy userId wajib untuk API dummyjson
         },
       );
 
-      return QuoteModel.fromJson(response.data as Map<String, dynamic>);
+      final body = response.data as Map<String, dynamic>;
+      return QuoteModel.fromJson(body['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw e.error ?? ServerException(e.message ?? 'Gagal membuat kutipan');
     }
@@ -711,7 +710,7 @@ class _CreateQuoteScreenState extends ConsumerState<CreateQuoteScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Isi form di bawah untuk mengirimkan kutipan baru ke server publik DummyJSON.',
+                  'Isi form di bawah untuk mengirimkan kutipan baru ke server ClubPro.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
                 ),
@@ -887,7 +886,7 @@ Setelah Anda menyelesaikan semua langkah di atas, verifikasi dan jalankan aplika
    ```
 
 Aplikasi akan menyala!
-* Klik menu **"Kutipan"** di dashboard utama. Anda akan melihat animasi loading yang premium, disusul dengan daftar kutipan inspiratif yang berhasil ditarik secara real-time dari API `dummyjson.com/quotes`.
+* Klik menu **"Kutipan"** di dashboard utama. Anda akan melihat animasi loading yang premium, disusul dengan daftar kutipan inspiratif yang berhasil ditarik secara real-time dari API `anaklangit.manahpro.web.id/api/v1/quotes`.
 * Klik tombol **"+"** di pojok kanan bawah, isi formulir kutipan & nama penulis, lalu tekan **"Simpan Kutipan"**. Transaksi overlay loading akan menyala dan data berhasil dikirimkan ke server real. Anda akan otomatis kembali ke halaman daftar dan melihat kutipan Anda tampil paling atas!
 
 ---

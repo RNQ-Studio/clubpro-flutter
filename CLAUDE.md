@@ -136,6 +136,14 @@ feature_name/
 
 Konfigurasi environment: `AppConfig` (abstract) → `MainConfig` / `VariantConfig` (per app)
 
+### 🌐 Backend — satu-satunya domain
+
+**Backend proyek ini adalah `https://anaklangit.manahpro.web.id`** (clubpro-laravel).
+`baseUrl` di `MainConfig` dan `VariantConfig` untuk **semua** environment (`dev`,
+`staging`, `prod`) = `https://anaklangit.manahpro.web.id/api/`; endpoint ditulis relatif
+(`v1/quotes`). Jangan mengarahkan app, contoh dokumentasi, atau tutorial ke domain lain
+(domain lama, `example.com`, DummyJSON, dll.).
+
 ---
 
 ## 🔒 Fitur Keamanan
