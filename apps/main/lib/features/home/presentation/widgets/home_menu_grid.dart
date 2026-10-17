@@ -1,114 +1,214 @@
 import 'package:flutter/material.dart';
 
-class _MenuItem {
-  const _MenuItem({
+/// Menu utama operasional club.
+class HomeMenu {
+  const HomeMenu({
+    required this.id,
     required this.label,
     required this.icon,
     required this.color,
-    this.isGallery = false,
+    required this.description,
   });
+
+  final String id;
   final String label;
   final IconData icon;
   final Color color;
-  final bool isGallery;
+
+  /// Ditampilkan saat fitur belum tersedia.
+  final String description;
 }
 
-const _menuItems = [
-  _MenuItem(
-    label: 'UI Gallery',
-    icon: Icons.widgets_outlined,
-    color: Colors.indigo,
-    isGallery: true,
+const homeMenus = [
+  HomeMenu(
+    id: 'schedule',
+    label: 'Jadwal Latihan',
+    icon: Icons.event_note_rounded,
+    color: Color(0xFF1E6FD9),
+    description: 'Lihat jadwal latihan, lokasi, dan pelatih setiap sesi.',
   ),
-  _MenuItem(
-      label: 'Kutipan', icon: Icons.format_quote_rounded, color: Colors.indigo),
-  _MenuItem(
-      label: 'Menu 02', icon: Icons.military_tech, color: Colors.deepOrange),
-  _MenuItem(label: 'Menu 03', icon: Icons.show_chart, color: Colors.teal),
-  _MenuItem(label: 'Menu 04', icon: Icons.storage, color: Colors.amber),
-  _MenuItem(label: 'Menu 05', icon: Icons.group_add, color: Colors.green),
-  _MenuItem(
-      label: 'Profil', icon: Icons.person_outline_rounded, color: Colors.cyan),
-  _MenuItem(label: 'Menu 07', icon: Icons.people, color: Color(0xFF00695C)),
-  _MenuItem(label: 'Menu 08', icon: Icons.bar_chart, color: Colors.deepPurple),
-  _MenuItem(label: 'Menu 09', icon: Icons.search, color: Colors.teal),
-  _MenuItem(label: 'Menu 10', icon: Icons.location_on, color: Colors.brown),
-  _MenuItem(
-      label: 'Menu 11', icon: Icons.lightbulb_outline, color: Colors.amber),
-  _MenuItem(label: 'Menu 12', icon: Icons.calculate, color: Colors.blueGrey),
-  _MenuItem(label: 'Menu 13', icon: Icons.timer, color: Colors.red),
-  _MenuItem(
-      label: 'Menu 14', icon: Icons.feedback_outlined, color: Colors.orange),
-  _MenuItem(label: 'Menu 15', icon: Icons.star_outline, color: Colors.indigo),
+  HomeMenu(
+    id: 'attendance',
+    label: 'Absensi',
+    icon: Icons.how_to_reg_rounded,
+    color: Color(0xFF178A5B),
+    description: 'Catat kehadiran latihan dan lihat riwayat absensi Anda.',
+  ),
+  HomeMenu(
+    id: 'achievements',
+    label: 'Prestasi',
+    icon: Icons.emoji_events_rounded,
+    color: Color(0xFFC98A00),
+    description: 'Simpan hasil lomba, skor latihan, dan pencapaian Anda.',
+  ),
+  HomeMenu(
+    id: 'dues',
+    label: 'Iuran Bulanan',
+    icon: Icons.account_balance_wallet_rounded,
+    color: Color(0xFFD62F33),
+    description: 'Pantau tagihan dan riwayat pembayaran iuran bulanan.',
+  ),
+  HomeMenu(
+    id: 'events',
+    label: 'Event & Lomba',
+    icon: Icons.military_tech_rounded,
+    color: Color(0xFF6D4AFF),
+    description: 'Info kejuaraan, pendaftaran lomba, dan kegiatan club.',
+  ),
+  HomeMenu(
+    id: 'announcements',
+    label: 'Pengumuman',
+    icon: Icons.campaign_rounded,
+    color: Color(0xFFE8710A),
+    description: 'Pengumuman resmi dari pengurus club.',
+  ),
+  HomeMenu(
+    id: 'members',
+    label: 'Anggota',
+    icon: Icons.groups_rounded,
+    color: Color(0xFF00838F),
+    description: 'Daftar anggota dan pelatih club Anak Langit.',
+  ),
+  HomeMenu(
+    id: 'equipment',
+    label: 'Peralatan',
+    icon: Icons.inventory_2_rounded,
+    color: Color(0xFF5D4037),
+    description: 'Peminjaman busur, anak panah, dan perlengkapan club.',
+  ),
 ];
 
 class HomeMenuGrid extends StatelessWidget {
-  const HomeMenuGrid({super.key, required this.onMenuTap});
+  const HomeMenuGrid({
+    super.key,
+    required this.onTap,
+    this.menus = homeMenus,
+  });
 
-  final void Function(String label) onMenuTap;
+  final List<HomeMenu> menus;
+  final ValueChanged<HomeMenu> onTap;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // Tanpa letterSpacing bawaan M3 agar kata panjang ("Pengumuman") muat satu baris.
+    final labelStyle =
+        theme.textTheme.labelMedium?.copyWith(height: 1.2, letterSpacing: 0);
+    // Tinggi tile mengikuti skala teks perangkat: ikon + jarak + 2 baris label.
+    final lineHeight =
+        MediaQuery.textScalerOf(context).scale(labelStyle?.fontSize ?? 12) *
+            1.2;
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      padding: EdgeInsets.zero,
+      itemCount: menus.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.85,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 4,
+        mainAxisExtent: 56 + 8 + lineHeight * 2 + 6,
       ),
-      itemCount: _menuItems.length,
-      itemBuilder: (context, index) {
-        final item = _menuItems[index];
-        return _MenuCell(item: item, onTap: () => onMenuTap(item.label));
+      itemBuilder: (context, i) {
+        final menu = menus[i];
+        return InkWell(
+          key: Key('home-menu-${menu.id}'),
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => onTap(menu),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: menu.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(menu.icon, color: menu.color, size: 28),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                menu.label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: labelStyle,
+              ),
+            ],
+          ),
+        );
       },
     );
   }
 }
 
-class _MenuCell extends StatelessWidget {
-  const _MenuCell({required this.item, required this.onTap});
-
-  final _MenuItem item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    final cellBgColor = colorScheme.primaryContainer;
-    final iconColor = colorScheme.onPrimaryContainer;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: cellBgColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(item.icon, color: iconColor, size: 26),
+/// Lembar "segera hadir" untuk menu yang fiturnya sedang disiapkan.
+Future<void> showComingSoonSheet(BuildContext context, HomeMenu menu) {
+  return showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    showDragHandle: true,
+    builder: (context) {
+      final theme = Theme.of(context);
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: menu.color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(menu.icon, color: menu.color, size: 36),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                menu.label,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: menu.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Segera hadir',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: menu.color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                menu.description,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Mengerti'),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            item.label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: colorScheme.onSurface.withValues(alpha: 0.8),
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      );
+    },
+  );
 }

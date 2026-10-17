@@ -165,9 +165,14 @@ class _GoogleButton extends StatelessWidget {
                 children: [
                   GoogleMark(size: 22),
                   SizedBox(width: 12),
-                  Text(
-                    'Masuk dengan Google',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  Flexible(
+                    child: Text(
+                      'Masuk dengan Google',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ],
               ),

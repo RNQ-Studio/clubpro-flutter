@@ -1,113 +1,94 @@
+import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 
-import '../../domain/entities/user_profile.dart';
-
+/// Info singkat anggota yang login: foto, nama, email.
 class HomeUserHeader extends StatelessWidget {
-  const HomeUserHeader({
-    super.key,
-    required this.profile,
-    required this.onEditTap,
-    required this.onProfileTap,
-    required this.onSettingsTap,
-  });
+  const HomeUserHeader({super.key, required this.user, this.onTap, this.now});
 
-  final UserProfile profile;
-  final VoidCallback onEditTap;
-  final VoidCallback onProfileTap;
-  final VoidCallback onSettingsTap;
+  final User user;
+  final VoidCallback? onTap;
+
+  /// Untuk test; bawaan jam perangkat.
+  final DateTime? now;
+
+  static String greeting(DateTime time) {
+    final h = time.hour;
+    if (h >= 4 && h < 11) return 'Selamat pagi';
+    if (h >= 11 && h < 15) return 'Selamat siang';
+    if (h >= 15 && h < 18) return 'Selamat sore';
+    return 'Selamat malam';
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          GestureDetector(
-            onTap: onProfileTap,
-            child: CircleAvatar(
-              radius: 32,
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              backgroundImage:
-                  profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
-                      ? NetworkImage(profile.avatarUrl!)
-                      : null,
-              child: profile.avatarUrl == null || profile.avatarUrl!.isEmpty
-                  ? Icon(
-                      Icons.person,
-                      size: 32,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    )
-                  : null,
+    final colorScheme = theme.colorScheme;
+    final avatarUrl = user.avatarUrl;
+    final hasPhoto = avatarUrl != null && avatarUrl.isNotEmpty;
+    final initial =
+        user.name.trim().isEmpty ? '?' : user.name.trim()[0].toUpperCase();
+
+    return InkWell(
+      key: const Key('home-user-header'),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: colorScheme.primaryContainer,
+              foregroundImage: hasPhoto ? NetworkImage(avatarUrl) : null,
+              child: Text(
+                initial,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onPrimaryContainer,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: GestureDetector(
-              onTap: onProfileTap,
-              behavior: HitTestBehavior.opaque,
+            const SizedBox(width: 14),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Hi, ${profile.name}',
+                    '${greeting(now ?? DateTime.now())},',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    user.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 2),
                   Text(
-                    profile.email,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    user.email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          profile.role,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      if (profile.phone != null &&
-                          profile.phone!.isNotEmpty) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          '•  ${profile.phone}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ],
                   ),
                 ],
               ),
             ),
-          ),
-          IconButton(
-            onPressed: onEditTap,
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Edit profil',
-          ),
-          IconButton(
-            onPressed: onSettingsTap,
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Pengaturan',
-          ),
-        ],
+            if (user.completion.isComplete)
+              const Tooltip(
+                message: 'Profil lengkap',
+                child: Icon(Icons.verified_rounded, color: Color(0xFF178A5B)),
+              )
+            else
+              Icon(Icons.chevron_right_rounded,
+                  color: colorScheme.onSurfaceVariant),
+          ],
+        ),
       ),
     );
   }

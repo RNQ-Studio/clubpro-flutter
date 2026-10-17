@@ -23,6 +23,7 @@ dependencies:
   dio: ^5.9.2
   drift: ^2.33.0
   package_info_plus: ^10.1.0
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

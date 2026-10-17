@@ -95,6 +95,55 @@ final class _DioClientProvider
 
 String _$_dioClientHash() => r'a005edf1935e40cd4ff045e6a242c57efd4f2d35';
 
+/// Klien API bersama untuk fitur app (mis. Beranda): token otomatis, refresh,
+/// dan sesi kedaluwarsa → kembali ke login.
+
+@ProviderFor(apiClient)
+final apiClientProvider = ApiClientProvider._();
+
+/// Klien API bersama untuk fitur app (mis. Beranda): token otomatis, refresh,
+/// dan sesi kedaluwarsa → kembali ke login.
+
+final class ApiClientProvider
+    extends $FunctionalProvider<DioClient, DioClient, DioClient>
+    with $Provider<DioClient> {
+  /// Klien API bersama untuk fitur app (mis. Beranda): token otomatis, refresh,
+  /// dan sesi kedaluwarsa → kembali ke login.
+  ApiClientProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'apiClientProvider',
+          isAutoDispose: false,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$apiClientHash();
+
+  @$internal
+  @override
+  $ProviderElement<DioClient> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  DioClient create(Ref ref) {
+    return apiClient(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DioClient value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DioClient>(value),
+    );
+  }
+}
+
+String _$apiClientHash() => r'fc46463dca1072321927606f452ba64a25799af2';
+
 @ProviderFor(googleSignInService)
 final googleSignInServiceProvider = GoogleSignInServiceProvider._();
 

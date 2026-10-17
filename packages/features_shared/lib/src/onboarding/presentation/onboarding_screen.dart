@@ -171,41 +171,52 @@ class _OnboardingPageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          page.illustration ??
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: page.color.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+    final theme = Theme.of(context);
+    final illustration = page.illustration ??
+        Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: page.color.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(page.icon, size: 72, color: page.color),
+        );
+
+    // Layar pendek / teks besar: ilustrasi mengecil dan konten bisa digulir.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: constraints.maxHeight * 0.38,
                 ),
-                child: Icon(page.icon, size: 72, color: page.color),
+                child: FittedBox(fit: BoxFit.scaleDown, child: illustration),
               ),
-          const SizedBox(height: 40),
-          Text(
-            page.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              const SizedBox(height: 32),
+              Text(
+                page.title,
+                style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            page.description,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.7),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                page.description,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   height: 1.5,
                 ),
-            textAlign: TextAlign.center,
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

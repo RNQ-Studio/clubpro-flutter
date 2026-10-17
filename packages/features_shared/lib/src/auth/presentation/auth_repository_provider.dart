@@ -26,6 +26,11 @@ DioClient _dioClient(Ref ref) {
   );
 }
 
+/// Klien API bersama untuk fitur app (mis. Beranda): token otomatis, refresh,
+/// dan sesi kedaluwarsa → kembali ke login.
+@Riverpod(keepAlive: true)
+DioClient apiClient(Ref ref) => ref.watch(_dioClientProvider);
+
 @Riverpod(keepAlive: true)
 GoogleSignInService googleSignInService(Ref ref) {
   return GoogleSignInService(

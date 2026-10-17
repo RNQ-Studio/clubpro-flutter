@@ -31,6 +31,31 @@ void main() {
     expect(find.byType(ClubLogo), findsOneWidget);
   });
 
+  testWidgets('onboarding muat di ponsel kecil dengan teks besar',
+      (tester) async {
+    tester.view.physicalSize = const Size(720, 1280); // 360×640 dp
+    tester.view.devicePixelRatio = 2;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: OnboardingScreen(pages: ClubBrand.onboardingPages),
+        ),
+      ),
+    );
+    for (var i = 0; i < ClubBrand.onboardingPages.length; i++) {
+      await tester.pump();
+      expect(tester.takeException(), isNull, reason: 'halaman ${i + 1}');
+      if (i < ClubBrand.onboardingPages.length - 1) {
+        await tester.tap(find.text('Selanjutnya'));
+        await tester.pumpAndSettle();
+      }
+    }
+  });
+
   testWidgets('logo dapat dirender di berbagai ukuran', (tester) async {
     for (final size in [24.0, 80.0, 168.0]) {
       await tester.pumpWidget(Center(child: ClubLogo(size: size)));

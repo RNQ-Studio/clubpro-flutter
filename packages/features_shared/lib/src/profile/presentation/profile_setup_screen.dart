@@ -56,7 +56,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
         children: [
           Text(
-            'Halo, ${user.name.split(' ').first}! 👋',
+            'Halo, ${user.name.split(' ').first}!',
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
