@@ -12,8 +12,6 @@ class User {
     this.birthPlace,
     this.birthDate,
     this.address,
-    this.archeryStartedAt,
-    this.bowType,
     this.bloodType,
     this.emergencyContactName,
     this.emergencyContactPhone,
@@ -27,15 +25,12 @@ class User {
   final String? avatarUrl;
   final List<String> roles;
 
-  // Data diri anggota club (semua opsional; dilengkapi bertahap).
+  // Data diri anggota (semua opsional; dilengkapi bertahap).
   final MemberGender? gender;
   final String? birthPlace;
   final DateTime? birthDate;
   final String? address;
 
-  /// Bulan & tahun pertama mencoba panahan (hari = 1).
-  final DateTime? archeryStartedAt;
-  final BowType? bowType;
   final BloodType? bloodType;
   final String? emergencyContactName;
   final String? emergencyContactPhone;
@@ -54,8 +49,6 @@ class User {
         if (birthDate != null) 'birth_date',
         if (_filled(phone)) 'phone',
         if (_filled(address)) 'address',
-        if (archeryStartedAt != null) 'archery_started_at',
-        if (bowType != null) 'bow_type',
         if (bloodType != null) 'blood_type',
         if (_filled(emergencyContactName)) 'emergency_contact_name',
         if (_filled(emergencyContactPhone)) 'emergency_contact_phone',

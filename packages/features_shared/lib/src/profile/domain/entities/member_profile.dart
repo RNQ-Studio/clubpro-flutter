@@ -1,4 +1,4 @@
-/// Nilai-nilai data diri anggota club. Kode [apiValue] sama dengan backend.
+/// Nilai-nilai data diri anggota. Kode [apiValue] sama dengan backend.
 library;
 
 enum MemberGender {
@@ -10,20 +10,6 @@ enum MemberGender {
   final String label;
 
   static MemberGender? fromApi(Object? value) =>
-      values.where((e) => e.apiValue == value).firstOrNull;
-}
-
-enum BowType {
-  recurve('recurve', 'Recurve'),
-  compound('compound', 'Compound'),
-  barebow('barebow', 'Barebow'),
-  traditional('traditional', 'Tradisional / Horsebow');
-
-  const BowType(this.apiValue, this.label);
-  final String apiValue;
-  final String label;
-
-  static BowType? fromApi(Object? value) =>
       values.where((e) => e.apiValue == value).firstOrNull;
 }
 
@@ -57,8 +43,6 @@ class ProfileField {
     ProfileField('birth_date', 'Tanggal lahir'),
     ProfileField('phone', 'Nomor HP / WhatsApp'),
     ProfileField('address', 'Alamat'),
-    ProfileField('archery_started_at', 'Mulai berlatih panahan'),
-    ProfileField('bow_type', 'Jenis busur'),
     ProfileField('blood_type', 'Golongan darah'),
     ProfileField('emergency_contact_name', 'Nama kontak darurat'),
     ProfileField('emergency_contact_phone', 'Nomor kontak darurat'),
@@ -102,6 +86,13 @@ class ProfileCompletion {
   final List<ProfileField> missing;
 
   bool get isComplete => missing.isEmpty;
+
+  /// Daftar isian penghitungnya sama dengan [ProfileField.all]. Server lama
+  /// yang masih menghitung isian yang sudah dihapus (mis. data panahan) →
+  /// `false`, dan app menghitung sendiri.
+  bool get matchesAppFields =>
+      total == ProfileField.all.length &&
+      missing.every((f) => ProfileField.all.any((a) => a.key == f.key));
 
   /// 0.0 – 1.0
   double get ratio => total == 0 ? 1 : completed / total;

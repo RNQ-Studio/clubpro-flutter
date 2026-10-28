@@ -30,10 +30,7 @@ class MemberProfileFormState extends State<MemberProfileForm> {
 
   late MemberGender? _gender = widget.user.gender;
   late DateTime? _birthDate = widget.user.birthDate;
-  late DateTime? _archeryStartedAt = widget.user.archeryStartedAt;
-  late BowType? _bowType = widget.user.bowType;
   late BloodType? _bloodType = widget.user.bloodType;
-  String? _archeryError;
 
   @override
   void dispose() {
@@ -50,17 +47,7 @@ class MemberProfileFormState extends State<MemberProfileForm> {
     super.dispose();
   }
 
-  bool validate() {
-    // Aturan sama dengan backend: tanggal mulai >= tanggal lahir.
-    final archeryError = _archeryStartedAt != null &&
-            _birthDate != null &&
-            _archeryStartedAt!.isBefore(_birthDate!)
-        ? 'Tidak boleh sebelum tanggal lahir'
-        : null;
-    setState(() => _archeryError = archeryError);
-    final fieldsValid = _formKey.currentState?.validate() ?? false;
-    return fieldsValid && archeryError == null;
-  }
+  bool validate() => _formKey.currentState?.validate() ?? false;
 
   /// Kunci API → nilai baru; `null` = isian dikosongkan.
   Map<String, Object?> changes() {
@@ -88,9 +75,6 @@ class MemberProfileFormState extends State<MemberProfileForm> {
         normalize: _digitsOnly);
     pick('gender', _gender?.apiValue, user.gender?.apiValue);
     pick('birth_date', _iso(_birthDate), _iso(user.birthDate));
-    pick('archery_started_at', _iso(_archeryStartedAt),
-        _iso(user.archeryStartedAt));
-    pick('bow_type', _bowType?.apiValue, user.bowType?.apiValue);
     pick('blood_type', _bloodType?.apiValue, user.bloodType?.apiValue);
 
     return changes;
@@ -121,26 +105,6 @@ class MemberProfileFormState extends State<MemberProfileForm> {
       helpText: 'Tanggal lahir',
     );
     if (picked != null) setState(() => _birthDate = picked);
-  }
-
-  Future<void> _pickArcheryStart() async {
-    final now = DateTime.now();
-    final first = _birthDate ?? DateTime(1950);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _archeryStartedAt ?? now,
-      firstDate: first,
-      lastDate: now,
-      initialDatePickerMode: DatePickerMode.year,
-      helpText: 'Pertama kali mencoba panahan',
-    );
-    if (picked != null) {
-      setState(() {
-        // Yang dicatat bulan & tahunnya saja.
-        _archeryStartedAt = DateTime(picked.year, picked.month);
-        _archeryError = null;
-      });
-    }
   }
 
   @override
@@ -222,26 +186,6 @@ class MemberProfileFormState extends State<MemberProfileForm> {
               labelText: 'Alamat',
               alignLabelWithHint: true,
             ),
-          ),
-          const _SectionTitle('Panahan', Icons.sports_score_outlined),
-          _DateField(
-            key: const Key('field-archery-start'),
-            label: 'Kapan pertama kali mencoba panahan?',
-            value: _archeryStartedAt == null
-                ? null
-                : AppDateUtils.monthYearId(_archeryStartedAt!),
-            icon: Icons.event_outlined,
-            errorText: _archeryError,
-            onTap: _pickArcheryStart,
-            onClear: () => setState(() => _archeryStartedAt = null),
-          ),
-          const SizedBox(height: 16),
-          const _FieldLabel('Jenis busur'),
-          _Choices<BowType>(
-            values: BowType.values,
-            selected: _bowType,
-            label: (b) => b.label,
-            onChanged: (v) => setState(() => _bowType = v),
           ),
           const _SectionTitle(
               'Kesehatan & Kontak Darurat', Icons.health_and_safety_outlined),
@@ -332,7 +276,6 @@ class _DateField extends StatelessWidget {
     required this.icon,
     required this.onTap,
     required this.onClear,
-    this.errorText,
   });
 
   final String label;
@@ -340,7 +283,6 @@ class _DateField extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final VoidCallback onClear;
-  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -351,7 +293,6 @@ class _DateField extends StatelessWidget {
         isEmpty: value == null,
         decoration: InputDecoration(
           labelText: label,
-          errorText: errorText,
           prefixIcon: Icon(icon),
           suffixIcon: value == null
               ? const Icon(Icons.arrow_drop_down_rounded)

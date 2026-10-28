@@ -15,8 +15,6 @@ class UserModel extends User {
     super.birthPlace,
     super.birthDate,
     super.address,
-    super.archeryStartedAt,
-    super.bowType,
     super.bloodType,
     super.emergencyContactName,
     super.emergencyContactPhone,
@@ -47,15 +45,10 @@ class UserModel extends User {
         birthPlace: json['birth_place'] as String?,
         birthDate: _date(json['birth_date']),
         address: json['address'] as String?,
-        archeryStartedAt: _date(json['archery_started_at']),
-        bowType: BowType.fromApi(json['bow_type']),
         bloodType: BloodType.fromApi(json['blood_type']),
         emergencyContactName: json['emergency_contact_name'] as String?,
         emergencyContactPhone: json['emergency_contact_phone'] as String?,
-        serverCompletion: json['profile_completion'] is Map<String, dynamic>
-            ? ProfileCompletion.fromJson(
-                json['profile_completion'] as Map<String, dynamic>)
-            : null,
+        serverCompletion: _matchingCompletion(json['profile_completion']),
         token: json['token'] as String?,
       );
 
@@ -71,9 +64,6 @@ class UserModel extends User {
         if (birthPlace != null) 'birth_place': birthPlace,
         if (birthDate != null) 'birth_date': AppDateUtils.isoDate(birthDate!),
         if (address != null) 'address': address,
-        if (archeryStartedAt != null)
-          'archery_started_at': AppDateUtils.isoDate(archeryStartedAt!),
-        if (bowType != null) 'bow_type': bowType!.apiValue,
         if (bloodType != null) 'blood_type': bloodType!.apiValue,
         if (emergencyContactName != null)
           'emergency_contact_name': emergencyContactName,
@@ -96,8 +86,6 @@ class UserModel extends User {
         birthPlace: birthPlace,
         birthDate: birthDate,
         address: address,
-        archeryStartedAt: archeryStartedAt,
-        bowType: bowType,
         bloodType: bloodType,
         emergencyContactName: emergencyContactName,
         emergencyContactPhone: emergencyContactPhone,
@@ -105,6 +93,14 @@ class UserModel extends User {
         token: token ?? this.token,
         refreshToken: refreshToken ?? this.refreshToken,
       );
+
+  /// `profile_completion` server dipakai hanya bila daftar isiannya sama
+  /// dengan app; selain itu (server/cache lama) dihitung lokal.
+  static ProfileCompletion? _matchingCompletion(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    final completion = ProfileCompletion.fromJson(json);
+    return completion.matchesAppFields ? completion : null;
+  }
 
   static DateTime? _date(Object? value) =>
       value is String && value.isNotEmpty ? DateTime.tryParse(value) : null;

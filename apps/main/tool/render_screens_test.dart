@@ -36,7 +36,7 @@ const _partial = User(
   name: 'Rina Ayu Lestari',
   email: 'rina.ayu@gmail.com',
   gender: MemberGender.female,
-  bowType: BowType.recurve,
+  bloodType: BloodType.o,
   phone: '081234567890',
 );
 
@@ -49,12 +49,10 @@ final _complete = User(
   birthDate: DateTime(2001, 4, 12),
   phone: '081234567890',
   address: 'Jl. Merdeka No. 10, Bandung',
-  archeryStartedAt: DateTime(2019, 7),
-  bowType: BowType.recurve,
   bloodType: BloodType.o,
   emergencyContactName: 'Ibu Sari',
   emergencyContactPhone: '081298765432',
-  completion: const ProfileCompletion(completed: 12, total: 12, missing: []),
+  completion: const ProfileCompletion(completed: 10, total: 10, missing: []),
 );
 
 Future<void> _loadFonts() async {
@@ -214,7 +212,7 @@ void main() {
 
   testWidgets('06-segera-hadir', (tester) async {
     await shoot(tester, '06-segera-hadir', shell(_partial), before: () async {
-      await tester.tap(find.byKey(const Key('home-menu-schedule')));
+      await tester.tap(find.byKey(const Key('home-menu-member-card')));
       await tester.pumpAndSettle();
     });
   });

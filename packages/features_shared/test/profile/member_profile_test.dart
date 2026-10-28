@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-const _complete = ProfileCompletion(completed: 12, total: 12, missing: []);
+const _complete = ProfileCompletion(completed: 10, total: 10, missing: []);
 
 User _user({
   String name = 'Rina Ayu',
@@ -13,8 +13,7 @@ User _user({
   DateTime? birthDate,
   String? phone,
   String? address,
-  DateTime? archeryStartedAt,
-  BowType? bowType,
+  BloodType? bloodType,
   ProfileCompletion? completion,
 }) =>
     User(
@@ -25,8 +24,7 @@ User _user({
       birthDate: birthDate,
       phone: phone,
       address: address,
-      archeryStartedAt: archeryStartedAt,
-      bowType: bowType,
+      bloodType: bloodType,
       completion: completion,
     );
 
@@ -91,14 +89,12 @@ void main() {
         'gender': 'female',
         'birth_place': 'Bandung',
         'birth_date': '2001-04-12',
-        'archery_started_at': '2019-07-01',
-        'bow_type': 'recurve',
         'blood_type': 'AB',
         'profile_completion': {
           'is_complete': false,
           'completed': 7,
-          'total': 12,
-          'percent': 58,
+          'total': 10,
+          'percent': 70,
           'missing': [
             {'key': 'avatar', 'label': 'Foto profil'},
           ],
@@ -107,10 +103,8 @@ void main() {
 
       expect(user.gender, MemberGender.female);
       expect(user.birthDate, DateTime(2001, 4, 12));
-      expect(user.archeryStartedAt, DateTime(2019, 7));
-      expect(user.bowType, BowType.recurve);
       expect(user.bloodType, BloodType.ab);
-      expect(user.completion.percent, 58);
+      expect(user.completion.percent, 70);
       expect(user.completion.missing.single.label, 'Foto profil');
 
       // Cache lokal: bentuk JSON sama → hasil baca ulang identik.
@@ -118,6 +112,47 @@ void main() {
       expect(again.birthDate, user.birthDate);
       expect(again.bloodType, BloodType.ab);
       expect(again.completion.completed, 7);
+    });
+
+    test('server lama masih menghitung isian panahan → dihitung lokal', () {
+      final user = UserModel.fromJson({
+        'id': 7,
+        'name': 'Rina',
+        'email': 'rina@gmail.com',
+        'avatar_url': 'https://anaklangit.manahpro.web.id/storage/a.jpg',
+        'gender': 'female',
+        'birth_place': 'Bandung',
+        'birth_date': '2001-04-12',
+        'phone': '081234567890',
+        'address': 'Jl. Merdeka',
+        'blood_type': 'AB',
+        'emergency_contact_name': 'Ibu',
+        'emergency_contact_phone': '081200000000',
+        'archery_started_at': '2019-07-01',
+        'bow_type': 'recurve',
+        'profile_completion': {
+          'is_complete': false,
+          'completed': 10,
+          'total': 12,
+          'percent': 83,
+          'missing': [
+            {'key': 'archery_started_at', 'label': 'Mulai berlatih panahan'},
+            {'key': 'bow_type', 'label': 'Jenis busur'},
+          ],
+        },
+      });
+
+      expect(user.completion.isComplete, isTrue);
+      expect(user.completion.total, ProfileField.all.length);
+      expect(user.toJson().keys, isNot(contains('bow_type')));
+      expect(UserModel.fromJson(user.toJson()).completion.isComplete, isTrue);
+    });
+
+    test('daftar isian kelengkapan tanpa data panahan', () {
+      final keys = ProfileField.all.map((f) => f.key);
+      expect(keys, isNot(contains('archery_started_at')));
+      expect(keys, isNot(contains('bow_type')));
+      expect(ProfileField.all, hasLength(10));
     });
 
     test('tanpa profile_completion dari server → dihitung lokal', () {
@@ -160,20 +195,20 @@ void main() {
     testWidgets('hanya isian berubah; pengosongan → null; HP dinormalkan',
         (tester) async {
       final form = await pumpForm(
-          tester, _user(address: 'Jl. Merdeka', bowType: BowType.compound));
+          tester, _user(address: 'Jl. Merdeka', bloodType: BloodType.o));
 
       await tester.enterText(
           find.byKey(const Key('field-phone')), '0812-3456 7890');
       await tester.enterText(
           find.widgetWithText(TextFormField, 'Jl. Merdeka'), '');
       await _tap(tester, find.text('Perempuan'));
-      await _tap(tester, find.text('Compound')); // ketuk lagi = kosongkan
+      await _tap(tester, find.text('O')); // ketuk lagi = kosongkan
 
       expect(form.changes(), {
         'phone': '081234567890',
         'address': null,
         'gender': 'female',
-        'bow_type': null,
+        'blood_type': null,
       });
     });
 
@@ -190,18 +225,12 @@ void main() {
       expect(find.text('Nomor tidak valid (8–15 angka)'), findsOneWidget);
     });
 
-    testWidgets('mulai panahan sebelum tanggal lahir ditolak', (tester) async {
-      final form = await pumpForm(
-        tester,
-        _user(
-          birthDate: DateTime(2005, 1, 1),
-          archeryStartedAt: DateTime(2004, 6),
-        ),
-      );
+    testWidgets('tidak ada lagi isian panahan', (tester) async {
+      await pumpForm(tester, _user());
 
-      expect(form.validate(), isFalse);
-      await tester.pump();
-      expect(find.text('Tidak boleh sebelum tanggal lahir'), findsOneWidget);
+      expect(find.text('Panahan'), findsNothing);
+      expect(find.text('Jenis busur'), findsNothing);
+      expect(find.textContaining('panahan'), findsNothing);
     });
   });
 
@@ -233,8 +262,6 @@ void main() {
         _ProfileAuthNotifier(_user(
           gender: MemberGender.female,
           birthDate: DateTime(2001, 4, 12),
-          archeryStartedAt: DateTime(2019, 7),
-          bowType: BowType.recurve,
           completion: _complete,
         )),
       ));
@@ -244,8 +271,10 @@ void main() {
       expect(find.text('Profil Lengkap'), findsOneWidget);
       expect(find.byKey(const Key('profile-verified-icon')), findsOneWidget);
       expect(find.text('Lengkapi Profil'), findsNothing);
-      expect(find.textContaining('Juli 2019'), findsOneWidget);
+      expect(find.textContaining('12 April 2001'), findsOneWidget);
       expect(find.text('Perempuan'), findsOneWidget);
+      expect(find.text('Panahan'), findsNothing);
+      expect(find.text('Jenis busur'), findsNothing);
     });
   });
 

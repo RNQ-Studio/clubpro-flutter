@@ -113,14 +113,6 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
             _DetailsSection(
-              title: 'Panahan',
-              icon: Icons.sports_score_outlined,
-              rows: [
-                ('Mulai berlatih', _archerySince(user.archeryStartedAt)),
-                ('Jenis busur', user.bowType?.label),
-              ],
-            ),
-            _DetailsSection(
               title: 'Kesehatan & Kontak Darurat',
               icon: Icons.health_and_safety_outlined,
               rows: [
@@ -183,19 +175,6 @@ class ProfileScreen extends ConsumerWidget {
         .where((s) => s.trim().isNotEmpty)
         .toList();
     return parts.isEmpty ? null : parts.join(' · ');
-  }
-
-  /// "Juli 2019 (7 tahun)" / "Mei 2026 (5 bulan)".
-  static String? _archerySince(DateTime? start, {DateTime? now}) {
-    if (start == null) return null;
-    final today = now ?? DateTime.now();
-    final months = (today.year - start.year) * 12 + (today.month - start.month);
-    final duration = months >= 12
-        ? '${months ~/ 12} tahun'
-        : months > 0
-            ? '$months bulan'
-            : 'bulan ini';
-    return '${AppDateUtils.monthYearId(start)} ($duration)';
   }
 }
 
