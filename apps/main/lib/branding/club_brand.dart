@@ -3,15 +3,18 @@ import 'package:flutter/material.dart';
 
 import 'club_logo.dart';
 
-/// Identitas app member club Anak Langit Archery.
+/// Identitas app anggota CEO (Community E-Commerce Operator).
 abstract final class ClubBrand {
-  static const name = 'Anak Langit Archery';
-  static const shortName = 'Anak Langit';
-  static const tagline = 'Aplikasi Anggota Club Panahan';
-  static const loginSubtitle = 'Masuk untuk mengakses jadwal latihan, absensi, '
-      'prestasi, dan iuran bulanan club.';
+  static const name = 'CEO';
+  static const shortName = 'CEO';
+  static const tagline = 'Community E-Commerce Operator';
 
-  // Warna aksen mengikuti cincin target (biru, emas, merah) di atas tema monokrom.
+  /// Judul tab browser / pengalih tugas.
+  static const title = '$name · $tagline';
+  static const loginSubtitle = 'Masuk untuk mengakses kartu anggota, absensi, '
+      'iuran bulanan, dan saldo komunitas Anda.';
+
+  // Warna aksen di atas tema monokrom.
   static const blue = Color(0xFF1E6FD9);
   static const gold = Color(0xFFC98A00);
   static const red = Color(0xFFD62F33);
@@ -19,40 +22,40 @@ abstract final class ClubBrand {
 
   static const onboardingPages = [
     OnboardingPage(
-      icon: Icons.sports_score_rounded,
-      title: 'Selamat Datang di Anak Langit Archery',
-      description: 'Aplikasi resmi anggota club panahan Anak Langit. '
-          'Semua kebutuhan anggota club kini ada dalam satu genggaman.',
+      icon: Icons.storefront_rounded,
+      title: 'Selamat Datang di CEO',
+      description: 'Community E-Commerce Operator — aplikasi resmi anggota '
+          'komunitas. Semua kebutuhan anggota kini ada dalam satu genggaman.',
       color: blue,
       illustration: ClubLogo(size: 168),
     ),
     OnboardingPage(
-      icon: Icons.event_available_rounded,
-      title: 'Jadwal Latihan & Absensi',
-      description: 'Lihat jadwal latihan terbaru dan catat kehadiran Anda '
-          'di setiap sesi latihan langsung dari aplikasi.',
+      icon: Icons.badge_rounded,
+      title: 'Kartu Anggota Digital',
+      description: 'Data keanggotaan Anda tersimpan rapi dan kartu anggota '
+          'selalu siap ditunjukkan langsung dari aplikasi.',
       color: blue,
     ),
     OnboardingPage(
-      icon: Icons.emoji_events_rounded,
-      title: 'Catat Prestasi',
-      description: 'Simpan hasil lomba, skor latihan, dan pencapaian Anda '
-          'sebagai pemanah, lalu pantau perkembangannya dari waktu ke waktu.',
-      color: gold,
+      icon: Icons.event_available_rounded,
+      title: 'Absensi Kegiatan',
+      description: 'Catat kehadiran Anda di setiap kegiatan komunitas dan '
+          'lihat riwayatnya kapan saja.',
+      color: green,
     ),
     OnboardingPage(
       icon: Icons.account_balance_wallet_rounded,
       title: 'Iuran Bulanan',
       description: 'Pantau tagihan dan riwayat pembayaran iuran bulanan '
-          'club dengan mudah dan transparan.',
+          'dengan mudah dan transparan.',
       color: red,
     ),
     OnboardingPage(
-      icon: Icons.groups_rounded,
-      title: 'Operasional Club',
-      description: 'Pengumuman, kegiatan, dan semua yang berhubungan dengan '
-          'operasional club Anak Langit tersedia di satu aplikasi.',
-      color: green,
+      icon: Icons.add_card_rounded,
+      title: 'Top-up Saldo via Transfer',
+      description: 'Isi saldo lewat transfer bank lalu unggah bukti '
+          'transfernya; pengurus memverifikasi nominal yang masuk.',
+      color: gold,
     ),
   ];
 }

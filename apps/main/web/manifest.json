@@ -1,11 +1,11 @@
 {
-    "name": "Anak Langit Archery",
-    "short_name": "Anak Langit",
+    "name": "CEO · Community E-Commerce Operator",
+    "short_name": "CEO",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Aplikasi anggota komunitas: kartu anggota, absensi, iuran bulanan, dan top-up saldo.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -63,7 +63,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Isi data diri Anda sebagai anggota Anak Langit Archery. Tidak '
+            'Isi data diri Anda sebagai anggota komunitas. Tidak '
             'harus lengkap sekarang — isian yang sudah diisi tetap tersimpan '
             'dan bisa dilengkapi nanti di halaman Profil.',
             style: theme.textTheme.bodyMedium?.copyWith(

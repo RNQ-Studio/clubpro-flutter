@@ -11,19 +11,21 @@ part 'home_providers.g.dart';
 const defaultHomeBanners = [
   HomeBanner(
     id: 'default-welcome',
-    title: 'Selamat datang di Anak Langit Archery',
-    subtitle: 'Aplikasi resmi anggota club panahan Anak Langit.',
+    title: 'Selamat datang di CEO',
+    subtitle:
+        'Community E-Commerce Operator — aplikasi resmi anggota komunitas.',
   ),
   HomeBanner(
     id: 'default-profile',
     title: 'Lengkapi data diri Anda',
-    subtitle: 'Bantu pengurus club mendata anggota lewat halaman Profil.',
+    subtitle: 'Bantu pengurus komunitas mendata anggota lewat halaman Profil.',
     linkUrl: AppRoutes.profile,
   ),
   HomeBanner(
-    id: 'default-schedule',
-    title: 'Jadwal latihan & absensi',
-    subtitle: 'Segera hadir: pantau jadwal dan catat kehadiran dari aplikasi.',
+    id: 'default-member-card',
+    title: 'Kartu anggota & absensi',
+    subtitle:
+        'Segera hadir: kartu anggota digital dan catat kehadiran dari aplikasi.',
   ),
 ];
 

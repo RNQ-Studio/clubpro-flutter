@@ -33,7 +33,7 @@ class GoogleSignInService {
   Future<String> obtainIdToken() async {
     if (!isConfigured) {
       throw const ServerException(
-        'Login Google belum dikonfigurasi di aplikasi ini. Hubungi pengurus club.',
+        'Login Google belum dikonfigurasi di aplikasi ini. Hubungi pengurus komunitas.',
       );
     }
 
@@ -88,7 +88,7 @@ class GoogleSignInService {
         GoogleSignInExceptionCode.clientConfigurationError ||
         GoogleSignInExceptionCode.providerConfigurationError =>
           const ServerException(
-            'Konfigurasi login Google tidak valid. Hubungi pengurus club.',
+            'Konfigurasi login Google tidak valid. Hubungi pengurus komunitas.',
           ),
         GoogleSignInExceptionCode.uiUnavailable => const ServerException(
             'Pemilih akun Google tidak dapat dibuka di perangkat ini.',

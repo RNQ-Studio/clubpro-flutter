@@ -283,8 +283,8 @@ void main() {
           GoRoute(
             path: '/login',
             builder: (_, __) => const GoogleLoginScreen(
-              title: 'Anak Langit Archery',
-              subtitle: 'Masuk untuk mengakses jadwal latihan.',
+              title: 'CEO',
+              subtitle: 'Masuk untuk mengakses kartu anggota.',
             ),
           ),
         ],
@@ -305,7 +305,7 @@ void main() {
 
       expect(find.text('BERANDA'), findsNothing);
       expect(find.text('Masuk dengan Google'), findsOneWidget);
-      expect(find.text('Anak Langit Archery'), findsOneWidget);
+      expect(find.text('CEO'), findsOneWidget);
     });
 
     testWidgets('sudah login → tetap di rute', (tester) async {

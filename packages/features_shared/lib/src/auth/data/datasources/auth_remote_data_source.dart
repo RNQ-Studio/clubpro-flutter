@@ -126,11 +126,11 @@ class AuthRemoteDataSource {
       401 => const ServerException(
           'Akun Google tidak dapat diverifikasi. Silakan coba lagi.'),
       403 => const ServerException(
-          'Akun Anda dinonaktifkan. Hubungi pengurus club.'),
+          'Akun Anda dinonaktifkan. Hubungi pengurus komunitas.'),
       429 => const ServerException(
           'Terlalu banyak percobaan masuk. Coba lagi beberapa saat lagi.'),
       503 => const ServerException(
-          'Login Google belum diaktifkan di server. Hubungi pengurus club.'),
+          'Login Google belum diaktifkan di server. Hubungi pengurus komunitas.'),
       _ => e.error ?? ServerException(e.message ?? 'Login Google gagal'),
     };
   }

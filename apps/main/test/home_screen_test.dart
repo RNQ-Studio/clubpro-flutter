@@ -201,7 +201,7 @@ void main() {
 
   test('banner bawaan tersedia bila server belum punya banner', () {
     expect(defaultHomeBanners, isNotEmpty);
-    expect(defaultHomeBanners.first.title, contains('Anak Langit Archery'));
+    expect(defaultHomeBanners.first.title, contains('CEO'));
   });
 
   test('salam mengikuti jam', () {

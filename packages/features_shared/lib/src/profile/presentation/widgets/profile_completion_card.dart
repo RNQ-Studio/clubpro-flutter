@@ -64,7 +64,7 @@ class ProfileCompletionCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Terima kasih! Data diri Anda sudah lengkap dan memudahkan '
-                  'pengurus club mendata anggota.',
+                  'pengurus komunitas mendata anggota.',
                   style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
                 ),
               ],
@@ -122,7 +122,7 @@ class ProfileCompletionCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Lengkapi data diri agar pengurus club dapat mendata dan '
+            'Lengkapi data diri agar pengurus komunitas dapat mendata dan '
             'menghubungi Anda. Yang belum diisi:',
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,

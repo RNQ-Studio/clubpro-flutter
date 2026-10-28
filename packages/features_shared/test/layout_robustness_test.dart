@@ -14,7 +14,7 @@ class _FixedAuthNotifier extends AuthNotifier {
 
 const _user = User(
   id: '1',
-  name: 'Muhammad Rizky Pratama Anak Langit',
+  name: 'Muhammad Rizky Pratama Wicaksono Putra',
   email: 'muhammad.rizky.pratama@gmail.com',
 );
 
@@ -53,13 +53,13 @@ void main() {
     await pumpSmall(
       tester,
       const GoogleLoginScreen(
-        title: 'Anak Langit Archery',
-        subtitle: 'Masuk untuk mengakses jadwal latihan, absensi, prestasi, '
-            'dan iuran bulanan club.',
+        title: 'CEO · Community E-Commerce Operator',
+        subtitle: 'Masuk untuk mengakses kartu anggota, absensi, iuran '
+            'bulanan, dan saldo komunitas Anda.',
         logo: SizedBox.square(dimension: 112),
       ),
       const AuthError('Login Google belum diaktifkan di server. Hubungi '
-          'pengurus club.'),
+          'pengurus komunitas.'),
     );
     expect(tester.takeException(), isNull);
   });

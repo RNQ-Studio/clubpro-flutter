@@ -6,15 +6,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('onboarding menjelaskan fitur utama club', () {
+  test('onboarding menjelaskan fitur utama CEO', () {
     final titles = ClubBrand.onboardingPages.map((p) => p.title).join(' | ');
 
-    expect(titles, contains('Anak Langit Archery'));
-    expect(titles, contains('Jadwal Latihan'));
+    expect(titles, contains('CEO'));
+    expect(titles, contains('Kartu Anggota'));
     expect(titles, contains('Absensi'));
-    expect(titles, contains('Prestasi'));
     expect(titles, contains('Iuran Bulanan'));
-    expect(titles, contains('Operasional Club'));
+    expect(titles, contains('Top-up Saldo'));
+  });
+
+  test('tidak ada sisa branding lama di identitas app', () {
+    final copy = [
+      ClubBrand.name,
+      ClubBrand.title,
+      ClubBrand.tagline,
+      ClubBrand.loginSubtitle,
+      for (final p in ClubBrand.onboardingPages) ...[p.title, p.description],
+    ].join(' ').toLowerCase();
+
+    for (final old in ['anak langit', 'archery', 'panah', 'club']) {
+      expect(copy, isNot(contains(old)), reason: old);
+    }
+    expect(ClubBrand.title, 'CEO · Community E-Commerce Operator');
   });
 
   testWidgets('halaman pertama onboarding menampilkan logo club',
@@ -27,7 +41,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Selamat Datang di Anak Langit Archery'), findsOneWidget);
+    expect(find.text('Selamat Datang di CEO'), findsOneWidget);
     expect(find.byType(ClubLogo), findsOneWidget);
   });
 

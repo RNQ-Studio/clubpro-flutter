@@ -48,7 +48,7 @@ class _AppRouterState extends ConsumerState<_AppRouter> {
     final locale = ref.watch(localeProvider).asData?.value;
 
     return MaterialApp.router(
-      title: ClubBrand.name,
+      title: ClubBrand.title,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,

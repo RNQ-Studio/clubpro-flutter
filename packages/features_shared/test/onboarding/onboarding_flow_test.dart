@@ -161,16 +161,16 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_app(
         splash: () => const SplashScreen(
-          title: 'Anak Langit Archery',
-          tagline: 'Aplikasi Anggota Club Panahan',
+          title: 'CEO',
+          tagline: 'Community E-Commerce Operator',
           logo: Icon(Icons.sports_score, key: Key('logo')),
         ),
         repo: _FakeOnboardingRepository(completed: true),
       ));
       await tester.pump();
 
-      expect(find.text('Anak Langit Archery'), findsOneWidget);
-      expect(find.text('Aplikasi Anggota Club Panahan'), findsOneWidget);
+      expect(find.text('CEO'), findsOneWidget);
+      expect(find.text('Community E-Commerce Operator'), findsOneWidget);
       expect(find.byKey(const Key('logo')), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 2));
