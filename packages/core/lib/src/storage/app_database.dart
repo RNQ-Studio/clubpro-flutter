@@ -77,7 +77,15 @@ class AppDatabase extends _$AppDatabase {
       );
 
   static QueryExecutor _openConnection() {
-    return driftDatabase(name: 'app_cache');
+    // Web: `sqlite3.wasm` (sqlite3 3.3.1) & `drift_worker.js` (drift 2.33.0)
+    // ada di `web/` tiap app; perbarui keduanya bila versi paket naik.
+    return driftDatabase(
+      name: 'app_cache',
+      web: DriftWebOptions(
+        sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+        driftWorker: Uri.parse('drift_worker.js'),
+      ),
+    );
   }
 
   // ─── Cache Operations ─────────────────────────────────────────
