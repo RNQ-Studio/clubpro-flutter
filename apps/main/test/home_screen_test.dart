@@ -100,12 +100,19 @@ void main() {
     expect(headerY, lessThan(bannerY));
     expect(bannerY, lessThan(menuY));
 
-    // Menu utama operasional club.
+    // Menu utama sesuai lingkup CEO.
     for (final menu in homeMenus) {
       expect(find.text(menu.label), findsOneWidget);
     }
-    expect(find.text('Jadwal Latihan'), findsOneWidget);
-    expect(find.text('Iuran Bulanan'), findsOneWidget);
+    for (final label in [
+      'Kartu Anggota',
+      'Absensi',
+      'Iuran Bulanan',
+      'Top-up Saldo',
+      'Riwayat Transaksi'
+    ]) {
+      expect(find.text(label), findsOneWidget, reason: label);
+    }
   });
 
   testWidgets('banner bergeser otomatis', (tester) async {
@@ -197,6 +204,16 @@ void main() {
     await tester.drag(find.byType(ListView).first, const Offset(0, -600));
     await tester.pump();
     expect(tester.takeException(), isNull);
+  });
+
+  test('menu tanpa sisa istilah panahan & id unik', () {
+    final copy = [for (final m in homeMenus) '${m.label} ${m.description}']
+        .join(' ')
+        .toLowerCase();
+    for (final old in ['latihan', 'panah', 'busur', 'lomba', 'club']) {
+      expect(copy, isNot(contains(old)), reason: old);
+    }
+    expect(homeMenus.map((m) => m.id).toSet(), hasLength(homeMenus.length));
   });
 
   test('banner bawaan tersedia bila server belum punya banner', () {

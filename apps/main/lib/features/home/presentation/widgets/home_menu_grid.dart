@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Menu utama operasional club.
+/// Menu utama app anggota CEO.
 class HomeMenu {
   const HomeMenu({
     required this.id,
@@ -21,25 +21,18 @@ class HomeMenu {
 
 const homeMenus = [
   HomeMenu(
-    id: 'schedule',
-    label: 'Jadwal Latihan',
-    icon: Icons.event_note_rounded,
-    color: Color(0xFF1E6FD9),
-    description: 'Lihat jadwal latihan, lokasi, dan pelatih setiap sesi.',
+    id: 'member-card',
+    label: 'Kartu Anggota',
+    icon: Icons.badge_rounded,
+    color: Color(0xFFBE8815),
+    description: 'Kartu anggota digital yang bisa Anda tunjukkan kapan saja.',
   ),
   HomeMenu(
     id: 'attendance',
     label: 'Absensi',
     icon: Icons.how_to_reg_rounded,
     color: Color(0xFF178A5B),
-    description: 'Catat kehadiran latihan dan lihat riwayat absensi Anda.',
-  ),
-  HomeMenu(
-    id: 'achievements',
-    label: 'Prestasi',
-    icon: Icons.emoji_events_rounded,
-    color: Color(0xFFC98A00),
-    description: 'Simpan hasil lomba, skor latihan, dan pencapaian Anda.',
+    description: 'Catat kehadiran kegiatan dan lihat riwayat absensi Anda.',
   ),
   HomeMenu(
     id: 'dues',
@@ -49,32 +42,40 @@ const homeMenus = [
     description: 'Pantau tagihan dan riwayat pembayaran iuran bulanan.',
   ),
   HomeMenu(
-    id: 'events',
-    label: 'Event & Lomba',
-    icon: Icons.military_tech_rounded,
+    id: 'top-up',
+    label: 'Top-up Saldo',
+    icon: Icons.add_card_rounded,
+    color: Color(0xFF1E6FD9),
+    description: 'Isi saldo lewat transfer bank dan unggah bukti transfernya.',
+  ),
+  HomeMenu(
+    id: 'transactions',
+    label: 'Riwayat Transaksi',
+    icon: Icons.receipt_long_rounded,
     color: Color(0xFF6D4AFF),
-    description: 'Info kejuaraan, pendaftaran lomba, dan kegiatan club.',
+    description: 'Riwayat top-up dan pembayaran iuran beserta status '
+        'verifikasinya.',
+  ),
+  HomeMenu(
+    id: 'events',
+    label: 'Kegiatan',
+    icon: Icons.event_note_rounded,
+    color: Color(0xFFE8710A),
+    description: 'Jadwal dan informasi kegiatan komunitas.',
   ),
   HomeMenu(
     id: 'announcements',
     label: 'Pengumuman',
     icon: Icons.campaign_rounded,
-    color: Color(0xFFE8710A),
-    description: 'Pengumuman resmi dari pengurus club.',
+    color: Color(0xFF00838F),
+    description: 'Pengumuman resmi dari pengurus komunitas.',
   ),
   HomeMenu(
     id: 'members',
     label: 'Anggota',
     icon: Icons.groups_rounded,
-    color: Color(0xFF00838F),
-    description: 'Daftar anggota dan pelatih club Anak Langit.',
-  ),
-  HomeMenu(
-    id: 'equipment',
-    label: 'Peralatan',
-    icon: Icons.inventory_2_rounded,
     color: Color(0xFF5D4037),
-    description: 'Peminjaman busur, anak panah, dan perlengkapan club.',
+    description: 'Daftar anggota komunitas.',
   ),
 ];
 
