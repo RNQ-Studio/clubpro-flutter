@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,8 +8,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import 'auth_provider.dart';
 import 'auth_state.dart';
+import 'google_web_button.dart';
 
 /// Halaman login yang hanya menyediakan "Masuk dengan Google".
+///
+/// Di web (bila Web client ID terpasang) tombolnya adalah tombol Google resmi,
+/// karena `google_sign_in` tidak bisa membuka pemilih akun dari tombol app.
 ///
 /// Branding (judul, keterangan, logo) disediakan app. Setelah berhasil,
 /// [onLoggedIn] menentukan tujuan; bawaannya `/`.
@@ -31,15 +38,30 @@ class GoogleLoginScreen extends ConsumerStatefulWidget {
 
 class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
   String _version = '';
+  StreamSubscription<String>? _webIdTokens;
 
   @override
   void initState() {
     super.initState();
+    final google = kIsWeb ? ref.read(googleSignInServiceProvider) : null;
+    if (google != null && google.isConfigured) {
+      final auth = ref.read(authProvider.notifier);
+      _webIdTokens = google.webIdTokens.listen(
+        auth.loginWithGoogleIdToken,
+        onError: auth.googleSignInFailed,
+      );
+    }
     PackageInfo.fromPlatform().then((info) {
       if (mounted) {
         setState(() => _version = 'Versi ${info.version}+${info.buildNumber}');
       }
     }).catchError((_) {});
+  }
+
+  @override
+  void dispose() {
+    _webIdTokens?.cancel();
+    super.dispose();
   }
 
   @override
@@ -98,11 +120,17 @@ class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
                       _ErrorBanner(message: authState.message),
                       const SizedBox(height: 16),
                     ],
-                    _GoogleButton(
-                      isLoading: isLoading,
-                      onPressed: () =>
-                          ref.read(authProvider.notifier).loginWithGoogle(),
-                    ),
+                    if (_webIdTokens != null && !isLoading)
+                      SizedBox(
+                        height: 56,
+                        child: Center(child: googleWebButton()),
+                      )
+                    else
+                      _GoogleButton(
+                        isLoading: isLoading,
+                        onPressed: () =>
+                            ref.read(authProvider.notifier).loginWithGoogle(),
+                      ),
                     const SizedBox(height: 14),
                     Text(
                       'Belum punya akun? Akun anggota dibuat otomatis saat '

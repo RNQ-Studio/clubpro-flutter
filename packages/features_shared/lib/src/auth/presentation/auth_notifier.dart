@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/biometric_auth_service.dart';
 import '../data/google_sign_in_service.dart';
+import '../domain/entities/user.dart';
 import '../domain/usecases/get_current_user_use_case.dart';
 import '../domain/usecases/login_use_case.dart';
 import '../domain/usecases/logout_use_case.dart';
@@ -52,11 +53,24 @@ class AuthNotifier extends _$AuthNotifier {
 
   /// Masuk dengan akun Google. Batal memilih akun → kembali ke belum login
   /// tanpa pesan error.
-  Future<void> loginWithGoogle() async {
+  Future<void> loginWithGoogle() =>
+      _runGoogleLogin(() => ref.read(authRepositoryProvider).loginWithGoogle());
+
+  /// Web: masuk dengan ID token dari tombol Google resmi.
+  Future<void> loginWithGoogleIdToken(String idToken) => _runGoogleLogin(
+      () => ref.read(authRepositoryProvider).loginWithGoogleIdToken(idToken));
+
+  /// Web: tombol Google gagal sebelum ada ID token.
+  void googleSignInFailed(Object error) {
+    state = error is GoogleSignInCancelled
+        ? const AuthUnauthenticated()
+        : AuthError(error.toString());
+  }
+
+  Future<void> _runGoogleLogin(Future<User> Function() login) async {
     state = const AuthLoading();
     try {
-      final user = await ref.read(authRepositoryProvider).loginWithGoogle();
-      state = AuthAuthenticated(user);
+      state = AuthAuthenticated(await login());
     } on GoogleSignInCancelled {
       state = const AuthUnauthenticated();
     } catch (e) {

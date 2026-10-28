@@ -7,6 +7,10 @@ abstract class AuthRepository {
   /// bila pengguna membatalkan.
   Future<User> loginWithGoogle();
 
+  /// Tukar ID token Google yang sudah didapat (tombol Google di web) dengan
+  /// token backend.
+  Future<User> loginWithGoogleIdToken(String idToken);
+
   /// Hapus sesi lokal tanpa memanggil server (token sudah tidak sah).
   Future<void> clearSession();
 

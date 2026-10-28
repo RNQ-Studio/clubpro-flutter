@@ -33,6 +33,9 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<User> loginWithGoogleIdToken(String idToken) => loginWithGoogle();
+
+  @override
   Future<void> clearSession() async {
     _currentUser = null;
   }

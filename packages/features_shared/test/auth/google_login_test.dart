@@ -117,6 +117,32 @@ void main() {
           'Login Google belum diaktifkan di server.');
     });
 
+    test('web: ID token dari tombol Google → AuthAuthenticated', () async {
+      when(() => repo.loginWithGoogleIdToken('web-token'))
+          .thenAnswer((_) async => _user);
+
+      await container
+          .read(authProvider.notifier)
+          .loginWithGoogleIdToken('web-token');
+
+      expect(container.read(authProvider), isA<AuthAuthenticated>());
+    });
+
+    test('web: tombol Google dibatalkan → belum login; gagal → AuthError', () {
+      final notifier = container.read(authProvider.notifier);
+
+      notifier.googleSignInFailed(const GoogleSignInCancelled());
+      expect(container.read(authProvider), isA<AuthUnauthenticated>());
+
+      notifier.googleSignInFailed(
+          const ServerException('Konfigurasi login Google tidak valid.'));
+      expect(
+        container.read(authProvider),
+        isA<AuthError>().having((s) => s.message, 'message',
+            'Konfigurasi login Google tidak valid.'),
+      );
+    });
+
     test('sessionExpired → hapus sesi lokal & belum login', () async {
       when(() => repo.loginWithGoogle()).thenAnswer((_) async => _user);
       when(() => repo.clearSession()).thenAnswer((_) async {});
@@ -179,6 +205,34 @@ void main() {
       expect(user.email, 'rina@gmail.com');
       expect(storage.values[AppConstants.keyAuthToken], 'acc');
       expect(storage.values[AppConstants.keyRefreshToken], 'ref');
+    });
+
+    test('loginWithGoogleIdToken menukar token tanpa membuka pemilih akun',
+        () async {
+      String? sentIdToken;
+      final repo = buildRepo((o) {
+        if (o.path == 'v1/auth/google') {
+          sentIdToken = (o.data as Map)['id_token'] as String;
+          return (
+            200,
+            {
+              'data': {'access_token': 'acc', 'refresh_token': 'ref'}
+            }
+          );
+        }
+        return (
+          200,
+          {
+            'data': {'id': 7, 'name': 'Rina', 'email': 'rina@gmail.com'}
+          }
+        );
+      }, _FakeGoogle(StateError('pemilih akun tidak boleh dibuka')));
+
+      final user = await repo.loginWithGoogleIdToken('web-token');
+
+      expect(sentIdToken, 'web-token');
+      expect(user.email, 'rina@gmail.com');
+      expect(storage.values[AppConstants.keyAuthToken], 'acc');
     });
 
     test('server belum dikonfigurasi (503) → pesan bahasa Indonesia', () async {

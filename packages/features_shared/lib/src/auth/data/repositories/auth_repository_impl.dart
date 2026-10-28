@@ -34,7 +34,11 @@ class AuthRepositoryImpl implements AuthRepository {
     if (google == null) {
       throw StateError('GoogleSignInService belum disediakan.');
     }
-    final idToken = await google.obtainIdToken();
+    return loginWithGoogleIdToken(await google.obtainIdToken());
+  }
+
+  @override
+  Future<User> loginWithGoogleIdToken(String idToken) async {
     final result = await _remote.loginWithGoogle(idToken);
     await _local.saveUser(result.user);
     return result.user;

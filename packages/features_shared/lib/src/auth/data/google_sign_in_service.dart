@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:core/core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 /// Pengguna menutup/membatalkan pemilih akun Google — bukan error.
@@ -8,6 +11,10 @@ class GoogleSignInCancelled implements Exception {
 
 /// Membungkus `google_sign_in` v7: memastikan `initialize` dipanggil sekali
 /// dengan [serverClientId] (Web client ID) agar ID token ber-audiens backend.
+///
+/// Di web, Web client ID yang sama dipakai sebagai `clientId`, dan pemilih
+/// akun dibuka oleh tombol Google resmi (lihat [webIdTokens]), bukan oleh
+/// [obtainIdToken].
 class GoogleSignInService {
   GoogleSignInService({GoogleSignIn? signIn, String? serverClientId})
       : _signIn = signIn ?? GoogleSignIn.instance,
@@ -31,8 +38,7 @@ class GoogleSignInService {
     }
 
     try {
-      await (_initialization ??=
-          _signIn.initialize(serverClientId: _serverClientId));
+      await _ensureInitialized();
       final account = await _signIn.authenticate();
       final idToken = account.authentication.idToken;
       if (idToken == null || idToken.isEmpty) {
@@ -46,7 +52,36 @@ class GoogleSignInService {
           e.code == GoogleSignInExceptionCode.clientConfigurationError
               ? null
               : _initialization;
-      throw switch (e.code) {
+      throw _mapException(e);
+    }
+  }
+
+  /// Web: ID token setiap kali pengguna masuk lewat tombol Google resmi.
+  /// Kegagalan dikirim sebagai error stream ([GoogleSignInCancelled] atau
+  /// [ServerException]).
+  Stream<String> get webIdTokens async* {
+    await _ensureInitialized();
+    yield* _signIn.authenticationEvents
+        .map((event) => switch (event) {
+              GoogleSignInAuthenticationEventSignIn(:final user) =>
+                user.authentication.idToken,
+              _ => null,
+            })
+        .where((idToken) => idToken != null && idToken.isNotEmpty)
+        .cast<String>()
+        .transform(StreamTransformer.fromHandlers(
+          handleError: (error, stackTrace, sink) => sink.addError(
+            error is GoogleSignInException ? _mapException(error) : error,
+            stackTrace,
+          ),
+        ));
+  }
+
+  Future<void> _ensureInitialized() => _initialization ??= kIsWeb
+      ? _signIn.initialize(clientId: _serverClientId)
+      : _signIn.initialize(serverClientId: _serverClientId);
+
+  Exception _mapException(GoogleSignInException e) => switch (e.code) {
         GoogleSignInExceptionCode.canceled ||
         GoogleSignInExceptionCode.interrupted =>
           const GoogleSignInCancelled(),
@@ -62,8 +97,6 @@ class GoogleSignInService {
             'Login Google gagal: ${e.description ?? e.code.name}',
           ),
       };
-    }
-  }
 
   /// Agar login berikutnya menampilkan pemilih akun lagi.
   Future<void> signOut() async {
