@@ -58,3 +58,6 @@ upload-keystore.jks
 
 # FlutterFire CLI generated
 firebase_app_id_file.json
+
+# Firebase CLI (cache deploy hosting)
+.firebase/

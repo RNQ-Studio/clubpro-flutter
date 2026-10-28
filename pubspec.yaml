@@ -84,6 +84,10 @@ melos:
       run: cd apps/main && flutter build web --dart-define=ENV=prod
       description: Build web output for the main app.
 
+    "deploy:web":
+      run: tool/deploy_web.sh
+      description: Build web app main (ENV=prod) lalu deploy ke Firebase Hosting https://ceo-pro.web.app. Lihat tool/deploy_web.sh untuk GOOGLE_SERVER_CLIENT_ID & --channel.
+
     "build:web:variant":
       run: cd apps/variant && flutter build web --dart-define=ENV=prod
       description: Build web output for the variant app.

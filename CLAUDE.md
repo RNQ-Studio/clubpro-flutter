@@ -144,6 +144,24 @@ Konfigurasi environment: `AppConfig` (abstract) → `MainConfig` / `VariantConfi
 (`v1/quotes`). Jangan mengarahkan app, contoh dokumentasi, atau tutorial ke domain lain
 (domain lama, `example.com`, DummyJSON, dll.).
 
+### 🌍 Web — Firebase Hosting `https://ceo-pro.web.app`
+
+Fokus saat ini web. `apps/main` di-deploy ke site Hosting `ceo-pro` di project Firebase
+`clubpro-ceo` (`firebase.json`, `.firebaserc`):
+
+```bash
+GOOGLE_SERVER_CLIENT_ID=xxxx.apps.googleusercontent.com dart run melos run deploy:web
+tool/deploy_web.sh --channel uji      # preview channel, live tidak tersentuh
+tool/deploy_web.sh --build-only       # build saja
+firebase emulators:start --only hosting --project demo-clubpro   # uji lokal :5055
+```
+
+- Login Google di web memakai tombol resmi GSI (`google_web_button*.dart`) dengan Web
+  client ID sebagai `clientId`; origin `https://ceo-pro.web.app` wajib terdaftar di
+  "Authorized JavaScript origins" client tersebut.
+- Drift di web butuh `web/sqlite3.wasm` & `web/drift_worker.js` (tiap app); versinya harus
+  ikut paket `sqlite3`/`drift` di `pubspec.lock` (lihat `AppDatabase._openConnection`).
+
 ---
 
 ## 🔒 Fitur Keamanan
