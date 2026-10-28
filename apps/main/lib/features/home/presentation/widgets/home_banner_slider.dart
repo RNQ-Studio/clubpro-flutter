@@ -29,10 +29,10 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
 
   // Latar banner tanpa gambar: warna-warna cincin target.
   static const _gradients = [
-    [Color(0xFF0B2A5B), Color(0xFF1E6FD9)],
-    [Color(0xFF7A1F1F), Color(0xFFD62F33)],
-    [Color(0xFF6B4A00), Color(0xFFC98A00)],
-    [Color(0xFF0F4D35), Color(0xFF178A5B)],
+    [Color(0xFF5C3A02), Color(0xFFBE8815)],
+    [Color(0xFF111111), Color(0xFF3F3A2E)],
+    [Color(0xFF764903), Color(0xFFDAA727)],
+    [Color(0xFF2B2416), Color(0xFF8A6512)],
   ];
 
   @override
@@ -202,7 +202,7 @@ class _BannerCard extends StatelessWidget {
                   bottom: -18,
                   child: Opacity(
                     opacity: 0.22,
-                    child: ClubLogo(size: 150, withBackground: false),
+                    child: ClubLogo(size: 150, fadeEdges: true),
                   ),
                 ),
               // Gradasi gelap bawah agar teks terbaca di atas gambar.

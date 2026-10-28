@@ -93,6 +93,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.pump(const Duration(seconds: 1));
     if (before != null) await before();
+    // Gambar aset (logo) di-decode di luar fake async; tunggu, lalu gambar ulang.
+    await tester.runAsync(() async {
+      for (final element in find.byType(Image).evaluate()) {
+        await precacheImage((element.widget as Image).image, element);
+      }
+    });
+    await tester.pump();
 
     final boundary = boundaryKey.currentContext!.findRenderObject()!
         as RenderRepaintBoundary;

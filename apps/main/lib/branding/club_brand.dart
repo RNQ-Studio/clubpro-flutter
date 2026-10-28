@@ -14,11 +14,10 @@ abstract final class ClubBrand {
   static const loginSubtitle = 'Masuk untuk mengakses kartu anggota, absensi, '
       'iuran bulanan, dan saldo komunitas Anda.';
 
-  // Warna aksen di atas tema monokrom.
-  static const blue = Color(0xFF1E6FD9);
-  static const gold = Color(0xFFC98A00);
-  static const red = Color(0xFFD62F33);
-  static const green = Color(0xFF178A5B);
+  // Aksen emas dari logo di atas tema monokrom.
+  static const gold = Color(0xFFBE8815);
+  static const goldDeep = Color(0xFF8A5C06);
+  static const bronze = Color(0xFF764903);
 
   static const onboardingPages = [
     OnboardingPage(
@@ -26,7 +25,7 @@ abstract final class ClubBrand {
       title: 'Selamat Datang di CEO',
       description: 'Community E-Commerce Operator — aplikasi resmi anggota '
           'komunitas. Semua kebutuhan anggota kini ada dalam satu genggaman.',
-      color: blue,
+      color: gold,
       illustration: ClubLogo(size: 168),
     ),
     OnboardingPage(
@@ -34,21 +33,21 @@ abstract final class ClubBrand {
       title: 'Kartu Anggota Digital',
       description: 'Data keanggotaan Anda tersimpan rapi dan kartu anggota '
           'selalu siap ditunjukkan langsung dari aplikasi.',
-      color: blue,
+      color: gold,
     ),
     OnboardingPage(
       icon: Icons.event_available_rounded,
       title: 'Absensi Kegiatan',
       description: 'Catat kehadiran Anda di setiap kegiatan komunitas dan '
           'lihat riwayatnya kapan saja.',
-      color: green,
+      color: goldDeep,
     ),
     OnboardingPage(
       icon: Icons.account_balance_wallet_rounded,
       title: 'Iuran Bulanan',
       description: 'Pantau tagihan dan riwayat pembayaran iuran bulanan '
           'dengan mudah dan transparan.',
-      color: red,
+      color: bronze,
     ),
     OnboardingPage(
       icon: Icons.add_card_rounded,
