@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../branding/club_brand.dart';
 import '../branding/club_logo.dart';
+import '../features/admin/presentation/screens/admin_panel_screen.dart';
+import '../features/admin/presentation/screens/admin_user_detail_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/quotes/presentation/screens/quote_form_screen.dart';
 import '../features/quotes/presentation/screens/quotes_screen.dart';
@@ -73,6 +75,21 @@ final appRouter = GoRouter(
       builder: (context, state) => const EditProfileScreen(),
     ),
     settingsRoute,
+
+    // Khusus super admin: layar menolak selain itu, begitu juga API-nya.
+    GoRoute(
+      path: AppRoutes.adminPanel,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const AdminPanelScreen(),
+      routes: [
+        GoRoute(
+          path: 'users/:id',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) =>
+              AdminUserDetailScreen(userId: state.pathParameters['id']!),
+        ),
+      ],
+    ),
 
     // Contoh bawaan starter (tidak ditautkan dari menu club).
     GoRoute(

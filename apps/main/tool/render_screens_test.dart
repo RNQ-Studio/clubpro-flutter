@@ -8,6 +8,9 @@ import 'dart:ui' as ui;
 
 import 'package:app_main/branding/club_brand.dart';
 import 'package:app_main/branding/club_logo.dart';
+import 'package:app_main/features/admin/presentation/admin_providers.dart';
+import 'package:app_main/features/admin/presentation/screens/admin_panel_screen.dart';
+import 'package:app_main/features/admin/presentation/screens/admin_user_detail_screen.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
 import 'package:app_main/shell/main_shell.dart';
@@ -19,6 +22,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+
+import '../test/features/admin/fake_admin_repository.dart';
 
 class _FixedAuthNotifier extends AuthNotifier {
   _FixedAuthNotifier(this._state);
@@ -55,6 +60,13 @@ final _complete = User(
   completion: const ProfileCompletion(completed: 10, total: 10, missing: []),
 );
 
+const _superAdmin = User(
+  id: '1',
+  name: 'Rina Ayu Lestari',
+  email: 'rina.ayu@gmail.com',
+  roles: [User.superAdminRole],
+);
+
 Future<void> _loadFonts() async {
   final sdk =
       File(Platform.resolvedExecutable).parent.parent.parent.parent.path;
@@ -82,8 +94,9 @@ void main() {
     String name,
     Widget app, {
     Future<void> Function()? before,
+    Size size = const Size(360, 780),
   }) async {
-    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
@@ -147,6 +160,72 @@ void main() {
         authProvider
             .overrideWith(() => _FixedAuthNotifier(AuthAuthenticated(user))),
         homeBannersProvider.overrideWith((ref) async => defaultHomeBanners),
+      ],
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('id'),
+      ),
+    );
+  }
+
+  Widget admin(String location) {
+    final now = DateTime.now();
+    final repository = FakeAdminRepository(
+      pages: [
+        [
+          adminUser(
+            '1',
+            email: 'rina.ayu@gmail.com',
+            isSuperAdmin: true,
+            lastSeenAt: now.subtract(const Duration(minutes: 3)),
+            device: adminDevices.first,
+          ),
+          adminUser(
+            '2',
+            name: 'Budi Santoso',
+            email: 'budi.santoso@gmail.com',
+            lastSeenAt: now.subtract(const Duration(hours: 5)),
+            device: adminDevices.last,
+          ),
+          adminUser(
+            '3',
+            name: 'Citra Dewi Maharani Putri Kusumawardhani',
+            email: 'citra.dewi.maharani.kusumawardhani@gmail.com',
+            isActive: false,
+            lastSeenAt: now.subtract(const Duration(days: 30)),
+            device: adminDevices.first,
+          ),
+          adminUser('4', name: 'Dimas', email: 'dimas@gmail.com'),
+        ],
+      ],
+      detail: adminDetail(id: '2', name: 'Budi Santoso'),
+    );
+    final router = GoRouter(
+      initialLocation: location,
+      routes: [
+        GoRoute(path: '/', builder: (_, __) => const SizedBox.shrink()),
+        GoRoute(
+          path: AppRoutes.adminPanel,
+          builder: (_, __) => const AdminPanelScreen(),
+          routes: [
+            GoRoute(
+              path: 'users/:id',
+              builder: (_, state) =>
+                  AdminUserDetailScreen(userId: state.pathParameters['id']!),
+            ),
+          ],
+        ),
+      ],
+    );
+    return ProviderScope(
+      overrides: [
+        authProvider.overrideWith(
+            () => _FixedAuthNotifier(const AuthAuthenticated(_superAdmin))),
+        adminRepositoryProvider.overrideWithValue(repository),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
@@ -225,5 +304,29 @@ void main() {
   testWidgets('08-profil-lengkap', (tester) async {
     await shoot(tester, '08-profil-lengkap',
         shell(_complete, location: AppRoutes.profile));
+  });
+
+  testWidgets('09-beranda-super-admin', (tester) async {
+    await shoot(tester, '09-beranda-super-admin', shell(_superAdmin));
+  });
+
+  testWidgets('10-admin-panel', (tester) async {
+    await shoot(tester, '10-admin-panel', admin(AppRoutes.adminPanel));
+  });
+
+  testWidgets('11-admin-panel-desktop', (tester) async {
+    await shoot(tester, '11-admin-panel-desktop', admin(AppRoutes.adminPanel),
+        size: const Size(1280, 800));
+  });
+
+  testWidgets('12-admin-detail', (tester) async {
+    await shoot(tester, '12-admin-detail', admin(AppRoutes.adminUser('2')),
+        size: const Size(360, 1500));
+  });
+
+  testWidgets('13-admin-detail-desktop', (tester) async {
+    await shoot(
+        tester, '13-admin-detail-desktop', admin(AppRoutes.adminUser('2')),
+        size: const Size(1280, 900));
   });
 }

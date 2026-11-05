@@ -1,6 +1,8 @@
 import '../../../profile/domain/entities/member_profile.dart';
 
 class User {
+  static const superAdminRole = 'super-admin';
+
   const User({
     required this.id,
     required this.name,
@@ -36,6 +38,9 @@ class User {
   final String? emergencyContactPhone;
 
   final ProfileCompletion? _completion;
+
+  /// Pembuka menu Admin Panel. Izin sebenarnya tetap ditentukan server.
+  bool get isSuperAdmin => roles.contains(superAdminRole);
 
   /// Kelengkapan profil dari server; dihitung lokal bila server belum
   /// mengirimnya (aturan sama dengan backend).
