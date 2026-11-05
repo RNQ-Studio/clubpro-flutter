@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "message": "OK",
+  "data": {
+    "id": 1,
+    "name": "Pemanah Nusantara",
+    "short_name": "PN",
+    "type": "panahan",
+    "type_label": "Panahan",
+    "status": "approved",
+    "logo_url": "https://anaklangit.manahpro.web.id/api/v1/assets/258f22eb-36c8-413c-8a8d-73201b6fdc64/file",
+    "city_name": "Kota Bandung",
+    "province_name": "Jawa Barat",
+    "description": "Komunitas pecinta panahan tradisional yang rutin berlatih setiap akhir pekan di Bandung.",
+    "created_at": "2026-11-05T06:38:43+00:00",
+    "address": "Jl. Merdeka No. 10, Sumur Bandung",
+    "province_code": "32",
+    "city_code": "32.73",
+    "contact_name": "Rina Ayu",
+    "contact_phone": "081234567890",
+    "contact_email": "rina.ayu@gmail.com",
+    "photo_urls": [
+      "https://anaklangit.manahpro.web.id/api/v1/assets/578fe37b-f593-424c-98c0-cbbae6db4d29/file",
+      "https://anaklangit.manahpro.web.id/api/v1/assets/a73a7105-7f83-4bf7-8c4c-3607860d8b70/file"
+    ]
+  }
+}

@@ -9,6 +9,11 @@ abstract final class AppRoutes {
   static const String notifications = '/notifications';
   static const String settings = '/settings';
 
+  // Komunitas
+  static const String communities = '/communities';
+  static const String createCommunity = '$communities/new';
+  static String community(String id) => '$communities/$id';
+
   // Admin Panel (khusus super admin)
   static const String adminPanel = '/admin';
   static String adminUser(String id) => '$adminPanel/users/$id';

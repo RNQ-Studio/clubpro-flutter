@@ -1,0 +1,102 @@
+{
+  "success": true,
+  "message": "OK",
+  "data": [
+    {
+      "value": "panahan",
+      "label": "Panahan"
+    },
+    {
+      "value": "sepak_bola",
+      "label": "Sepak Bola"
+    },
+    {
+      "value": "futsal",
+      "label": "Futsal"
+    },
+    {
+      "value": "bulu_tangkis",
+      "label": "Bulu Tangkis"
+    },
+    {
+      "value": "basket",
+      "label": "Basket"
+    },
+    {
+      "value": "voli",
+      "label": "Voli"
+    },
+    {
+      "value": "tenis",
+      "label": "Tenis"
+    },
+    {
+      "value": "lari",
+      "label": "Lari"
+    },
+    {
+      "value": "bersepeda",
+      "label": "Bersepeda"
+    },
+    {
+      "value": "bela_diri",
+      "label": "Bela Diri"
+    },
+    {
+      "value": "pecinta_alam",
+      "label": "Pecinta Alam"
+    },
+    {
+      "value": "fashion",
+      "label": "Fashion"
+    },
+    {
+      "value": "fotografi",
+      "label": "Fotografi"
+    },
+    {
+      "value": "otomotif",
+      "label": "Otomotif"
+    },
+    {
+      "value": "kuliner",
+      "label": "Kuliner"
+    },
+    {
+      "value": "musik",
+      "label": "Musik"
+    },
+    {
+      "value": "seni_budaya",
+      "label": "Seni & Budaya"
+    },
+    {
+      "value": "gaming",
+      "label": "Gaming & E-Sport"
+    },
+    {
+      "value": "teknologi",
+      "label": "Teknologi"
+    },
+    {
+      "value": "bisnis_umkm",
+      "label": "Bisnis & UMKM"
+    },
+    {
+      "value": "pendidikan",
+      "label": "Pendidikan"
+    },
+    {
+      "value": "sosial",
+      "label": "Sosial & Relawan"
+    },
+    {
+      "value": "keagamaan",
+      "label": "Keagamaan"
+    },
+    {
+      "value": "lainnya",
+      "label": "Lainnya"
+    }
+  ]
+}
