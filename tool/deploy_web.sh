@@ -35,7 +35,8 @@ if [[ -z "${GOOGLE_SERVER_CLIENT_ID:-}" ]]; then
 fi
 
 # Nomor build = jumlah commit HEAD: naik terus di main tanpa commit bump, tampil di
-# app sebagai "Versi x.y.z+N".
+# app sebagai "vx.y.z+N". Ditanam lewat APP_BUILD_NUMBER: version.json dibaca saat
+# berjalan, sehingga kode lama akan menampilkan nomor build terbaru.
 SHA="$(git -C "$ROOT" rev-parse HEAD)"
 BUILD_NUMBER="$(git -C "$ROOT" rev-list --count HEAD)"
 DIRTY=false
@@ -45,6 +46,7 @@ cd "$ROOT/apps/main"
 flutter build web --release \
   --build-number="$BUILD_NUMBER" \
   --dart-define=ENV=prod \
+  --dart-define=APP_BUILD_NUMBER="$BUILD_NUMBER" \
   --dart-define=GOOGLE_SERVER_CLIENT_ID="${GOOGLE_SERVER_CLIENT_ID:-}"
 
 # Stempel rilis: <site>/release.json menunjukkan commit yang sedang live.

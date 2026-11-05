@@ -1,15 +1,31 @@
+import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/domain/entities/home_banner.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
+import 'package:app_main/features/home/presentation/widgets/home_app_version.dart';
 import 'package:app_main/features/home/presentation/widgets/home_menu_grid.dart';
 import 'package:app_main/features/home/presentation/widgets/home_user_header.dart';
-import 'package:app_main/shell/main_shell.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
+class _FakeRefresher implements AppRefresher {
+  _FakeRefresher({this.error});
+
+  final Exception? error;
+  int calls = 0;
+
+  @override
+  Future<void> refresh() async {
+    calls++;
+    final failure = error;
+    if (failure != null) throw failure;
+  }
+}
 
 class _FixedAuthNotifier extends AuthNotifier {
   _FixedAuthNotifier(this._state);
@@ -43,27 +59,32 @@ const _banners = [
   HomeBanner(id: '2', title: 'Pendaftaran Kejuaraan Dibuka'),
 ];
 
-Widget _app(
-    {User user = _incompleteUser, List<HomeBanner> banners = _banners}) {
+Widget _app({
+  User user = _incompleteUser,
+  List<HomeBanner> banners = _banners,
+  AppRefresher? refresher,
+}) {
   final router = GoRouter(
     initialLocation: '/',
     routes: [
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, shell) => MainShell(shell: shell),
-        branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-                path: AppRoutes.communities,
-                builder: (_, __) => const Text('HALAMAN KOMUNITAS')),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-                path: AppRoutes.profile,
-                builder: (_, __) => const Text('HALAMAN PROFIL')),
-          ]),
+      GoRoute(
+        path: '/',
+        builder: (_, __) => const HomeScreen(),
+        routes: [
+          GoRoute(
+            path: 'communities',
+            builder: (_, __) => Scaffold(
+              appBar: AppBar(),
+              body: const Text('HALAMAN KOMUNITAS'),
+            ),
+          ),
+          GoRoute(
+            path: 'profile',
+            builder: (_, __) => Scaffold(
+              appBar: AppBar(),
+              body: const Text('HALAMAN PROFIL'),
+            ),
+          ),
         ],
       ),
       GoRoute(
@@ -77,6 +98,7 @@ Widget _app(
       authProvider
           .overrideWith(() => _FixedAuthNotifier(AuthAuthenticated(user))),
       homeBannersProvider.overrideWith((ref) async => banners),
+      appRefresherProvider.overrideWithValue(refresher),
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -158,27 +180,42 @@ void main() {
     expect(find.textContaining('iuran bulanan'), findsOneWidget);
   });
 
-  testWidgets('tab Profil & penanda profil belum lengkap', (tester) async {
+  testWidgets('tidak ada navigasi bawah', (tester) async {
     _phoneScreen(tester);
     await tester.pumpWidget(_app());
     await tester.pump();
 
-    expect(find.text('Beranda'), findsOneWidget);
-    expect(find.text('Profil'), findsOneWidget);
-    expect(
-      tester
-          .widget<Badge>(find.byKey(const Key('profile-tab-badge')))
-          .isLabelVisible,
-      isTrue,
-    );
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.text('Beranda'), findsNothing);
+    expect(find.text('Profil'), findsNothing);
+  });
 
-    await tester.tap(find.text('Profil'));
+  testWidgets('foto profil membuka halaman Profil dan bisa kembali',
+      (tester) async {
+    _phoneScreen(tester);
+    await tester.pumpWidget(_app());
+    await tester.pump();
+
+    await tester.tap(find.byType(CircleAvatar));
     await tester.pumpAndSettle();
     expect(find.text('HALAMAN PROFIL'), findsOneWidget);
 
-    await tester.tap(find.text('Beranda'));
+    await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.text('Menu Utama'), findsOneWidget);
+  });
+
+  testWidgets('profil belum lengkap ditandai di foto', (tester) async {
+    _phoneScreen(tester);
+    await tester.pumpWidget(_app());
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<Badge>(find.byKey(const Key('home-profile-badge')))
+          .isLabelVisible,
+      isTrue,
+    );
   });
 
   testWidgets('profil lengkap → tanpa penanda, ikon terverifikasi di header',
@@ -189,24 +226,14 @@ void main() {
 
     expect(
       tester
-          .widget<Badge>(find.byKey(const Key('profile-tab-badge')))
+          .widget<Badge>(find.byKey(const Key('home-profile-badge')))
           .isLabelVisible,
       isFalse,
     );
     expect(find.byIcon(Icons.verified_rounded), findsOneWidget);
   });
 
-  testWidgets('mengetuk header membuka tab Profil', (tester) async {
-    _phoneScreen(tester);
-    await tester.pumpWidget(_app());
-    await tester.pump();
-
-    await tester.tap(find.byKey(const Key('home-user-header')));
-    await tester.pumpAndSettle();
-    expect(find.text('HALAMAN PROFIL'), findsOneWidget);
-  });
-
-  testWidgets('Komunitas menjadi menu primer: tab dan kartu teratas Menu Utama',
+  testWidgets('Komunitas menjadi kartu teratas Menu Utama dan bisa kembali',
       (tester) async {
     _phoneScreen(tester);
     await tester.pumpWidget(_app());
@@ -216,26 +243,94 @@ void main() {
     expect(card, findsOneWidget);
     final cardY = tester.getTopLeft(card).dy;
     expect(cardY, greaterThan(tester.getTopLeft(find.text('Menu Utama')).dy));
-    expect(
-      cardY,
-      lessThan(tester.getTopLeft(find.byType(HomeMenuGrid)).dy),
-    );
+    expect(cardY, lessThan(tester.getTopLeft(find.byType(HomeMenuGrid)).dy));
 
     await tester.tap(card);
     await tester.pumpAndSettle();
     expect(find.text('HALAMAN KOMUNITAS'), findsOneWidget);
 
-    await tester.tap(find.text('Beranda'));
+    await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
+    expect(find.text('Menu Utama'), findsOneWidget);
+  });
 
-    // Tab berada di antara Beranda dan Profil.
-    final tab = tester.getCenter(find.byKey(const Key('nav-komunitas'))).dx;
-    expect(tab, greaterThan(tester.getCenter(find.text('Beranda')).dx));
-    expect(tab, lessThan(tester.getCenter(find.text('Profil')).dx));
+  group('versi dan pembaruan', () {
+    Finder refreshButton() => find.byKey(const Key('home-refresh-app'));
 
-    await tester.tap(find.byKey(const Key('nav-komunitas')));
-    await tester.pumpAndSettle();
-    expect(find.text('HALAMAN KOMUNITAS'), findsOneWidget);
+    Future<void> scrollToBottom(WidgetTester tester) async {
+      await tester.drag(find.byType(ListView).first, const Offset(0, -900));
+      await tester.pumpAndSettle();
+    }
+
+    setUp(() {
+      PackageInfo.setMockInitialValues(
+        appName: 'app_main',
+        packageName: 'app_main',
+        version: '1.0.0',
+        buildNumber: '72',
+        buildSignature: '',
+      );
+    });
+
+    test('format versi tanpa nama app', () async {
+      expect(
+        HomeAppVersion.label(await PackageInfo.fromPlatform()),
+        'v1.0.0+72',
+      );
+    });
+
+    testWidgets('tampil di Beranda', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+      await scrollToBottom(tester);
+
+      expect(find.text('v1.0.0+72'), findsOneWidget);
+      expect(find.textContaining('app_main'), findsNothing);
+      expect(find.textContaining('Versi'), findsNothing);
+    });
+
+    testWidgets('tanpa dukungan platform, tombol tidak tampil', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+      await scrollToBottom(tester);
+
+      expect(refreshButton(), findsNothing);
+    });
+
+    testWidgets('tombol memuat versi terbaru', (tester) async {
+      _phoneScreen(tester);
+      final refresher = _FakeRefresher();
+      await tester.pumpWidget(_app(refresher: refresher));
+      await tester.pumpAndSettle();
+      await scrollToBottom(tester);
+
+      expect(find.text('Perbarui Aplikasi'), findsOneWidget);
+
+      await tester.tap(refreshButton());
+      await tester.pump();
+
+      expect(refresher.calls, 1);
+    });
+
+    testWidgets('gagal mengunduh: pesan tampil dan tombol kembali aktif',
+        (tester) async {
+      _phoneScreen(tester);
+      final refresher = _FakeRefresher(error: Exception('offline'));
+      await tester.pumpWidget(_app(refresher: refresher));
+      await tester.pumpAndSettle();
+      await scrollToBottom(tester);
+
+      await tester.tap(refreshButton());
+      await tester.pumpAndSettle();
+
+      expect(
+          find.textContaining('Gagal mengambil versi terbaru'), findsOneWidget);
+      await tester.tap(refreshButton());
+      await tester.pump();
+      expect(refresher.calls, 2);
+    });
   });
 
   testWidgets('Admin Panel tidak tampil untuk anggota biasa', (tester) async {

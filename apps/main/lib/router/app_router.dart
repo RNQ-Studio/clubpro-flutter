@@ -18,7 +18,6 @@ import '../features/quotes/presentation/screens/quote_form_screen.dart';
 import '../features/quotes/presentation/screens/quotes_screen.dart';
 import '../features/settings/presentation/settings_route.dart';
 import '../features/ui_gallery/screens/ui_gallery_home_screen.dart';
-import '../shell/main_shell.dart';
 
 /// Sesudah login: data diri belum lengkap → form data diri, selain itu Beranda.
 String afterLoginLocation(User user) =>
@@ -53,43 +52,34 @@ final appRouter = GoRouter(
       ),
     ),
 
-    // Halaman utama: navigasi bawah Beranda, Komunitas & Profil.
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, shell) => MainShell(shell: shell),
-      branches: [
-        StatefulShellBranch(routes: [
-          GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-            path: AppRoutes.communities,
-            builder: (context, state) => const CommunitiesScreen(),
-            routes: [
-              GoRoute(
-                path: 'new',
-                parentNavigatorKey: _rootNavigatorKey,
-                builder: (context, state) => const CommunityFormScreen(),
+    // Anak `/`: tombol kembali tetap ada walau halaman dimuat ulang.
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const HomeScreen(),
+      routes: [
+        GoRoute(
+          path: 'profile',
+          builder: (context, state) => const ProfileScreen(),
+        ),
+        GoRoute(
+          path: 'communities',
+          builder: (context, state) => const CommunitiesScreen(),
+          routes: [
+            GoRoute(
+              path: 'new',
+              builder: (context, state) => const CommunityFormScreen(),
+            ),
+            GoRoute(
+              path: ':id',
+              builder: (context, state) => CommunityDetailScreen(
+                communityId: state.pathParameters['id']!,
               ),
-              GoRoute(
-                path: ':id',
-                parentNavigatorKey: _rootNavigatorKey,
-                builder: (context, state) => CommunityDetailScreen(
-                  communityId: state.pathParameters['id']!,
-                ),
-              ),
-            ],
-          ),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-            path: AppRoutes.profile,
-            builder: (context, state) => const ProfileScreen(),
-          ),
-        ]),
+            ),
+          ],
+        ),
       ],
     ),
 
-    // Layar penuh di atas navigasi bawah.
     GoRoute(
       path: AppRoutes.profileSetup,
       parentNavigatorKey: _rootNavigatorKey,

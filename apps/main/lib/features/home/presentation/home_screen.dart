@@ -3,12 +3,12 @@ import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../domain/entities/home_banner.dart';
 import 'home_providers.dart';
 import 'widgets/home_admin_panel_card.dart';
+import 'widgets/home_app_version.dart';
 import 'widgets/home_banner_slider.dart';
 import 'widgets/home_community_card.dart';
 import 'widgets/home_menu_grid.dart';
@@ -44,7 +44,6 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        bottom: false,
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(homeBannersProvider);
@@ -97,36 +96,11 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: 28),
-              const _AppVersion(),
+              const HomeAppVersion(),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _AppVersion extends StatelessWidget {
-  const _AppVersion();
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<PackageInfo>(
-      future: PackageInfo.fromPlatform(),
-      builder: (context, snapshot) {
-        final info = snapshot.data;
-        if (info == null) return const SizedBox.shrink();
-        return Text(
-          '${info.appName} · Versi ${info.version}+${info.buildNumber}',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.4),
-              ),
-        );
-      },
     );
   }
 }

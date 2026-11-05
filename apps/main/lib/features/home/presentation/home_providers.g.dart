@@ -8,6 +8,51 @@ part of 'home_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Null bila platform ini tidak memerlukannya.
+
+@ProviderFor(appRefresher)
+final appRefresherProvider = AppRefresherProvider._();
+
+/// Null bila platform ini tidak memerlukannya.
+
+final class AppRefresherProvider
+    extends $FunctionalProvider<AppRefresher?, AppRefresher?, AppRefresher?>
+    with $Provider<AppRefresher?> {
+  /// Null bila platform ini tidak memerlukannya.
+  AppRefresherProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'appRefresherProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$appRefresherHash();
+
+  @$internal
+  @override
+  $ProviderElement<AppRefresher?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  AppRefresher? create(Ref ref) {
+    return appRefresher(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AppRefresher? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AppRefresher?>(value),
+    );
+  }
+}
+
+String _$appRefresherHash() => r'ba916431cb444a2928c2348c84491b8496a3f542';
 
 @ProviderFor(bannerRemoteDataSource)
 final bannerRemoteDataSourceProvider = BannerRemoteDataSourceProvider._();

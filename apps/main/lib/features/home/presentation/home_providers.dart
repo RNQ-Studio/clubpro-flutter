@@ -2,7 +2,9 @@ import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../data/app_refresher.dart';
 import '../data/banner_remote_data_source.dart';
+import '../domain/app_refresher.dart';
 import '../domain/entities/home_banner.dart';
 
 part 'home_providers.g.dart';
@@ -28,6 +30,10 @@ const defaultHomeBanners = [
         'Segera hadir: kartu anggota digital dan catat kehadiran dari aplikasi.',
   ),
 ];
+
+/// Null bila platform ini tidak memerlukannya.
+@riverpod
+AppRefresher? appRefresher(Ref ref) => createAppRefresher();
 
 @riverpod
 BannerRemoteDataSource bannerRemoteDataSource(Ref ref) =>

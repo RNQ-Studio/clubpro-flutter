@@ -19,9 +19,9 @@ import 'package:app_main/features/community/presentation/community_providers.dar
 import 'package:app_main/features/community/presentation/screens/communities_screen.dart';
 import 'package:app_main/features/community/presentation/screens/community_detail_screen.dart';
 import 'package:app_main/features/community/presentation/screens/community_form_screen.dart';
+import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
-import 'package:app_main/shell/main_shell.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +30,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:app_main/features/admin/domain/entities/admin_community.dart';
 
@@ -71,6 +72,11 @@ final _complete = User(
   completion: const ProfileCompletion(completed: 10, total: 10, missing: []),
 );
 
+class _ShownRefresher implements AppRefresher {
+  @override
+  Future<void> refresh() async {}
+}
+
 const _superAdmin = User(
   id: '1',
   name: 'Rina Ayu Lestari',
@@ -95,6 +101,14 @@ Future<void> _loadFonts() async {
 }
 
 void main() {
+  // ignore: invalid_use_of_visible_for_testing_member
+  PackageInfo.setMockInitialValues(
+    appName: 'app_main',
+    packageName: 'app_main',
+    version: '1.0.0',
+    buildNumber: '78',
+    buildSignature: '',
+  );
   final outDir = Platform.environment['RENDER_DIR'] ?? 'build/screens';
   final boundaryKey = GlobalKey();
 
@@ -161,22 +175,18 @@ void main() {
     final router = GoRouter(
       initialLocation: location,
       routes: [
-        StatefulShellRoute.indexedStack(
-          builder: (context, state, shell) => MainShell(shell: shell),
-          branches: [
-            StatefulShellBranch(routes: [
-              GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-            ]),
-            StatefulShellBranch(routes: [
-              GoRoute(
-                  path: AppRoutes.communities,
-                  builder: (_, __) => const CommunitiesScreen()),
-            ]),
-            StatefulShellBranch(routes: [
-              GoRoute(
-                  path: AppRoutes.profile,
-                  builder: (_, __) => const ProfileScreen()),
-            ]),
+        GoRoute(
+          path: '/',
+          builder: (_, __) => const HomeScreen(),
+          routes: [
+            GoRoute(
+              path: 'communities',
+              builder: (_, __) => const CommunitiesScreen(),
+            ),
+            GoRoute(
+              path: 'profile',
+              builder: (_, __) => const ProfileScreen(),
+            ),
           ],
         ),
       ],
@@ -187,6 +197,7 @@ void main() {
             .overrideWith(() => _FixedAuthNotifier(AuthAuthenticated(user))),
         homeBannersProvider.overrideWith((ref) async => defaultHomeBanners),
         communityRepositoryProvider.overrideWithValue(community),
+        appRefresherProvider.overrideWithValue(_ShownRefresher()),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
@@ -670,6 +681,21 @@ void main() {
         ),
       ),
       size: const Size(360, 1000),
+    );
+  });
+
+  testWidgets('32-beranda-bawah', (tester) async {
+    await shoot(
+      tester,
+      '32-beranda-bawah',
+      shell(_superAdmin),
+      size: const Size(360, 1060),
+      before: () async {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.pump();
+      },
     );
   });
 }

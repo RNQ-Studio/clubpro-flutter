@@ -1,7 +1,8 @@
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 
-/// Info singkat anggota yang login: foto, nama, email.
+/// Info singkat anggota yang login: foto, nama, email. Pintu masuk halaman
+/// Profil; titik merah di foto menandai data diri yang belum lengkap.
 class HomeUserHeader extends StatelessWidget {
   const HomeUserHeader({super.key, required this.user, this.onTap, this.now});
 
@@ -36,16 +37,21 @@ class HomeUserHeader extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: colorScheme.primaryContainer,
-              foregroundImage: hasPhoto ? NetworkImage(avatarUrl) : null,
-              child: Text(
-                initial,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onPrimaryContainer,
+            Badge(
+              key: const Key('home-profile-badge'),
+              isLabelVisible: !user.completion.isComplete,
+              smallSize: 12,
+              child: CircleAvatar(
+                radius: 28,
+                backgroundColor: colorScheme.primaryContainer,
+                foregroundImage: hasPhoto ? NetworkImage(avatarUrl) : null,
+                child: Text(
+                  initial,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
                 ),
               ),
             ),
