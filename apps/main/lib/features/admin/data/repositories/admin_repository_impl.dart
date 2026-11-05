@@ -1,3 +1,5 @@
+import '../../../community/domain/entities/community.dart';
+import '../../domain/entities/admin_community.dart';
 import '../../domain/entities/admin_user.dart';
 import '../../domain/repositories/admin_repository.dart';
 import '../datasources/admin_remote_data_source.dart';
@@ -25,4 +27,33 @@ class AdminRepositoryImpl implements AdminRepository {
   @override
   Future<AdminUserDetail> setActive(String id, {required bool active}) =>
       _remote.setActive(id, active: active);
+
+  @override
+  Future<AdminPanelSummary> getSummary() => _remote.fetchSummary();
+
+  @override
+  Future<AdminCommunitiesPage> getCommunities({
+    required int page,
+    String search = '',
+    AdminCommunityFilter filter = AdminCommunityFilter.all,
+  }) =>
+      _remote.fetchCommunities(page: page, search: search, filter: filter);
+
+  @override
+  Future<AdminCommunityDetail> getCommunity(String id) =>
+      _remote.fetchCommunity(id);
+
+  @override
+  Future<AdminCommunityDetail> reviewCommunity(
+    String id, {
+    required CommunityStatus status,
+    required CommunityStatus expected,
+    String? note,
+  }) =>
+      _remote.reviewCommunity(
+        id,
+        status: status,
+        expected: expected,
+        note: note,
+      );
 }

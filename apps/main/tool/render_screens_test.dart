@@ -9,8 +9,11 @@ import 'dart:ui' as ui;
 import 'package:app_main/branding/club_brand.dart';
 import 'package:app_main/branding/club_logo.dart';
 import 'package:app_main/features/admin/presentation/admin_providers.dart';
+import 'package:app_main/features/admin/presentation/screens/admin_communities_screen.dart';
+import 'package:app_main/features/admin/presentation/screens/admin_community_detail_screen.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_panel_screen.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_user_detail_screen.dart';
+import 'package:app_main/features/admin/presentation/screens/admin_users_screen.dart';
 import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:app_main/features/community/presentation/community_providers.dart';
 import 'package:app_main/features/community/presentation/screens/communities_screen.dart';
@@ -27,6 +30,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:app_main/features/admin/domain/entities/admin_community.dart';
 
 import '../test/features/admin/fake_admin_repository.dart';
 import '../test/features/community/fake_community_repository.dart';
@@ -115,7 +120,9 @@ void main() {
     // Gambar aset (logo) di-decode di luar fake async; tunggu, lalu gambar ulang.
     await tester.runAsync(() async {
       for (final element in find.byType(Image).evaluate()) {
-        await precacheImage((element.widget as Image).image, element);
+        final image = (element.widget as Image).image;
+        // URL contoh tidak bisa diunduh di sini.
+        if (image is! NetworkImage) await precacheImage(image, element);
       }
     });
     await tester.pump();
@@ -192,7 +199,7 @@ void main() {
     );
   }
 
-  Widget admin(String location) {
+  Widget admin(String location, {AdminCommunityDetail? review}) {
     final now = DateTime.now();
     final repository = FakeAdminRepository(
       pages: [
@@ -223,6 +230,33 @@ void main() {
         ],
       ],
       detail: adminDetail(id: '2', name: 'Budi Santoso'),
+      communityPages: [
+        [
+          adminCommunity(
+            '5',
+            name: 'Fotografer Priangan',
+            createdAt: now.subtract(const Duration(minutes: 12)),
+          ),
+          adminCommunity(
+            '4',
+            name: 'Sepak Bola Solo',
+            submitter: 'Budi Santoso',
+            createdAt: now.subtract(const Duration(hours: 3)),
+          ),
+          adminCommunity(
+            '3',
+            status: CommunityStatus.approved,
+            createdAt: now.subtract(const Duration(days: 2)),
+          ),
+          adminCommunity(
+            '2',
+            name: 'Komunitas Nama Sangat Panjang Sekali Sampai Terpotong',
+            status: CommunityStatus.rejected,
+            createdAt: now.subtract(const Duration(days: 30)),
+          ),
+        ],
+      ],
+      community: review ?? adminCommunityDetail(),
     );
     final router = GoRouter(
       initialLocation: location,
@@ -233,9 +267,28 @@ void main() {
           builder: (_, __) => const AdminPanelScreen(),
           routes: [
             GoRoute(
-              path: 'users/:id',
-              builder: (_, state) =>
-                  AdminUserDetailScreen(userId: state.pathParameters['id']!),
+              path: 'users',
+              builder: (_, __) => const AdminUsersScreen(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  builder: (_, state) => AdminUserDetailScreen(
+                    userId: state.pathParameters['id']!,
+                  ),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: 'communities',
+              builder: (_, __) => const AdminCommunitiesScreen(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  builder: (_, state) => AdminCommunityDetailScreen(
+                    communityId: state.pathParameters['id']!,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -561,6 +614,62 @@ void main() {
         await tester.tap(find.byKey(const Key('community-next')));
         await tester.pumpAndSettle();
       },
+    );
+  });
+
+  testWidgets('25-kelola-user', (tester) async {
+    await shoot(tester, '25-kelola-user', admin(AppRoutes.adminUsers));
+  });
+
+  testWidgets('26-kelola-komunitas', (tester) async {
+    await shoot(
+        tester, '26-kelola-komunitas', admin(AppRoutes.adminCommunities));
+  });
+
+  testWidgets('27-kelola-komunitas-desktop', (tester) async {
+    await shoot(tester, '27-kelola-komunitas-desktop',
+        admin(AppRoutes.adminCommunities),
+        size: desktop);
+  });
+
+  testWidgets('28-verifikasi', (tester) async {
+    await shoot(tester, '28-verifikasi', admin(AppRoutes.adminCommunity('5')),
+        size: const Size(360, 1240));
+  });
+
+  testWidgets('29-verifikasi-desktop', (tester) async {
+    await shoot(
+        tester, '29-verifikasi-desktop', admin(AppRoutes.adminCommunity('5')),
+        size: const Size(1280, 860));
+  });
+
+  testWidgets('30-tolak', (tester) async {
+    await shoot(tester, '30-tolak', admin(AppRoutes.adminCommunity('5')),
+        before: () async {
+      await tester.tap(find.byKey(const Key('admin-reject')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('admin-reject-note')),
+        'Foto kegiatan belum jelas.',
+      );
+      await tester.pumpAndSettle();
+    });
+  });
+
+  testWidgets('31-sudah-ditolak', (tester) async {
+    await shoot(
+      tester,
+      '31-sudah-ditolak',
+      admin(
+        AppRoutes.adminCommunity('5'),
+        review: adminCommunityDetail(
+          status: CommunityStatus.rejected,
+          reviewNote: 'Foto kegiatan belum jelas.',
+          reviewedAt: DateTime(2026, 11, 5, 14, 30),
+          reviewer: const AdminCommunityPerson(id: '1', name: 'Pemilik'),
+        ),
+      ),
+      size: const Size(360, 1000),
     );
   });
 }

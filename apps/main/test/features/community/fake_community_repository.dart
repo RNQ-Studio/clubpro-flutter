@@ -68,6 +68,7 @@ CommunityDetail testDetail({
   String id = '1',
   CommunityStatus status = CommunityStatus.approved,
   String? email = 'pengurus@gmail.com',
+  String? reviewNote,
 }) =>
     CommunityDetail(
       id: id,
@@ -84,6 +85,7 @@ CommunityDetail testDetail({
       contactName: 'Rina Ayu',
       contactPhone: '081234567890',
       contactEmail: email,
+      reviewNote: reviewNote,
     );
 
 /// Draft lengkap yang lolos semua langkah.

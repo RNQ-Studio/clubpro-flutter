@@ -317,6 +317,22 @@ void main() {
       expect(find.text('Email'), findsNothing);
     });
 
+    testWidgets('pengajuan ditolak menyebut alasannya', (tester) async {
+      await tester.pumpWidget(_app(
+        FakeCommunityRepository(
+          detail: testDetail(
+            status: CommunityStatus.rejected,
+            reviewNote: 'Foto kegiatan belum jelas.',
+          ),
+        ),
+        location: AppRoutes.community('1'),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('ditolak'), findsOneWidget);
+      expect(find.text('Alasan: Foto kegiatan belum jelas.'), findsOneWidget);
+    });
+
     testWidgets('tidak ditemukan bisa dicoba lagi', (tester) async {
       await tester.pumpWidget(_app(
         FakeCommunityRepository(

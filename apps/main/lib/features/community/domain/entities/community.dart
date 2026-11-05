@@ -62,6 +62,7 @@ class CommunityDetail extends Community {
     required this.contactPhone,
     this.contactEmail,
     this.photoUrls = const [],
+    this.reviewNote,
   });
 
   final String address;
@@ -69,6 +70,9 @@ class CommunityDetail extends Community {
   final String contactPhone;
   final String? contactEmail;
   final List<String> photoUrls;
+
+  /// Alasan penolakan; hanya terlihat oleh pengaju.
+  final String? reviewNote;
 }
 
 class CommunitiesPage {

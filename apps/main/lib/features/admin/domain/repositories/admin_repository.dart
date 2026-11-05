@@ -1,3 +1,5 @@
+import '../../../community/domain/entities/community.dart';
+import '../entities/admin_community.dart';
 import '../entities/admin_user.dart';
 
 abstract interface class AdminRepository {
@@ -12,4 +14,23 @@ abstract interface class AdminRepository {
   Future<AdminUserDetail> setSuperAdmin(String id, {required bool enabled});
 
   Future<AdminUserDetail> setActive(String id, {required bool active});
+
+  Future<AdminPanelSummary> getSummary();
+
+  Future<AdminCommunitiesPage> getCommunities({
+    required int page,
+    String search = '',
+    AdminCommunityFilter filter = AdminCommunityFilter.all,
+  });
+
+  Future<AdminCommunityDetail> getCommunity(String id);
+
+  /// [expected] adalah status yang sedang dilihat; lihat
+  /// [AdminConflictException].
+  Future<AdminCommunityDetail> reviewCommunity(
+    String id, {
+    required CommunityStatus status,
+    required CommunityStatus expected,
+    String? note,
+  });
 }

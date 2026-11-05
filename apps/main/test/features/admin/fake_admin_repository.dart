@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:app_main/features/admin/domain/entities/admin_community.dart';
 import 'package:app_main/features/admin/domain/entities/admin_user.dart';
 import 'package:app_main/features/admin/domain/repositories/admin_repository.dart';
+import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 
@@ -87,6 +89,71 @@ AdminUserDetail adminDetail({
       devices: devices ?? adminDevices,
     );
 
+const adminCommunitySummary = AdminCommunitySummary(
+  total: 12,
+  pending: 3,
+  approved: 8,
+  rejected: 1,
+);
+
+AdminCommunity adminCommunity(
+  String id, {
+  String name = 'Pemanah Nusantara',
+  CommunityStatus status = CommunityStatus.pending,
+  String submitter = 'Rina Ayu',
+  DateTime? createdAt,
+}) =>
+    AdminCommunity(
+      id: id,
+      name: name,
+      shortName: 'PN',
+      type: 'panahan',
+      typeLabel: 'Panahan',
+      status: status,
+      cityName: 'Kota Bandung',
+      provinceName: 'Jawa Barat',
+      createdAt: createdAt,
+      submitter: AdminCommunityPerson(id: '7', name: submitter),
+    );
+
+AdminCommunityDetail adminCommunityDetail({
+  String id = '5',
+  CommunityStatus status = CommunityStatus.pending,
+  String? reviewNote,
+  DateTime? reviewedAt,
+  AdminCommunityPerson? reviewer,
+  List<String> photoUrls = const [
+    'https://anaklangit.manahpro.web.id/foto-1.jpg',
+    'https://anaklangit.manahpro.web.id/foto-2.jpg',
+  ],
+}) =>
+    AdminCommunityDetail(
+      id: id,
+      name: 'Pemanah Nusantara',
+      shortName: 'PN',
+      type: 'panahan',
+      typeLabel: 'Panahan',
+      status: status,
+      cityName: 'Kota Bandung',
+      provinceName: 'Jawa Barat',
+      createdAt: DateTime(2026, 11, 5, 9, 15),
+      submitter: const AdminCommunityPerson(
+        id: '7',
+        name: 'Rina Ayu',
+        email: 'rina.ayu@gmail.com',
+      ),
+      description: 'Komunitas pecinta panahan tradisional yang rutin berlatih '
+          'setiap akhir pekan di Bandung.',
+      address: 'Jl. Merdeka No. 10, Sumur Bandung',
+      contactName: 'Budi Santoso',
+      contactPhone: '081234567890',
+      contactEmail: 'pengurus@gmail.com',
+      photoUrls: photoUrls,
+      reviewNote: reviewNote,
+      reviewedAt: reviewedAt,
+      reviewer: reviewer,
+    );
+
 /// Permintaan daftar yang diterima, untuk diperiksa test.
 typedef AdminUsersCall = ({int page, String search, AdminUserFilter filter});
 
@@ -96,6 +163,10 @@ class FakeAdminRepository implements AdminRepository {
     this.detail,
     this.error,
     this.actionError,
+    this.communityPages = const [],
+    this.community,
+    this.summaryError,
+    this.reviewError,
   });
 
   /// Halaman daftar berurutan; halaman ke-n dipakai untuk `page: n`.
@@ -107,6 +178,20 @@ class FakeAdminRepository implements AdminRepository {
 
   /// Melempar pada aksi ubah data, bila diisi.
   AppException? actionError;
+
+  /// Halaman Kelola Komunitas berurutan.
+  List<List<AdminCommunity>> communityPages;
+  AdminCommunityDetail? community;
+  Exception? summaryError;
+
+  /// Melempar pada verifikasi, satu kali.
+  Exception? reviewError;
+
+  final communityCalls =
+      <({int page, String search, AdminCommunityFilter filter})>[];
+  final reviews =
+      <({CommunityStatus status, CommunityStatus expected, String? note})>[];
+  int summaryLoads = 0;
 
   /// Isi agar `getUsers` menunggu sampai test menyelesaikannya.
   Completer<void> Function(AdminUsersCall call)? gate;
@@ -157,5 +242,63 @@ class FakeAdminRepository implements AdminRepository {
     final failure = actionError;
     if (failure != null) throw failure;
     return detail = adminDetail(id: id, isActive: active);
+  }
+
+  @override
+  Future<AdminPanelSummary> getSummary() async {
+    summaryLoads++;
+    final failure = summaryError;
+    if (failure != null) throw failure;
+    return const AdminPanelSummary(
+      totalUsers: 128,
+      communities: adminCommunitySummary,
+    );
+  }
+
+  @override
+  Future<AdminCommunitiesPage> getCommunities({
+    required int page,
+    String search = '',
+    AdminCommunityFilter filter = AdminCommunityFilter.all,
+  }) async {
+    communityCalls.add((page: page, search: search, filter: filter));
+    final failure = error;
+    if (failure != null) throw failure;
+    return AdminCommunitiesPage(
+      communities:
+          page <= communityPages.length ? communityPages[page - 1] : const [],
+      summary: adminCommunitySummary,
+      currentPage: page,
+      lastPage: communityPages.isEmpty ? 1 : communityPages.length,
+    );
+  }
+
+  @override
+  Future<AdminCommunityDetail> getCommunity(String id) async {
+    final failure = error;
+    if (failure != null) throw failure;
+    return community!;
+  }
+
+  @override
+  Future<AdminCommunityDetail> reviewCommunity(
+    String id, {
+    required CommunityStatus status,
+    required CommunityStatus expected,
+    String? note,
+  }) async {
+    reviews.add((status: status, expected: expected, note: note));
+    final failure = reviewError;
+    if (failure != null) {
+      reviewError = null;
+      throw failure;
+    }
+    return community = adminCommunityDetail(
+      id: id,
+      status: status,
+      reviewNote: status == CommunityStatus.rejected ? note : null,
+      reviewedAt: DateTime(2026, 11, 5, 14, 30),
+      reviewer: const AdminCommunityPerson(id: '1', name: 'Pemilik'),
+    );
   }
 }

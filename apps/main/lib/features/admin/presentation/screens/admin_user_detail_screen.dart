@@ -262,88 +262,6 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _Section extends StatelessWidget {
-  const _Section({
-    required this.title,
-    required this.icon,
-    required this.children,
-  });
-
-  final String title;
-  final IconData icon;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: adminHairline(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 20, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ...children,
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow(this.label, this.value);
-
-  final String label;
-  final String? value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final text = value == null || value!.trim().isEmpty ? '-' : value!;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 3,
-            child: SelectableText(text, style: theme.textTheme.bodySmall),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _AccessSection extends StatelessWidget {
   const _AccessSection({
     required this.user,
@@ -374,7 +292,7 @@ class _AccessSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lock = _superAdminLock;
-    return _Section(
+    return AdminSection(
       title: 'Akses',
       icon: Icons.admin_panel_settings_outlined,
       children: [
@@ -409,21 +327,22 @@ class _ActivitySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return AdminSection(
       title: 'Aktivitas',
       icon: Icons.history_rounded,
       children: [
-        _InfoRow('Terakhir akses', AdminTime.full(user.lastSeenAt)),
-        _InfoRow('Terakhir login', AdminTime.full(user.lastLoginAt)),
-        _InfoRow('Terdaftar', AdminTime.full(user.createdAt)),
-        _InfoRow('Metode login', user.usesGoogle ? 'Google' : 'Email & sandi'),
-        _InfoRow(
+        AdminInfoRow('Terakhir akses', AdminTime.full(user.lastSeenAt)),
+        AdminInfoRow('Terakhir login', AdminTime.full(user.lastLoginAt)),
+        AdminInfoRow('Terdaftar', AdminTime.full(user.createdAt)),
+        AdminInfoRow(
+            'Metode login', user.usesGoogle ? 'Google' : 'Email & sandi'),
+        AdminInfoRow(
           'Email terverifikasi',
           user.emailVerifiedAt == null
               ? 'Belum'
               : AdminTime.full(user.emailVerifiedAt),
         ),
-        _InfoRow(
+        AdminInfoRow(
           'Nomor HP terverifikasi',
           user.phoneVerifiedAt == null
               ? 'Belum'
@@ -443,7 +362,7 @@ class _DevicesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final devices = user.devices;
-    return _Section(
+    return AdminSection(
       title: 'Perangkat & Lokasi (${devices.length})',
       icon: Icons.devices_rounded,
       children: [
@@ -493,11 +412,11 @@ class _DeviceTile extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        _InfoRow('Lokasi', device.location),
-        _InfoRow('Alamat IP', device.ipAddress),
-        _InfoRow('Terakhir aktif', AdminTime.full(device.lastActiveAt)),
+        AdminInfoRow('Lokasi', device.location),
+        AdminInfoRow('Alamat IP', device.ipAddress),
+        AdminInfoRow('Terakhir aktif', AdminTime.full(device.lastActiveAt)),
         if (device.appVersion != null)
-          _InfoRow('Versi aplikasi', device.appVersion),
+          AdminInfoRow('Versi aplikasi', device.appVersion),
       ],
     );
   }
@@ -528,18 +447,18 @@ class _ProfileSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final completion = user.completion;
-    return _Section(
+    return AdminSection(
       title: 'Data Diri',
       icon: Icons.badge_outlined,
       children: [
-        _InfoRow('Nomor HP', user.phone),
-        _InfoRow('Jenis kelamin', user.gender?.label),
-        _InfoRow('Tempat, tanggal lahir', _birth),
-        _InfoRow('Alamat', user.address),
-        _InfoRow('Golongan darah', user.bloodType?.label),
-        _InfoRow('Kontak darurat', _emergencyContact),
+        AdminInfoRow('Nomor HP', user.phone),
+        AdminInfoRow('Jenis kelamin', user.gender?.label),
+        AdminInfoRow('Tempat, tanggal lahir', _birth),
+        AdminInfoRow('Alamat', user.address),
+        AdminInfoRow('Golongan darah', user.bloodType?.label),
+        AdminInfoRow('Kontak darurat', _emergencyContact),
         if (completion != null)
-          _InfoRow(
+          AdminInfoRow(
             'Kelengkapan profil',
             '${completion.completed} dari ${completion.total} isian',
           ),

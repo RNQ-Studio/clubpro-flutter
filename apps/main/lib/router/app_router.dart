@@ -5,8 +5,11 @@ import 'package:go_router/go_router.dart';
 
 import '../branding/club_brand.dart';
 import '../branding/club_logo.dart';
+import '../features/admin/presentation/screens/admin_communities_screen.dart';
+import '../features/admin/presentation/screens/admin_community_detail_screen.dart';
 import '../features/admin/presentation/screens/admin_panel_screen.dart';
 import '../features/admin/presentation/screens/admin_user_detail_screen.dart';
+import '../features/admin/presentation/screens/admin_users_screen.dart';
 import '../features/community/presentation/screens/communities_screen.dart';
 import '../features/community/presentation/screens/community_detail_screen.dart';
 import '../features/community/presentation/screens/community_form_screen.dart';
@@ -106,10 +109,31 @@ final appRouter = GoRouter(
       builder: (context, state) => const AdminPanelScreen(),
       routes: [
         GoRoute(
-          path: 'users/:id',
+          path: 'users',
           parentNavigatorKey: _rootNavigatorKey,
-          builder: (context, state) =>
-              AdminUserDetailScreen(userId: state.pathParameters['id']!),
+          builder: (context, state) => const AdminUsersScreen(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) =>
+                  AdminUserDetailScreen(userId: state.pathParameters['id']!),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: 'communities',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const AdminCommunitiesScreen(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => AdminCommunityDetailScreen(
+                communityId: state.pathParameters['id']!,
+              ),
+            ),
+          ],
         ),
       ],
     ),

@@ -51,6 +51,7 @@ class CommunityDetailModel extends CommunityDetail {
     required super.contactPhone,
     super.contactEmail,
     super.photoUrls,
+    super.reviewNote,
   });
 
   factory CommunityDetailModel.fromJson(Map<String, dynamic> json) =>
@@ -70,6 +71,7 @@ class CommunityDetailModel extends CommunityDetail {
         contactName: json['contact_name'] as String,
         contactPhone: json['contact_phone'] as String,
         contactEmail: json['contact_email'] as String?,
+        reviewNote: json['review_note'] as String?,
         photoUrls: [
           for (final url in (json['photo_urls'] as List<dynamic>? ?? const []))
             url.toString(),

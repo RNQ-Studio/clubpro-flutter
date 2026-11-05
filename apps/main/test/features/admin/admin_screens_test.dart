@@ -2,6 +2,7 @@ import 'package:app_main/features/admin/domain/entities/admin_user.dart';
 import 'package:app_main/features/admin/presentation/admin_providers.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_panel_screen.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_user_detail_screen.dart';
+import 'package:app_main/features/admin/presentation/screens/admin_users_screen.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +31,7 @@ const _member = User(id: '9', name: 'Budi', email: 'budi@gmail.com');
 Widget _app(
   FakeAdminRepository repository, {
   AuthState auth = const AuthAuthenticated(_owner),
-  String location = AppRoutes.adminPanel,
+  String location = AppRoutes.adminUsers,
 }) {
   final router = GoRouter(
     initialLocation: location,
@@ -41,9 +42,15 @@ Widget _app(
         builder: (_, __) => const AdminPanelScreen(),
         routes: [
           GoRoute(
-            path: 'users/:id',
-            builder: (_, state) =>
-                AdminUserDetailScreen(userId: state.pathParameters['id']!),
+            path: 'users',
+            builder: (_, __) => const AdminUsersScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (_, state) =>
+                    AdminUserDetailScreen(userId: state.pathParameters['id']!),
+              ),
+            ],
           ),
         ],
       ),
@@ -257,14 +264,16 @@ void main() {
       expect(find.text('Detail Pengguna'), findsOneWidget);
     });
 
-    testWidgets('tautan langsung tetap punya jalan kembali', (tester) async {
+    testWidgets('tombol kembali menuju menu Admin Panel', (tester) async {
       await tester.pumpWidget(_app(filled()));
       await tester.pumpAndSettle();
+
+      expect(find.text('Kelola User'), findsOneWidget);
 
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
 
-      expect(find.text('BERANDA'), findsOneWidget);
+      expect(find.text('Admin Panel'), findsOneWidget);
     });
 
     testWidgets('layar sempit + teks besar tanpa overflow', (tester) async {

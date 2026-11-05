@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "message": "OK",
+  "data": {
+    "users": {
+      "total": 2,
+      "super_admins": 2,
+      "active_last_7_days": 2,
+      "inactive": 0
+    },
+    "communities": {
+      "total": 2,
+      "pending": 1,
+      "approved": 1,
+      "rejected": 0
+    }
+  }
+}

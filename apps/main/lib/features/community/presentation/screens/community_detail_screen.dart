@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/community.dart';
 import '../community_providers.dart';
+import '../widgets/community_photo_viewer.dart';
 import '../widgets/community_visuals.dart';
 
 class CommunityDetailScreen extends ConsumerWidget {
@@ -54,7 +55,10 @@ class _DetailBody extends StatelessWidget {
                 _Hero(community: community),
                 const SizedBox(height: 16),
                 if (community.status != CommunityStatus.approved) ...[
-                  _StatusNotice(status: community.status),
+                  _StatusNotice(
+                    status: community.status,
+                    note: community.reviewNote,
+                  ),
                   const SizedBox(height: 16),
                 ],
                 _Section(
@@ -181,9 +185,12 @@ class _Hero extends StatelessWidget {
 }
 
 class _StatusNotice extends StatelessWidget {
-  const _StatusNotice({required this.status});
+  const _StatusNotice({required this.status, this.note});
 
   final CommunityStatus status;
+
+  /// Alasan penolakan dari super admin.
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
@@ -205,11 +212,27 @@ class _StatusNotice extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              rejected
-                  ? 'Pengajuan ini ditolak dan tidak tampil di publik.'
-                  : 'Menunggu verifikasi super admin. Belum tampil di publik.',
-              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  rejected
+                      ? 'Pengajuan ini ditolak dan tidak tampil di publik.'
+                      : 'Menunggu verifikasi super admin. '
+                          'Belum tampil di publik.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: color),
+                ),
+                if (rejected && note != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Alasan: $note',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -331,49 +354,6 @@ class _Gallery extends StatelessWidget {
 
   final List<String> urls;
 
-  void _open(BuildContext context, String url) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => Dialog(
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            InteractiveViewer(
-              child: CommunityNetworkImage(url: url, fit: BoxFit.contain),
-            ),
-            Positioned(
-              top: 4,
-              right: 4,
-              child: IconButton.filledTonal(
-                tooltip: 'Tutup',
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      children: [
-        for (final url in urls)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: InkWell(
-              onTap: () => _open(context, url),
-              child: CommunityNetworkImage(url: url),
-            ),
-          ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => CommunityPhotoGrid(urls: urls);
 }

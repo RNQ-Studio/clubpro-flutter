@@ -16,7 +16,10 @@ abstract final class AppRoutes {
 
   // Admin Panel (khusus super admin)
   static const String adminPanel = '/admin';
-  static String adminUser(String id) => '$adminPanel/users/$id';
+  static const String adminUsers = '$adminPanel/users';
+  static String adminUser(String id) => '$adminUsers/$id';
+  static const String adminCommunities = '$adminPanel/communities';
+  static String adminCommunity(String id) => '$adminCommunities/$id';
 
   // Quotes
   static const String quotes = '/quotes';
