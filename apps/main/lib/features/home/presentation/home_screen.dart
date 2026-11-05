@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../domain/entities/home_banner.dart';
 import 'home_providers.dart';
+import 'widgets/home_admin_panel_card.dart';
 import 'widgets/home_banner_slider.dart';
 import 'widgets/home_menu_grid.dart';
 import 'widgets/home_user_header.dart';
@@ -83,6 +84,13 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 14),
               HomeMenuGrid(onTap: (menu) => showComingSoonSheet(context, menu)),
+              if (authState is AuthAuthenticated &&
+                  authState.user.isSuperAdmin) ...[
+                const SizedBox(height: 20),
+                HomeAdminPanelCard(
+                  onTap: () => context.push(AppRoutes.adminPanel),
+                ),
+              ],
               const SizedBox(height: 28),
               const _AppVersion(),
             ],

@@ -31,6 +31,13 @@ const _completeUser = User(
   completion: ProfileCompletion(completed: 12, total: 12, missing: []),
 );
 
+const _superAdmin = User(
+  id: '1',
+  name: 'Rina Ayu',
+  email: 'rina@gmail.com',
+  roles: [User.superAdminRole],
+);
+
 const _banners = [
   HomeBanner(id: '1', title: 'Latihan Bersama Akhir Pekan'),
   HomeBanner(id: '2', title: 'Pendaftaran Kejuaraan Dibuka'),
@@ -53,6 +60,10 @@ Widget _app(
                 builder: (_, __) => const Text('HALAMAN PROFIL')),
           ]),
         ],
+      ),
+      GoRoute(
+        path: AppRoutes.adminPanel,
+        builder: (_, __) => const Text('HALAMAN ADMIN'),
       ),
     ],
   );
@@ -188,6 +199,53 @@ void main() {
     await tester.tap(find.byKey(const Key('home-user-header')));
     await tester.pumpAndSettle();
     expect(find.text('HALAMAN PROFIL'), findsOneWidget);
+  });
+
+  testWidgets('Admin Panel tidak tampil untuk anggota biasa', (tester) async {
+    _phoneScreen(tester);
+    await tester.pumpWidget(_app(user: _completeUser));
+    await tester.pump();
+
+    expect(find.byKey(const Key('home-admin-panel')), findsNothing);
+    expect(find.text('Admin Panel'), findsNothing);
+  });
+
+  testWidgets('peran admin & staff juga tidak melihat Admin Panel',
+      (tester) async {
+    _phoneScreen(tester);
+    await tester.pumpWidget(_app(
+      user: const User(
+        id: '1',
+        name: 'Rina Ayu',
+        email: 'rina@gmail.com',
+        roles: ['admin', 'staff'],
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.byKey(const Key('home-admin-panel')), findsNothing);
+  });
+
+  testWidgets('super admin melihat Admin Panel dan bisa membukanya',
+      (tester) async {
+    _phoneScreen(tester);
+    await tester.pumpWidget(_app(user: _superAdmin));
+    await tester.pump();
+
+    final card = find.byKey(const Key('home-admin-panel'));
+    expect(card, findsOneWidget);
+    expect(find.text('Admin Panel'), findsOneWidget);
+    expect(
+      tester.getTopLeft(card).dy,
+      greaterThan(tester.getTopLeft(find.text('Menu Utama')).dy),
+    );
+
+    await tester.ensureVisible(card);
+    await tester.pump();
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+
+    expect(find.text('HALAMAN ADMIN'), findsOneWidget);
   });
 
   testWidgets('layar sempit + teks besar tanpa overflow', (tester) async {
