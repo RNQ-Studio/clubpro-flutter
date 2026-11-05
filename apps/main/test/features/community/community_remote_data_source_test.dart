@@ -219,4 +219,171 @@ void main() {
       );
     });
   });
+
+  group('klub', () {
+    test('komunitas saya membawa peran dan jumlah anggota', () async {
+      final joined =
+          await _source(200, _fixture('community_joined')).source.fetchJoined();
+
+      expect(joined, isNotEmpty);
+      expect(joined.first.name, 'Pemanah Nusantara');
+      expect(joined.first.myRole, CommunityRole.admin);
+      expect(joined.first.membersCount, greaterThan(0));
+    });
+
+    test('detail membawa keanggotaan pengguna dan galeri', () async {
+      final detail = await _source(200, _fixture('community_detail'))
+          .source
+          .fetchCommunity('1');
+
+      expect(detail.isMember, isTrue);
+      expect(detail.isJoinPending, isFalse);
+      expect(detail.canManage, isTrue);
+      expect(detail.myRole, CommunityRole.admin);
+      expect(detail.photos, isNotEmpty);
+      expect(detail.photos.first.url, startsWith('https://'));
+      expect(detail.photos.first.id, isNotEmpty);
+    });
+
+    test('detail lama tanpa field baru tetap terbaca', () async {
+      final json =
+          jsonDecode(_fixture('community_detail')) as Map<String, dynamic>;
+      final data = json['data'] as Map<String, dynamic>;
+      for (final key in [
+        'can_manage',
+        'my_role',
+        'my_status',
+        'members_count',
+        'photos',
+        'upcoming_activities_count',
+        'pending_members_count',
+      ]) {
+        data.remove(key);
+      }
+
+      final detail =
+          await _source(200, jsonEncode(json)).source.fetchCommunity('1');
+
+      expect(detail.isMember, isFalse);
+      expect(detail.canManage, isFalse);
+      expect(detail.photos, isEmpty);
+    });
+
+    test('anggota: peran, urutan server, dan halaman', () async {
+      final fake = _source(200, _fixture('community_members'));
+      final page = await fake.source.fetchMembers('1', page: 2);
+
+      expect(page.members.first.role, CommunityRole.creator);
+      expect(page.members.first.userId, isNotEmpty);
+      expect(page.members.first.joinedAt, isNotNull);
+      expect(page.lastPage, 1);
+      expect(fake.adapter.request!.path, 'v1/communities/1/members');
+      expect(fake.adapter.request!.queryParameters, {'page': 2});
+    });
+
+    test('permintaan bergabung memakai saringan status', () async {
+      final fake = _source(200, _fixture('community_requests'));
+      final page = await fake.source.fetchMembers('1', page: 1, pending: true);
+
+      expect(page.members.single.requestedAt, isNotNull);
+      expect(page.members.single.joinedAt, isNull);
+      expect(fake.adapter.request!.queryParameters['status'], 'pending');
+    });
+
+    test('mengubah peran mengirim nilai API', () async {
+      final fake = _source(200, '{"success":true,"data":{}}');
+      await fake.source.setMemberRole('1', '5', CommunityRole.admin);
+
+      expect(fake.adapter.request!.method, 'PUT');
+      expect(fake.adapter.request!.path, 'v1/communities/1/members/5/role');
+      expect(fake.adapter.request!.data, {'role': 'admin'});
+    });
+
+    test('kegiatan terbagi akan datang dan selesai, waktu tetap UTC', () async {
+      final activities = await _source(200, _fixture('community_activities'))
+          .source
+          .fetchActivities('1');
+
+      expect(activities.upcoming.first.title, 'Latihan Bersama Akhir Pekan');
+      expect(
+        activities.upcoming.first.startsAt,
+        DateTime.utc(2026, 11, 12, 2),
+      );
+      expect(activities.past.single.location, isNull);
+    });
+
+    test('isian kegiatan dikirim dalam UTC, isian kosong menjadi null', () {
+      final payload = CommunityActivityInput(
+        title: '  Kopdar  ',
+        startsAt: DateTime.utc(2026, 11, 12, 2),
+        location: '   ',
+      ).toPayload();
+
+      expect(payload['title'], 'Kopdar');
+      expect(payload['starts_at'], '2026-11-12T02:00:00.000Z');
+      expect(payload['location'], isNull);
+      expect(payload['description'], isNull);
+    });
+
+    test('profil anggota hanya berisi data umum', () async {
+      final profile = await _source(200, _fixture('member_profile'))
+          .source
+          .fetchMemberProfile('3');
+
+      expect(profile.name, 'Rina Ayu');
+      expect(profile.communities.single.role, CommunityRole.admin);
+      expect(
+        _fixture('member_profile'),
+        isNot(anyOf(contains('phone'), contains('email'), contains('address'))),
+      );
+    });
+
+    test('profil di luar komunitas bersama: pesan jelas', () async {
+      await expectLater(
+        _source(404, '{"success":false,"message":"Not found"}')
+            .source
+            .fetchMemberProfile('9'),
+        throwsA(
+          isA<ServerException>().having(
+            (e) => e.toString(),
+            'pesan',
+            contains('Profil anggota ini tidak tersedia'),
+          ),
+        ),
+      );
+    });
+
+    test('ditolak server: pesan akses', () async {
+      await expectLater(
+        _source(403, '{"success":false,"message":"This action"}')
+            .source
+            .approveMember('1', '5'),
+        throwsA(
+          isA<ServerException>().having(
+            (e) => e.toString(),
+            'pesan',
+            contains('tidak punya akses'),
+          ),
+        ),
+      );
+    });
+
+    test('aturan yang dilanggar: pesan dari server tampil apa adanya',
+        () async {
+      await expectLater(
+        _source(
+          422,
+          '{"success":false,"message":"Data tidak valid",'
+          '"errors":{"member":["Creator tidak bisa dikeluarkan."]}}',
+        ).source.removeMember('1', '5'),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'pesan',
+            'Creator tidak bisa dikeluarkan.',
+          ),
+        ),
+      );
+    });
+  });
 }

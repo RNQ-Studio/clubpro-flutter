@@ -13,6 +13,7 @@ import '../features/admin/presentation/screens/admin_users_screen.dart';
 import '../features/community/presentation/screens/communities_screen.dart';
 import '../features/community/presentation/screens/community_detail_screen.dart';
 import '../features/community/presentation/screens/community_form_screen.dart';
+import '../features/community/presentation/screens/member_profile_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/quotes/presentation/screens/quote_form_screen.dart';
 import '../features/quotes/presentation/screens/quotes_screen.dart';
@@ -60,6 +61,11 @@ final appRouter = GoRouter(
         GoRoute(
           path: 'profile',
           builder: (context, state) => const ProfileScreen(),
+        ),
+        GoRoute(
+          path: 'members/:id',
+          builder: (context, state) =>
+              MemberProfileScreen(userId: state.pathParameters['id']!),
         ),
         GoRoute(
           path: 'communities',

@@ -12,6 +12,22 @@ enum CommunityStatus {
       values.where((e) => e.apiValue == value).firstOrNull ?? pending;
 }
 
+/// Peran di dalam satu komunitas.
+enum CommunityRole {
+  creator('creator', 'Creator'),
+  admin('admin', 'Admin'),
+  member('member', 'Anggota');
+
+  const CommunityRole(this.apiValue, this.label);
+  final String apiValue;
+  final String label;
+
+  bool get canManage => this != member;
+
+  static CommunityRole? fromApi(Object? value) =>
+      values.where((e) => e.apiValue == value).firstOrNull;
+}
+
 class Community {
   const Community({
     required this.id,
@@ -25,6 +41,8 @@ class Community {
     required this.description,
     this.logoUrl,
     this.createdAt,
+    this.myRole,
+    this.membersCount,
   });
 
   final String id;
@@ -41,7 +59,18 @@ class Community {
   final String? logoUrl;
   final DateTime? createdAt;
 
+  /// Peran pengguna yang login; null bila bukan anggota.
+  final CommunityRole? myRole;
+  final int? membersCount;
+
   String get location => '$cityName, $provinceName';
+}
+
+class CommunityPhoto {
+  const CommunityPhoto({required this.id, required this.url});
+
+  final String id;
+  final String url;
 }
 
 class CommunityDetail extends Community {
@@ -57,12 +86,20 @@ class CommunityDetail extends Community {
     required super.description,
     super.logoUrl,
     super.createdAt,
+    super.myRole,
+    super.membersCount,
     required this.address,
     required this.contactName,
     required this.contactPhone,
     this.contactEmail,
     this.photoUrls = const [],
     this.reviewNote,
+    this.photos = const [],
+    this.isMember = false,
+    this.isJoinPending = false,
+    this.canManage = false,
+    this.pendingMembersCount = 0,
+    this.upcomingActivitiesCount = 0,
   });
 
   final String address;
@@ -73,6 +110,135 @@ class CommunityDetail extends Community {
 
   /// Alasan penolakan; hanya terlihat oleh pengaju.
   final String? reviewNote;
+  final List<CommunityPhoto> photos;
+
+  /// Anggota aktif.
+  final bool isMember;
+
+  /// Permintaan bergabung menunggu persetujuan.
+  final bool isJoinPending;
+
+  /// Creator atau admin komunitas ini.
+  final bool canManage;
+  final int pendingMembersCount;
+  final int upcomingActivitiesCount;
+
+  bool get canJoin =>
+      status == CommunityStatus.approved && !isMember && !isJoinPending;
+}
+
+class CommunityMember {
+  const CommunityMember({
+    required this.id,
+    required this.userId,
+    required this.name,
+    required this.role,
+    this.avatarUrl,
+    this.joinedAt,
+    this.requestedAt,
+  });
+
+  final String id;
+  final String userId;
+  final String name;
+  final CommunityRole role;
+  final String? avatarUrl;
+  final DateTime? joinedAt;
+  final DateTime? requestedAt;
+}
+
+class CommunityMembersPage {
+  const CommunityMembersPage({
+    required this.members,
+    required this.currentPage,
+    required this.lastPage,
+  });
+
+  final List<CommunityMember> members;
+  final int currentPage;
+  final int lastPage;
+}
+
+class CommunityActivity {
+  const CommunityActivity({
+    required this.id,
+    required this.title,
+    required this.startsAt,
+    this.description,
+    this.location,
+  });
+
+  final String id;
+  final String title;
+  final DateTime startsAt;
+  final String? description;
+  final String? location;
+}
+
+class CommunityActivities {
+  const CommunityActivities({this.upcoming = const [], this.past = const []});
+
+  /// Terdekat lebih dulu.
+  final List<CommunityActivity> upcoming;
+
+  /// Terbaru lebih dulu.
+  final List<CommunityActivity> past;
+}
+
+/// Isian kegiatan baru atau yang diubah.
+class CommunityActivityInput {
+  const CommunityActivityInput({
+    required this.title,
+    required this.startsAt,
+    this.description = '',
+    this.location = '',
+  });
+
+  final String title;
+  final DateTime startsAt;
+  final String description;
+  final String location;
+
+  Map<String, Object?> toPayload() => {
+        'title': title.trim(),
+        'starts_at': startsAt.toUtc().toIso8601String(),
+        'description': description.trim().isEmpty ? null : description.trim(),
+        'location': location.trim().isEmpty ? null : location.trim(),
+      };
+}
+
+/// Komunitas yang sama antara pengguna yang login dan anggota yang dibuka.
+class SharedCommunity {
+  const SharedCommunity({
+    required this.id,
+    required this.name,
+    required this.role,
+    this.logoUrl,
+    this.joinedAt,
+  });
+
+  final String id;
+  final String name;
+  final CommunityRole role;
+  final String? logoUrl;
+  final DateTime? joinedAt;
+}
+
+/// Profil sesama anggota: hanya data umum.
+class CommunityMemberProfile {
+  const CommunityMemberProfile({
+    required this.id,
+    required this.name,
+    this.avatarUrl,
+    this.registeredAt,
+    this.communities = const [],
+  });
+
+  final String id;
+  final String name;
+  final String? avatarUrl;
+  final DateTime? registeredAt;
+  final List<SharedCommunity> communities;
 }
 
 class CommunitiesPage {

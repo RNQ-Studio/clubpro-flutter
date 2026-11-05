@@ -304,4 +304,149 @@ void main() {
       expect(await container.read(myCommunitiesProvider.future), hasLength(1));
     });
   });
+
+  group('anggota klub', () {
+    ProviderContainer container(FakeCommunityRepository repository) {
+      final container = ProviderContainer(
+        overrides: [
+          communityRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    Future<CommunityMembersState> load(ProviderContainer container) async {
+      final provider = communityMembersProvider('1');
+      container.listen(provider, (_, __) {});
+      return container.read(provider.future);
+    }
+
+    test('bukan anggota: daftar tidak diminta dari server', () async {
+      final repository = FakeCommunityRepository(
+        detail: testDetail(),
+        members: [testMember('1')],
+      );
+
+      final state = await load(container(repository));
+
+      expect(state.members, isEmpty);
+      expect(repository.memberCalls, isEmpty);
+    });
+
+    test('anggota biasa tidak meminta daftar permintaan', () async {
+      final repository = FakeCommunityRepository(
+        detail: testDetail(myRole: CommunityRole.member),
+        members: [testMember('1')],
+        requests: [testRequest('2')],
+      );
+
+      final state = await load(container(repository));
+
+      expect(state.members.single.id, '1');
+      expect(state.requests, isEmpty);
+      expect(repository.memberCalls.where((c) => c.pending), isEmpty);
+    });
+
+    test('pengurus melihat anggota dan permintaan', () async {
+      final repository = FakeCommunityRepository(
+        detail: testDetail(myRole: CommunityRole.admin),
+        members: [testMember('1')],
+        requests: [testRequest('2')],
+      );
+
+      final state = await load(container(repository));
+
+      expect(state.members.single.id, '1');
+      expect(state.requests.single.id, '2');
+    });
+
+    test('super admin yang bukan anggota tetap bisa memuat', () async {
+      final repository = FakeCommunityRepository(
+        detail: testDetail(canManage: true),
+        members: [testMember('1')],
+      );
+
+      final state = await load(container(repository));
+
+      expect(state.members, hasLength(1));
+    });
+
+    test('halaman berikutnya menyambung tanpa baris ganda', () async {
+      final repository = FakeCommunityRepository(
+        detail: testDetail(myRole: CommunityRole.member),
+        members: [testMember('1'), testMember('2'), testMember('3')],
+        membersPerPage: 2,
+      );
+      final scope = container(repository);
+      final first = await load(scope);
+      expect(first.hasMore, isTrue);
+
+      // Anggota baru masuk di antara dua halaman: baris 2 tergeser ke halaman 2.
+      repository.members.insert(0, testMember('0'));
+      await scope.read(communityMembersProvider('1').notifier).loadMore();
+
+      final state = scope.read(communityMembersProvider('1')).requireValue;
+      expect(state.members.map((m) => m.id), ['1', '2', '3']);
+      expect(state.hasMore, isFalse);
+    });
+
+    test('gagal memuat halaman berikutnya: daftar tetap utuh', () async {
+      final repository = _FailingMembersRepository(
+        detail: testDetail(myRole: CommunityRole.member),
+        members: [testMember('1'), testMember('2')],
+        membersPerPage: 1,
+      );
+      final scope = container(repository);
+      await load(scope);
+
+      repository.failNext = true;
+      await expectLater(
+        scope.read(communityMembersProvider('1').notifier).loadMore(),
+        throwsA(isA<ServerException>()),
+      );
+
+      final state = scope.read(communityMembersProvider('1')).requireValue;
+      expect(state.members.single.id, '1');
+      expect(state.isLoadingMore, isFalse);
+      expect(state.hasMore, isTrue);
+    });
+
+    test('detail disegarkan: anggota ikut dimuat ulang', () async {
+      final repository = FakeCommunityRepository(
+        detail: testDetail(myRole: CommunityRole.admin),
+        requests: [testRequest('2')],
+      );
+      final scope = container(repository);
+      await load(scope);
+
+      await repository.approveMember('1', '2');
+      scope.invalidate(communityDetailProvider('1'));
+      await scope.pump();
+      final state = await scope.read(communityMembersProvider('1').future);
+
+      expect(state.requests, isEmpty);
+      expect(state.members.single.id, '2');
+    });
+  });
+}
+
+class _FailingMembersRepository extends FakeCommunityRepository {
+  _FailingMembersRepository({
+    super.detail,
+    super.members,
+    super.membersPerPage,
+  });
+
+  bool failNext = false;
+
+  @override
+  Future<CommunityMembersPage> getMembers(
+    String communityId, {
+    required int page,
+    bool pending = false,
+  }) {
+    if (failNext) throw const ServerException('Gagal memuat.');
+    return super.getMembers(communityId, page: page, pending: pending);
+  }
 }

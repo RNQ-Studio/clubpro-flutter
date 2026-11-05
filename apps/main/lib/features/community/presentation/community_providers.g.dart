@@ -300,6 +300,319 @@ final class CommunityDetailFamily extends $Family
   String toString() => r'communityDetailProvider';
 }
 
+/// Komunitas yang diikuti, untuk Beranda.
+
+@ProviderFor(joinedCommunities)
+final joinedCommunitiesProvider = JoinedCommunitiesProvider._();
+
+/// Komunitas yang diikuti, untuk Beranda.
+
+final class JoinedCommunitiesProvider extends $FunctionalProvider<
+        AsyncValue<List<Community>>, List<Community>, FutureOr<List<Community>>>
+    with $FutureModifier<List<Community>>, $FutureProvider<List<Community>> {
+  /// Komunitas yang diikuti, untuk Beranda.
+  JoinedCommunitiesProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'joinedCommunitiesProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$joinedCommunitiesHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<Community>> $createElement(
+          $ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<Community>> create(Ref ref) {
+    return joinedCommunities(ref);
+  }
+}
+
+String _$joinedCommunitiesHash() => r'12deb987247509bfcf2a63e9d9294f844f9b6fbc';
+
+@ProviderFor(communityActivities)
+final communityActivitiesProvider = CommunityActivitiesFamily._();
+
+final class CommunityActivitiesProvider extends $FunctionalProvider<
+        AsyncValue<CommunityActivities>,
+        CommunityActivities,
+        FutureOr<CommunityActivities>>
+    with
+        $FutureModifier<CommunityActivities>,
+        $FutureProvider<CommunityActivities> {
+  CommunityActivitiesProvider._(
+      {required CommunityActivitiesFamily super.from,
+      required String super.argument})
+      : super(
+          retry: null,
+          name: r'communityActivitiesProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$communityActivitiesHash();
+
+  @override
+  String toString() {
+    return r'communityActivitiesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<CommunityActivities> $createElement(
+          $ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<CommunityActivities> create(Ref ref) {
+    final argument = this.argument as String;
+    return communityActivities(
+      ref,
+      argument,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CommunityActivitiesProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$communityActivitiesHash() =>
+    r'13426d89d10ef87b245d6b8081690b7bd738481d';
+
+final class CommunityActivitiesFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<CommunityActivities>, String> {
+  CommunityActivitiesFamily._()
+      : super(
+          retry: null,
+          name: r'communityActivitiesProvider',
+          dependencies: null,
+          $allTransitiveDependencies: null,
+          isAutoDispose: true,
+        );
+
+  CommunityActivitiesProvider call(
+    String id,
+  ) =>
+      CommunityActivitiesProvider._(argument: id, from: this);
+
+  @override
+  String toString() => r'communityActivitiesProvider';
+}
+
+@ProviderFor(communityMemberProfile)
+final communityMemberProfileProvider = CommunityMemberProfileFamily._();
+
+final class CommunityMemberProfileProvider extends $FunctionalProvider<
+        AsyncValue<CommunityMemberProfile>,
+        CommunityMemberProfile,
+        FutureOr<CommunityMemberProfile>>
+    with
+        $FutureModifier<CommunityMemberProfile>,
+        $FutureProvider<CommunityMemberProfile> {
+  CommunityMemberProfileProvider._(
+      {required CommunityMemberProfileFamily super.from,
+      required String super.argument})
+      : super(
+          retry: null,
+          name: r'communityMemberProfileProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$communityMemberProfileHash();
+
+  @override
+  String toString() {
+    return r'communityMemberProfileProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<CommunityMemberProfile> $createElement(
+          $ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<CommunityMemberProfile> create(Ref ref) {
+    final argument = this.argument as String;
+    return communityMemberProfile(
+      ref,
+      argument,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CommunityMemberProfileProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$communityMemberProfileHash() =>
+    r'fc2a2f5240dfd5a0102dcf4b9b1f859a3203de5b';
+
+final class CommunityMemberProfileFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<CommunityMemberProfile>, String> {
+  CommunityMemberProfileFamily._()
+      : super(
+          retry: null,
+          name: r'communityMemberProfileProvider',
+          dependencies: null,
+          $allTransitiveDependencies: null,
+          isAutoDispose: true,
+        );
+
+  CommunityMemberProfileProvider call(
+    String userId,
+  ) =>
+      CommunityMemberProfileProvider._(argument: userId, from: this);
+
+  @override
+  String toString() => r'communityMemberProfileProvider';
+}
+
+/// Anggota satu komunitas. Daftarnya hanya dimuat untuk sesama anggota, dan ikut
+/// dimuat ulang setiap detail komunitas disegarkan.
+
+@ProviderFor(CommunityMembersNotifier)
+final communityMembersProvider = CommunityMembersNotifierFamily._();
+
+/// Anggota satu komunitas. Daftarnya hanya dimuat untuk sesama anggota, dan ikut
+/// dimuat ulang setiap detail komunitas disegarkan.
+final class CommunityMembersNotifierProvider extends $AsyncNotifierProvider<
+    CommunityMembersNotifier, CommunityMembersState> {
+  /// Anggota satu komunitas. Daftarnya hanya dimuat untuk sesama anggota, dan ikut
+  /// dimuat ulang setiap detail komunitas disegarkan.
+  CommunityMembersNotifierProvider._(
+      {required CommunityMembersNotifierFamily super.from,
+      required String super.argument})
+      : super(
+          retry: null,
+          name: r'communityMembersProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$communityMembersNotifierHash();
+
+  @override
+  String toString() {
+    return r'communityMembersProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  CommunityMembersNotifier create() => CommunityMembersNotifier();
+
+  @override
+  bool operator ==(Object other) {
+    return other is CommunityMembersNotifierProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$communityMembersNotifierHash() =>
+    r'1fa086d2284ce27ac8d8e4e5777d6ced70a6be2f';
+
+/// Anggota satu komunitas. Daftarnya hanya dimuat untuk sesama anggota, dan ikut
+/// dimuat ulang setiap detail komunitas disegarkan.
+
+final class CommunityMembersNotifierFamily extends $Family
+    with
+        $ClassFamilyOverride<
+            CommunityMembersNotifier,
+            AsyncValue<CommunityMembersState>,
+            CommunityMembersState,
+            FutureOr<CommunityMembersState>,
+            String> {
+  CommunityMembersNotifierFamily._()
+      : super(
+          retry: null,
+          name: r'communityMembersProvider',
+          dependencies: null,
+          $allTransitiveDependencies: null,
+          isAutoDispose: true,
+        );
+
+  /// Anggota satu komunitas. Daftarnya hanya dimuat untuk sesama anggota, dan ikut
+  /// dimuat ulang setiap detail komunitas disegarkan.
+
+  CommunityMembersNotifierProvider call(
+    String communityId,
+  ) =>
+      CommunityMembersNotifierProvider._(argument: communityId, from: this);
+
+  @override
+  String toString() => r'communityMembersProvider';
+}
+
+/// Anggota satu komunitas. Daftarnya hanya dimuat untuk sesama anggota, dan ikut
+/// dimuat ulang setiap detail komunitas disegarkan.
+
+abstract class _$CommunityMembersNotifier
+    extends $AsyncNotifier<CommunityMembersState> {
+  late final _$args = ref.$arg as String;
+  String get communityId => _$args;
+
+  FutureOr<CommunityMembersState> build(
+    String communityId,
+  );
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref
+        as $Ref<AsyncValue<CommunityMembersState>, CommunityMembersState>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<AsyncValue<CommunityMembersState>, CommunityMembersState>,
+        AsyncValue<CommunityMembersState>,
+        Object?,
+        Object?>;
+    element.handleCreate(
+        ref,
+        () => build(
+              _$args,
+            ));
+  }
+}
+
 /// Daftar komunitas terverifikasi: cari, saring jenis, dan muat bertahap.
 
 @ProviderFor(CommunitiesNotifier)

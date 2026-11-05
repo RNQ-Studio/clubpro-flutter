@@ -248,7 +248,7 @@ void main() {
       await tester.tap(find.byKey(const Key('community-1')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Detail Komunitas'), findsOneWidget);
+      expect(find.text('Tentang Komunitas'), findsOneWidget);
     });
 
     testWidgets('tombol membuka form', (tester) async {
@@ -291,8 +291,7 @@ void main() {
 
       for (final text in [
         'Pemanah Nusantara',
-        'Panahan',
-        'Kota Bandung, Jawa Barat',
+        'PN · Panahan',
         'Jl. Merdeka No. 10, Sumur Bandung',
         'Rina Ayu',
         '081234567890',
@@ -301,6 +300,8 @@ void main() {
       ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
+      // Lokasi tampil di sampul dan di bagian Lokasi.
+      expect(find.text('Kota Bandung, Jawa Barat'), findsNWidgets(2));
       expect(find.textContaining('Menunggu verifikasi'), findsNothing);
     });
 

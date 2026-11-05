@@ -38,6 +38,107 @@ Future<List<Community>> myCommunities(Ref ref) =>
 Future<CommunityDetail> communityDetail(Ref ref, String id) =>
     ref.watch(communityRepositoryProvider).getCommunity(id);
 
+/// Komunitas yang diikuti, untuk Beranda.
+@riverpod
+Future<List<Community>> joinedCommunities(Ref ref) =>
+    ref.watch(communityRepositoryProvider).getJoined();
+
+@riverpod
+Future<CommunityActivities> communityActivities(Ref ref, String id) =>
+    ref.watch(communityRepositoryProvider).getActivities(id);
+
+@riverpod
+Future<CommunityMemberProfile> communityMemberProfile(
+  Ref ref,
+  String userId,
+) =>
+    ref.watch(communityRepositoryProvider).getMemberProfile(userId);
+
+class CommunityMembersState {
+  const CommunityMembersState({
+    this.members = const [],
+    this.requests = const [],
+    this.page = 1,
+    this.hasMore = false,
+    this.isLoadingMore = false,
+  });
+
+  final List<CommunityMember> members;
+
+  /// Permintaan bergabung; hanya terisi untuk creator/admin.
+  final List<CommunityMember> requests;
+  final int page;
+  final bool hasMore;
+  final bool isLoadingMore;
+
+  CommunityMembersState copyWith({
+    List<CommunityMember>? members,
+    int? page,
+    bool? hasMore,
+    bool? isLoadingMore,
+  }) =>
+      CommunityMembersState(
+        members: members ?? this.members,
+        requests: requests,
+        page: page ?? this.page,
+        hasMore: hasMore ?? this.hasMore,
+        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      );
+}
+
+/// Anggota satu komunitas. Daftarnya hanya dimuat untuk sesama anggota, dan ikut
+/// dimuat ulang setiap detail komunitas disegarkan.
+@riverpod
+class CommunityMembersNotifier extends _$CommunityMembersNotifier {
+  @override
+  Future<CommunityMembersState> build(String communityId) async {
+    final detail = await ref.watch(communityDetailProvider(communityId).future);
+    if (!detail.isMember && !detail.canManage) {
+      return const CommunityMembersState();
+    }
+
+    final repository = ref.read(communityRepositoryProvider);
+    final active = repository.getMembers(communityId, page: 1);
+    final requests = detail.canManage
+        ? repository.getMembers(communityId, page: 1, pending: true)
+        : null;
+
+    final page = await active;
+    return CommunityMembersState(
+      members: page.members,
+      requests: (await requests)?.members ?? const [],
+      page: page.currentPage,
+      hasMore: page.currentPage < page.lastPage,
+    );
+  }
+
+  Future<void> loadMore() async {
+    final current = state.asData?.value;
+    if (current == null || !current.hasMore || current.isLoadingMore) return;
+
+    state = AsyncData(current.copyWith(isLoadingMore: true));
+    try {
+      final next = await ref
+          .read(communityRepositoryProvider)
+          .getMembers(communityId, page: current.page + 1);
+      if (!ref.mounted) return;
+      final seen = {for (final member in current.members) member.id};
+      state = AsyncData(current.copyWith(
+        members: [
+          ...current.members,
+          ...next.members.where((member) => !seen.contains(member.id)),
+        ],
+        page: next.currentPage,
+        hasMore: next.currentPage < next.lastPage,
+        isLoadingMore: false,
+      ));
+    } catch (_) {
+      if (ref.mounted) state = AsyncData(current);
+      rethrow;
+    }
+  }
+}
+
 class CommunitiesState {
   const CommunitiesState({
     required this.communities,

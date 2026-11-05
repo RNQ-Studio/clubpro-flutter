@@ -13,6 +13,7 @@ abstract final class AppRoutes {
   static const String communities = '/communities';
   static const String createCommunity = '$communities/new';
   static String community(String id) => '$communities/$id';
+  static String member(String userId) => '/members/$userId';
 
   // Admin Panel (khusus super admin)
   static const String adminPanel = '/admin';

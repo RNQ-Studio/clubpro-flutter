@@ -3,6 +3,7 @@
 // perangkat. Tidak ikut `melos run test` (berada di tool/).
 //
 //   RENDER_DIR=/tmp/shots flutter test tool/render_screens_test.dart
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -19,6 +20,7 @@ import 'package:app_main/features/community/presentation/community_providers.dar
 import 'package:app_main/features/community/presentation/screens/communities_screen.dart';
 import 'package:app_main/features/community/presentation/screens/community_detail_screen.dart';
 import 'package:app_main/features/community/presentation/screens/community_form_screen.dart';
+import 'package:app_main/features/community/presentation/screens/member_profile_screen.dart';
 import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
@@ -120,7 +122,9 @@ void main() {
     Widget app, {
     Future<void> Function()? before,
     Size size = const Size(360, 780),
+    bool photos = false,
   }) async {
+    if (photos) debugNetworkImageHttpClientProvider = _PhotoClient.new;
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -136,7 +140,9 @@ void main() {
       for (final element in find.byType(Image).evaluate()) {
         final image = (element.widget as Image).image;
         // URL contoh tidak bisa diunduh di sini.
-        if (image is! NetworkImage) await precacheImage(image, element);
+        if (photos || image is! NetworkImage) {
+          await precacheImage(image, element);
+        }
       }
     });
     await tester.pump();
@@ -150,6 +156,7 @@ void main() {
       File('$outDir/$name.png').writeAsBytesSync(png!.buffer.asUint8List());
     });
     debugDisableShadows = true;
+    debugNetworkImageHttpClientProvider = null;
   }
 
   Widget material(Widget home, AuthState auth) => ProviderScope(
@@ -342,10 +349,18 @@ void main() {
             ),
           ],
         ),
+        GoRoute(
+          path: '/members/:id',
+          builder: (_, state) =>
+              MemberProfileScreen(userId: state.pathParameters['id']!),
+        ),
       ],
     );
     return ProviderScope(
       overrides: [
+        authProvider.overrideWith(
+          () => _FixedAuthNotifier(AuthAuthenticated(_complete)),
+        ),
         communityRepositoryProvider.overrideWithValue(repository),
         communityImagePickerProvider
             .overrideWithValue(FakeCommunityImagePicker()),
@@ -359,6 +374,102 @@ void main() {
         locale: const Locale('id'),
       ),
     );
+  }
+
+  /// Klub ramai dilihat creator-nya.
+  FakeCommunityRepository club({
+    CommunityRole? role = CommunityRole.creator,
+    bool isJoinPending = false,
+  }) {
+    const url = 'https://anaklangit.manahpro.web.id/api/v1/assets';
+    final today = DateTime.now();
+    return FakeCommunityRepository(
+      detail: testDetail(
+        myRole: role,
+        isJoinPending: isJoinPending,
+        membersCount: 128,
+        pendingMembersCount: role?.canManage ?? false ? 2 : 0,
+        upcomingActivitiesCount: 3,
+        photos: [
+          for (var i = 1; i <= 7; i++)
+            CommunityPhoto(id: 'p$i', url: '$url/$i/file'),
+        ],
+      ),
+      members: [
+        testMember('1',
+            name: _complete.name,
+            userId: _complete.id,
+            role: CommunityRole.creator),
+        testMember('2', name: 'Rina Ayu', role: CommunityRole.admin),
+        testMember('3', name: 'Budi Santoso'),
+        testMember('4', name: 'Sari Wulandari'),
+        testMember('5', name: 'Dimas Pratama'),
+        testMember('6', name: 'Ayu Lestari'),
+      ],
+      requests: role?.canManage ?? false
+          ? [
+              testRequest('8', name: 'Fajar Nugroho'),
+              testRequest('9', name: 'Maya Kartika'),
+            ]
+          : const [],
+      activities: CommunityActivities(
+        upcoming: [
+          testActivity(
+            '1',
+            title: 'Latihan Bersama Akhir Pekan',
+            startsAt: today.add(const Duration(days: 3)),
+            location: 'Lapangan Gasibu, Bandung',
+            description: 'Bawa perlengkapan sendiri. Pemula sangat disambut!',
+          ),
+          testActivity(
+            '2',
+            title: 'Turnamen Persahabatan',
+            startsAt: today.add(const Duration(days: 17)),
+            location: 'GOR Pajajaran',
+          ),
+          testActivity(
+            '3',
+            title: 'Kopdar Akhir Tahun',
+            startsAt: today.add(const Duration(days: 45)),
+          ),
+        ],
+        past: [
+          testActivity(
+            '4',
+            title: 'Kopdar Perdana',
+            startsAt: today.subtract(const Duration(days: 12)),
+            location: 'Taman Lansia',
+          ),
+        ],
+      ),
+      profile: CommunityMemberProfile(
+        id: 'u2',
+        name: 'Rina Ayu',
+        registeredAt: DateTime.utc(2026, 3, 14),
+        communities: [
+          SharedCommunity(
+            id: '1',
+            name: 'Pemanah Nusantara',
+            role: CommunityRole.admin,
+            joinedAt: DateTime.utc(2026, 3, 20),
+          ),
+          SharedCommunity(
+            id: '2',
+            name: 'Fotografer Priangan',
+            role: CommunityRole.member,
+            joinedAt: DateTime.utc(2026, 7, 2),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> openClubTab(WidgetTester tester, String label) async {
+    await tester.tap(find.descendant(
+      of: find.byType(TabBar),
+      matching: find.text(label),
+    ));
+    await tester.pumpAndSettle();
   }
 
   FakeCommunityRepository filledCommunities() => FakeCommunityRepository(
@@ -684,6 +795,139 @@ void main() {
     );
   });
 
+  testWidgets('33-beranda-komunitas-saya', (tester) async {
+    await shoot(
+      tester,
+      '33-beranda-komunitas-saya',
+      shell(
+        _complete,
+        communities: FakeCommunityRepository(
+          joined: [
+            testCommunity('1',
+                shortName: 'Pemanah', myRole: CommunityRole.creator),
+            testCommunity('2',
+                shortName: 'Priangan FC', myRole: CommunityRole.admin),
+            testCommunity('3',
+                shortName: 'Fotografer', myRole: CommunityRole.member),
+            testCommunity('4',
+                shortName: 'Fashion',
+                myRole: CommunityRole.creator,
+                status: CommunityStatus.pending),
+          ],
+        ),
+      ),
+    );
+  });
+
+  testWidgets('34-beranda-belum-ada-komunitas', (tester) async {
+    await shoot(tester, '34-beranda-belum-ada-komunitas', shell(_complete));
+  });
+
+  testWidgets('35-klub-info', (tester) async {
+    await shoot(
+      tester,
+      '35-klub-info',
+      communityApp(club(), AppRoutes.community('1')),
+      size: tall,
+      photos: true,
+    );
+  });
+
+  testWidgets('36-klub-anggota', (tester) async {
+    await shoot(
+      tester,
+      '36-klub-anggota',
+      communityApp(club(), AppRoutes.community('1')),
+      size: tall,
+      before: () => openClubTab(tester, 'Anggota'),
+    );
+  });
+
+  testWidgets('37-klub-galeri', (tester) async {
+    await shoot(
+      tester,
+      '37-klub-galeri',
+      communityApp(club(), AppRoutes.community('1')),
+      size: tall,
+      photos: true,
+      before: () => openClubTab(tester, 'Galeri'),
+    );
+  });
+
+  testWidgets('38-klub-kegiatan', (tester) async {
+    await shoot(
+      tester,
+      '38-klub-kegiatan',
+      communityApp(club(), AppRoutes.community('1')),
+      size: tall,
+      before: () => openClubTab(tester, 'Kegiatan'),
+    );
+  });
+
+  testWidgets('39-klub-desktop', (tester) async {
+    await shoot(
+      tester,
+      '39-klub-desktop',
+      communityApp(club(), AppRoutes.community('1')),
+      size: desktop,
+      before: () => openClubTab(tester, 'Anggota'),
+    );
+  });
+
+  testWidgets('40-klub-belum-gabung', (tester) async {
+    await shoot(
+      tester,
+      '40-klub-belum-gabung',
+      communityApp(club(role: null), AppRoutes.community('1')),
+      before: () => openClubTab(tester, 'Anggota'),
+    );
+  });
+
+  testWidgets('41-klub-menunggu', (tester) async {
+    await shoot(
+      tester,
+      '41-klub-menunggu',
+      communityApp(
+        club(role: null, isJoinPending: true),
+        AppRoutes.community('1'),
+      ),
+    );
+  });
+
+  testWidgets('42-klub-tergulung', (tester) async {
+    await shoot(
+      tester,
+      '42-klub-tergulung',
+      communityApp(club(), AppRoutes.community('1')),
+      before: () async {
+        await openClubTab(tester, 'Kegiatan');
+        await tester.drag(find.byType(TabBarView), const Offset(0, -500));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  testWidgets('43-kegiatan-baru', (tester) async {
+    await shoot(
+      tester,
+      '43-kegiatan-baru',
+      communityApp(club(), AppRoutes.community('1')),
+      before: () async {
+        await openClubTab(tester, 'Kegiatan');
+        await tester.tap(find.byKey(const Key('club-add-activity')));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  testWidgets('44-profil-anggota', (tester) async {
+    await shoot(
+      tester,
+      '44-profil-anggota',
+      communityApp(club(), AppRoutes.member('u2')),
+    );
+  });
+
   testWidgets('32-beranda-bawah', (tester) async {
     await shoot(
       tester,
@@ -698,4 +942,44 @@ void main() {
       },
     );
   });
+}
+
+/// Semua unduhan gambar dijawab dengan PNG contoh.
+class _PhotoClient extends Fake implements HttpClient {
+  @override
+  bool autoUncompress = true;
+
+  @override
+  Future<HttpClientRequest> getUrl(Uri url) async => _PhotoRequest();
+}
+
+class _PhotoRequest extends Fake implements HttpClientRequest {
+  @override
+  Future<HttpClientResponse> close() async => _PhotoResponse();
+}
+
+class _PhotoResponse extends Fake implements HttpClientResponse {
+  @override
+  int get statusCode => 200;
+
+  @override
+  int get contentLength => testImageBytes.length;
+
+  @override
+  HttpClientResponseCompressionState get compressionState =>
+      HttpClientResponseCompressionState.notCompressed;
+
+  @override
+  StreamSubscription<List<int>> listen(
+    void Function(List<int>)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) =>
+      Stream.value(testImageBytes as List<int>).listen(
+        onData,
+        onError: onError,
+        onDone: onDone,
+        cancelOnError: cancelOnError,
+      );
 }

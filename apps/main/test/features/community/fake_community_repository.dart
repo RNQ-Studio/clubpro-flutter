@@ -50,11 +50,14 @@ Community testCommunity(
   String id, {
   String name = 'Pemanah Nusantara',
   CommunityStatus status = CommunityStatus.approved,
+  CommunityRole? myRole,
+  String shortName = 'PN',
 }) =>
     Community(
       id: id,
       name: name,
-      shortName: 'PN',
+      shortName: shortName,
+      myRole: myRole,
       type: 'panahan',
       typeLabel: 'Panahan',
       status: status,
@@ -69,9 +72,24 @@ CommunityDetail testDetail({
   CommunityStatus status = CommunityStatus.approved,
   String? email = 'pengurus@gmail.com',
   String? reviewNote,
+  CommunityRole? myRole,
+  bool isJoinPending = false,
+  int membersCount = 3,
+  int pendingMembersCount = 0,
+  int upcomingActivitiesCount = 0,
+  List<CommunityPhoto> photos = const [],
+  bool? canManage,
 }) =>
     CommunityDetail(
       id: id,
+      myRole: myRole,
+      isMember: myRole != null,
+      isJoinPending: isJoinPending,
+      canManage: canManage ?? (myRole?.canManage ?? false),
+      membersCount: membersCount,
+      pendingMembersCount: pendingMembersCount,
+      upcomingActivitiesCount: upcomingActivitiesCount,
+      photos: photos,
       name: 'Pemanah Nusantara',
       shortName: 'PN',
       type: 'panahan',
@@ -86,6 +104,43 @@ CommunityDetail testDetail({
       contactPhone: '081234567890',
       contactEmail: email,
       reviewNote: reviewNote,
+    );
+
+CommunityMember testMember(
+  String id, {
+  String? name,
+  CommunityRole role = CommunityRole.member,
+  String? userId,
+}) =>
+    CommunityMember(
+      id: id,
+      userId: userId ?? 'u$id',
+      name: name ?? 'Anggota $id',
+      role: role,
+      joinedAt: DateTime.utc(2026, 11, 5, 6),
+    );
+
+CommunityMember testRequest(String id, {String? name}) => CommunityMember(
+      id: id,
+      userId: 'u$id',
+      name: name ?? 'Calon $id',
+      role: CommunityRole.member,
+      requestedAt: DateTime.utc(2026, 11, 5, 6),
+    );
+
+CommunityActivity testActivity(
+  String id, {
+  String title = 'Latihan Bersama',
+  required DateTime startsAt,
+  String? location,
+  String? description,
+}) =>
+    CommunityActivity(
+      id: id,
+      title: title,
+      startsAt: startsAt,
+      location: location,
+      description: description,
     );
 
 /// Draft lengkap yang lolos semua langkah.
@@ -110,7 +165,14 @@ class FakeCommunityRepository implements CommunityRepository {
     this.detail,
     this.error,
     this.regionsError,
-  });
+    this.joined = const [],
+    List<CommunityMember> members = const [],
+    List<CommunityMember> requests = const [],
+    this.activities = const CommunityActivities(),
+    this.profile,
+    this.membersPerPage = 50,
+  })  : members = [...members],
+        requests = [...requests];
 
   /// Halaman daftar berurutan; halaman ke-n dipakai untuk `page: n`.
   List<List<Community>> pages;
@@ -128,9 +190,28 @@ class FakeCommunityRepository implements CommunityRepository {
   /// Melempar saat `submit`, satu kali.
   Exception? submitError;
 
+  /// Melempar pada `getJoined`, bila diisi.
+  Exception? joinedError;
+  List<Community> joined;
+  int joinedCalls = 0;
+
+  List<CommunityMember> members;
+  List<CommunityMember> requests;
+  int membersPerPage;
+  CommunityActivities activities;
+  CommunityMemberProfile? profile;
+
+  /// Melempar pada tindakan berikutnya, satu kali.
+  Exception? actionError;
+
   final listCalls = <({int page, String search, String? type})>[];
   final uploads = <String>[];
   final submitted = <CommunityDraft>[];
+  final memberCalls = <({int page, bool pending})>[];
+
+  /// Tindakan yang sampai ke server, mis. `role:5:admin`.
+  final actions = <String>[];
+  final activityInputs = <CommunityActivityInput>[];
 
   @override
   Future<CommunitiesPage> getCommunities({
@@ -191,12 +272,146 @@ class FakeCommunityRepository implements CommunityRepository {
     submitted.add(draft);
     return testDetail(status: CommunityStatus.pending);
   }
+
+  void _record(String action) {
+    final failure = actionError;
+    if (failure != null) {
+      actionError = null;
+      throw failure;
+    }
+    actions.add(action);
+  }
+
+  @override
+  Future<List<Community>> getJoined() async {
+    joinedCalls++;
+    final failure = joinedError;
+    if (failure != null) throw failure;
+    return joined;
+  }
+
+  @override
+  Future<void> join(String communityId) async => _record('join');
+
+  @override
+  Future<void> leave(String communityId) async => _record('leave');
+
+  @override
+  Future<CommunityMembersPage> getMembers(
+    String communityId, {
+    required int page,
+    bool pending = false,
+  }) async {
+    memberCalls.add((page: page, pending: pending));
+    final source = pending ? requests : members;
+    final start = (page - 1) * membersPerPage;
+    return CommunityMembersPage(
+      members: source.skip(start).take(membersPerPage).toList(),
+      currentPage: page,
+      lastPage: (source.length / membersPerPage).ceil().clamp(1, 1000),
+    );
+  }
+
+  @override
+  Future<void> approveMember(String communityId, String memberId) async {
+    _record('approve:$memberId');
+    final request = requests.firstWhere((m) => m.id == memberId);
+    requests.remove(request);
+    members.add(
+      testMember(memberId, name: request.name, userId: request.userId),
+    );
+  }
+
+  @override
+  Future<void> setMemberRole(
+    String communityId,
+    String memberId,
+    CommunityRole role,
+  ) async {
+    _record('role:$memberId:${role.apiValue}');
+    final index = members.indexWhere((m) => m.id == memberId);
+    final member = members[index];
+    members[index] = testMember(
+      memberId,
+      name: member.name,
+      userId: member.userId,
+      role: role,
+    );
+  }
+
+  @override
+  Future<void> removeMember(String communityId, String memberId) async {
+    _record('remove:$memberId');
+    members.removeWhere((m) => m.id == memberId);
+    requests.removeWhere((m) => m.id == memberId);
+  }
+
+  @override
+  Future<CommunityActivities> getActivities(String communityId) async =>
+      activities;
+
+  @override
+  Future<void> createActivity(
+    String communityId,
+    CommunityActivityInput input,
+  ) async {
+    _record('activity:create');
+    activityInputs.add(input);
+    activities = CommunityActivities(
+      upcoming: [
+        ...activities.upcoming,
+        testActivity(
+          'baru',
+          title: input.title,
+          startsAt: input.startsAt,
+        ),
+      ],
+      past: activities.past,
+    );
+  }
+
+  @override
+  Future<void> updateActivity(
+    String communityId,
+    String activityId,
+    CommunityActivityInput input,
+  ) async {
+    _record('activity:update:$activityId');
+    activityInputs.add(input);
+  }
+
+  @override
+  Future<void> deleteActivity(String communityId, String activityId) async {
+    _record('activity:delete:$activityId');
+    activities = CommunityActivities(
+      upcoming: activities.upcoming.where((a) => a.id != activityId).toList(),
+      past: activities.past.where((a) => a.id != activityId).toList(),
+    );
+  }
+
+  @override
+  Future<void> addPhoto(String communityId, String assetId) async =>
+      _record('photo:add:$assetId');
+
+  @override
+  Future<void> removePhoto(String communityId, String assetId) async =>
+      _record('photo:remove:$assetId');
+
+  @override
+  Future<CommunityMemberProfile> getMemberProfile(String userId) async {
+    final failure = error;
+    if (failure != null) throw failure;
+    return profile!;
+  }
 }
 
 class FakeCommunityImagePicker extends CommunityImagePicker {
-  FakeCommunityImagePicker({this.error});
+  FakeCommunityImagePicker({this.error, this.cancels = false});
 
   Exception? error;
+
+  /// Pengguna menutup pemilih tanpa memilih.
+  bool cancels;
   final limits = <int>[];
 
   @override
@@ -211,6 +426,7 @@ class FakeCommunityImagePicker extends CommunityImagePicker {
     final failure = error;
     if (failure != null) throw failure;
     limits.add(limit);
+    if (cancels) return const [];
     return [
       for (var i = 0; i < limit && i < 2; i++)
         testImage('foto-${limits.length}-$i.png'),

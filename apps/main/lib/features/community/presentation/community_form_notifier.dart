@@ -210,6 +210,7 @@ class CommunityFormNotifier extends _$CommunityFormNotifier {
       if (!ref.mounted) return;
 
       ref.invalidate(myCommunitiesProvider);
+      ref.invalidate(joinedCommunitiesProvider);
       state = state.copyWith(
         phase: CommunitySubmitPhase.done,
         result: community,

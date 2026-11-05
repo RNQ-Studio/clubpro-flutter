@@ -16,6 +16,8 @@ class CommunityModel extends Community {
     required super.description,
     super.logoUrl,
     super.createdAt,
+    super.myRole,
+    super.membersCount,
   });
 
   factory CommunityModel.fromJson(Map<String, dynamic> json) => CommunityModel(
@@ -30,6 +32,8 @@ class CommunityModel extends Community {
         description: json['description'] as String,
         logoUrl: json['logo_url'] as String?,
         createdAt: _time(json['created_at']),
+        myRole: CommunityRole.fromApi(json['my_role']),
+        membersCount: json['members_count'] as int?,
       );
 }
 
@@ -46,12 +50,20 @@ class CommunityDetailModel extends CommunityDetail {
     required super.description,
     super.logoUrl,
     super.createdAt,
+    super.myRole,
+    super.membersCount,
     required super.address,
     required super.contactName,
     required super.contactPhone,
     super.contactEmail,
     super.photoUrls,
     super.reviewNote,
+    super.photos,
+    super.isMember,
+    super.isJoinPending,
+    super.canManage,
+    super.pendingMembersCount,
+    super.upcomingActivitiesCount,
   });
 
   factory CommunityDetailModel.fromJson(Map<String, dynamic> json) =>
@@ -67,6 +79,8 @@ class CommunityDetailModel extends CommunityDetail {
         description: json['description'] as String,
         logoUrl: json['logo_url'] as String?,
         createdAt: _time(json['created_at']),
+        myRole: CommunityRole.fromApi(json['my_role']),
+        membersCount: json['members_count'] as int?,
         address: json['address'] as String,
         contactName: json['contact_name'] as String,
         contactPhone: json['contact_phone'] as String,
@@ -76,6 +90,18 @@ class CommunityDetailModel extends CommunityDetail {
           for (final url in (json['photo_urls'] as List<dynamic>? ?? const []))
             url.toString(),
         ],
+        photos: [
+          for (final photo in (json['photos'] as List<dynamic>? ?? const []))
+            CommunityPhoto(
+              id: (photo as Map<String, dynamic>)['id'].toString(),
+              url: photo['url'] as String,
+            ),
+        ],
+        isMember: json['my_status'] == 'active',
+        isJoinPending: json['my_status'] == 'pending',
+        canManage: json['can_manage'] == true,
+        pendingMembersCount: json['pending_members_count'] as int? ?? 0,
+        upcomingActivitiesCount: json['upcoming_activities_count'] as int? ?? 0,
       );
 }
 
@@ -111,3 +137,69 @@ CommunitiesPage communitiesPageFromJson(Map<String, dynamic> json) {
     lastPage: pagination['last_page'] as int,
   );
 }
+
+CommunityMember communityMemberFromJson(Map<String, dynamic> json) =>
+    CommunityMember(
+      id: json['id'].toString(),
+      userId: json['user_id'].toString(),
+      name: json['name'] as String,
+      role: CommunityRole.fromApi(json['role']) ?? CommunityRole.member,
+      avatarUrl: json['avatar_url'] as String?,
+      joinedAt: _time(json['joined_at']),
+      requestedAt: _time(json['requested_at']),
+    );
+
+/// `GET v1/communities/{id}/members`: `data` + `meta.pagination`.
+CommunityMembersPage communityMembersPageFromJson(Map<String, dynamic> json) {
+  final meta = json['meta'] as Map<String, dynamic>;
+  final pagination = meta['pagination'] as Map<String, dynamic>;
+  return CommunityMembersPage(
+    members: [
+      for (final member in json['data'] as List<dynamic>)
+        communityMemberFromJson(member as Map<String, dynamic>),
+    ],
+    currentPage: pagination['current_page'] as int,
+    lastPage: pagination['last_page'] as int,
+  );
+}
+
+CommunityActivity communityActivityFromJson(Map<String, dynamic> json) =>
+    CommunityActivity(
+      id: json['id'].toString(),
+      title: json['title'] as String,
+      startsAt: DateTime.parse(json['starts_at'] as String),
+      description: json['description'] as String?,
+      location: json['location'] as String?,
+    );
+
+CommunityActivities communityActivitiesFromJson(Map<String, dynamic> json) =>
+    CommunityActivities(
+      upcoming: [
+        for (final item in json['upcoming'] as List<dynamic>)
+          communityActivityFromJson(item as Map<String, dynamic>),
+      ],
+      past: [
+        for (final item in json['past'] as List<dynamic>)
+          communityActivityFromJson(item as Map<String, dynamic>),
+      ],
+    );
+
+CommunityMemberProfile communityMemberProfileFromJson(
+  Map<String, dynamic> json,
+) =>
+    CommunityMemberProfile(
+      id: json['id'].toString(),
+      name: json['name'] as String,
+      avatarUrl: json['avatar_url'] as String?,
+      registeredAt: _time(json['registered_at']),
+      communities: [
+        for (final item in json['communities'] as List<dynamic>)
+          SharedCommunity(
+            id: (item as Map<String, dynamic>)['id'].toString(),
+            name: item['name'] as String,
+            role: CommunityRole.fromApi(item['role']) ?? CommunityRole.member,
+            logoUrl: item['logo_url'] as String?,
+            joinedAt: _time(item['joined_at']),
+          ),
+      ],
+    );

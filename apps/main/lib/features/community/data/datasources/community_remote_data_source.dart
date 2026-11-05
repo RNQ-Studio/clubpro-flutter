@@ -95,6 +95,97 @@ class CommunityRemoteDataSource {
         );
       });
 
+  Future<List<Community>> fetchJoined() => _guard(() async {
+        final response = await _dio.get('v1/communities/joined');
+        return [
+          for (final item in _data(response) as List<dynamic>)
+            CommunityModel.fromJson(item as Map<String, dynamic>),
+        ];
+      });
+
+  Future<void> join(String id) =>
+      _guard(() => _dio.post('v1/communities/$id/join'));
+
+  Future<void> leave(String id) =>
+      _guard(() => _dio.post('v1/communities/$id/leave'));
+
+  Future<CommunityMembersPage> fetchMembers(
+    String id, {
+    required int page,
+    bool pending = false,
+  }) =>
+      _guard(() async {
+        final response = await _dio.get(
+          'v1/communities/$id/members',
+          queryParameters: {
+            'page': page,
+            if (pending) 'status': 'pending',
+          },
+        );
+        return communityMembersPageFromJson(
+          response.data as Map<String, dynamic>,
+        );
+      });
+
+  Future<void> approveMember(String id, String memberId) =>
+      _guard(() => _dio.post('v1/communities/$id/members/$memberId/approve'));
+
+  Future<void> setMemberRole(
+    String id,
+    String memberId,
+    CommunityRole role,
+  ) =>
+      _guard(() => _dio.put(
+            'v1/communities/$id/members/$memberId/role',
+            data: {'role': role.apiValue},
+          ));
+
+  Future<void> removeMember(String id, String memberId) =>
+      _guard(() => _dio.delete('v1/communities/$id/members/$memberId'));
+
+  Future<CommunityActivities> fetchActivities(String id) => _guard(() async {
+        final response = await _dio.get('v1/communities/$id/activities');
+        return communityActivitiesFromJson(
+          _data(response) as Map<String, dynamic>,
+        );
+      });
+
+  Future<void> createActivity(String id, Map<String, Object?> payload) =>
+      _guard(() => _dio.post('v1/communities/$id/activities', data: payload));
+
+  Future<void> updateActivity(
+    String id,
+    String activityId,
+    Map<String, Object?> payload,
+  ) =>
+      _guard(() => _dio.put(
+            'v1/communities/$id/activities/$activityId',
+            data: payload,
+          ));
+
+  Future<void> deleteActivity(String id, String activityId) =>
+      _guard(() => _dio.delete('v1/communities/$id/activities/$activityId'));
+
+  Future<void> addPhoto(String id, String assetId) => _guard(
+        () => _dio.post(
+          'v1/communities/$id/photos',
+          data: {'asset_id': assetId},
+        ),
+      );
+
+  Future<void> removePhoto(String id, String assetId) =>
+      _guard(() => _dio.delete('v1/communities/$id/photos/$assetId'));
+
+  Future<CommunityMemberProfile> fetchMemberProfile(String userId) => _guard(
+        () async {
+          final response = await _dio.get('v1/members/$userId');
+          return communityMemberProfileFromJson(
+            _data(response) as Map<String, dynamic>,
+          );
+        },
+        notFound: 'Profil anggota ini tidak tersedia.',
+      );
+
   static Object? _data(Response<dynamic> response) =>
       (response.data as Map<String, dynamic>)['data'];
 
@@ -112,6 +203,8 @@ class CommunityRemoteDataSource {
   static Exception _error(DioException e, String notFound) {
     final status = e.response?.statusCode;
     return switch (status) {
+      403 =>
+        const ServerException('Anda tidak punya akses untuk tindakan ini.'),
       404 => ServerException(notFound),
       413 => const ServerException(
           'Foto terlalu besar untuk server. Pilih foto yang lebih kecil.'),

@@ -1,9 +1,12 @@
+import 'package:app_main/features/community/domain/entities/community.dart';
+import 'package:app_main/features/community/presentation/community_providers.dart';
 import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/domain/entities/home_banner.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
 import 'package:app_main/features/home/presentation/widgets/home_app_version.dart';
 import 'package:app_main/features/home/presentation/widgets/home_menu_grid.dart';
+import 'package:app_main/features/home/presentation/widgets/home_my_communities.dart';
 import 'package:app_main/features/home/presentation/widgets/home_user_header.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
@@ -12,6 +15,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+
+import 'features/community/fake_community_repository.dart';
 
 class _FakeRefresher implements AppRefresher {
   _FakeRefresher({this.error});
@@ -63,6 +68,7 @@ Widget _app({
   User user = _incompleteUser,
   List<HomeBanner> banners = _banners,
   AppRefresher? refresher,
+  FakeCommunityRepository? communities,
 }) {
   final router = GoRouter(
     initialLocation: '/',
@@ -77,6 +83,15 @@ Widget _app({
               appBar: AppBar(),
               body: const Text('HALAMAN KOMUNITAS'),
             ),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (_, state) => Scaffold(
+                  appBar: AppBar(),
+                  body: Text('KLUB ${state.pathParameters['id']}'),
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: 'profile',
@@ -99,6 +114,8 @@ Widget _app({
           .overrideWith(() => _FixedAuthNotifier(AuthAuthenticated(user))),
       homeBannersProvider.overrideWith((ref) async => banners),
       appRefresherProvider.overrideWithValue(refresher),
+      communityRepositoryProvider
+          .overrideWithValue(communities ?? FakeCommunityRepository()),
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -327,6 +344,9 @@ void main() {
 
       expect(
           find.textContaining('Gagal mengambil versi terbaru'), findsOneWidget);
+      // Tombol ada di dasar halaman, tertutup pesan sampai pesannya hilang.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
       await tester.tap(refreshButton());
       await tester.pump();
       expect(refresher.calls, 2);
@@ -394,6 +414,153 @@ void main() {
     await tester.drag(find.byType(ListView).first, const Offset(0, -600));
     await tester.pump();
     expect(tester.takeException(), isNull);
+  });
+
+  group('Komunitas Saya', () {
+    FakeCommunityRepository clubs() => FakeCommunityRepository(
+          joined: [
+            testCommunity(
+              '1',
+              shortName: 'PN',
+              myRole: CommunityRole.creator,
+            ),
+            testCommunity(
+              '2',
+              shortName: 'FBB',
+              myRole: CommunityRole.admin,
+            ),
+            testCommunity(
+              '3',
+              shortName: 'GBK',
+              myRole: CommunityRole.member,
+            ),
+          ],
+        );
+
+    testWidgets('berada paling atas, di atas info pengguna', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(communities: clubs()));
+      await tester.pumpAndSettle();
+
+      final row = tester.getTopLeft(find.byType(HomeMyCommunities));
+      final header = tester.getTopLeft(find.byType(HomeUserHeader));
+      expect(row.dy, lessThan(header.dy));
+      expect(find.text('Komunitas Saya'), findsOneWidget);
+      for (final name in ['PN', 'FBB', 'GBK']) {
+        expect(find.text(name), findsOneWidget);
+      }
+    });
+
+    testWidgets('peran ditandai: creator dan admin, anggota tidak',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(communities: clubs()));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.workspace_premium_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.shield_rounded), findsOneWidget);
+    });
+
+    testWidgets('pengajuan yang menunggu verifikasi ditandai', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: FakeCommunityRepository(
+          joined: [
+            testCommunity(
+              '1',
+              status: CommunityStatus.pending,
+              myRole: CommunityRole.creator,
+            ),
+          ],
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.hourglass_top_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.workspace_premium_rounded), findsNothing);
+    });
+
+    testWidgets('mengetuk komunitas membuka halaman klubnya', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(communities: clubs()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('home-community-2')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('KLUB 2'), findsOneWidget);
+    });
+
+    testWidgets('belum ikut komunitas: diajak mencari', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Belum ikut komunitas'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('home-discover-communities')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('HALAMAN KOMUNITAS'), findsOneWidget);
+    });
+
+    testWidgets('gagal dimuat: Beranda tetap utuh', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: FakeCommunityRepository(
+          joined: const [],
+        )..joinedError = const ServerException('Fitur belum aktif.'),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Komunitas Saya'), findsNothing);
+      expect(find.text('Fitur belum aktif.'), findsNothing);
+      expect(find.byType(HomeUserHeader), findsOneWidget);
+      expect(find.text('Menu Utama'), findsOneWidget);
+    });
+
+    testWidgets('tarik untuk menyegarkan memuat ulang daftarnya',
+        (tester) async {
+      _phoneScreen(tester);
+      final repository = clubs();
+      await tester.pumpWidget(_app(communities: repository));
+      await tester.pumpAndSettle();
+      expect(repository.joinedCalls, 1);
+
+      repository.joined = [testCommunity('9', shortName: 'BARU')];
+      await tester.fling(
+        find.byType(ListView).first,
+        const Offset(0, 400),
+        1000,
+      );
+      await tester.pumpAndSettle();
+
+      expect(repository.joinedCalls, 2);
+      expect(find.text('BARU'), findsOneWidget);
+    });
+
+    testWidgets('banyak komunitas + teks besar tanpa overflow', (tester) async {
+      tester.view.physicalSize = const Size(640, 1280); // 320×640 dp
+      tester.view.devicePixelRatio = 2;
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      await tester.pumpWidget(_app(
+        communities: FakeCommunityRepository(
+          joined: [
+            for (var i = 0; i < 12; i++)
+              testCommunity(
+                '$i',
+                shortName: 'Nama Pendek Yang Panjang $i',
+                myRole: CommunityRole.member,
+              ),
+          ],
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
   });
 
   test('menu tanpa sisa istilah panahan & id unik', () {
