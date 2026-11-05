@@ -17,7 +17,7 @@ class AuthRemoteDataSource {
         'v1/auth/login',
         data: {'email': email, 'password': password},
       );
-      return _withProfile(_data(response));
+      return await _withProfile(_data(response));
     } on DioException catch (e) {
       throw e.error ?? ServerException(e.message ?? 'Login failed');
     }
@@ -52,7 +52,7 @@ class AuthRemoteDataSource {
         'v1/auth/register',
         data: {'name': name, 'email': email, 'password': password},
       );
-      return _withProfile(_data(response));
+      return await _withProfile(_data(response));
     } on DioException catch (e) {
       throw e.error ?? ServerException(e.message ?? 'Register failed');
     }

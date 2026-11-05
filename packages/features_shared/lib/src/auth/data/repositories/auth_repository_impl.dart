@@ -85,7 +85,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
     try {
       final fresh = await _remote.getMe();
-      return _keepToken(fresh, cached);
+      return await _keepToken(fresh, cached);
     } catch (_) {
       // Gracefully fallback to cached user on connection failure/offline
       return cached;
