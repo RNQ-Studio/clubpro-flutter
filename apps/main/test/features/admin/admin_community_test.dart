@@ -13,7 +13,7 @@ import 'package:app_main/features/admin/presentation/screens/admin_users_screen.
 import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:core/core.dart';
 import 'package:dio/dio.dart';
-import 'package:features_shared/features_shared.dart' hide Community;
+import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
