@@ -56,6 +56,11 @@ Widget _app(
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
+                path: AppRoutes.communities,
+                builder: (_, __) => const Text('HALAMAN KOMUNITAS')),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
                 path: AppRoutes.profile,
                 builder: (_, __) => const Text('HALAMAN PROFIL')),
           ]),
@@ -199,6 +204,38 @@ void main() {
     await tester.tap(find.byKey(const Key('home-user-header')));
     await tester.pumpAndSettle();
     expect(find.text('HALAMAN PROFIL'), findsOneWidget);
+  });
+
+  testWidgets('Komunitas menjadi menu primer: tab dan kartu teratas Menu Utama',
+      (tester) async {
+    _phoneScreen(tester);
+    await tester.pumpWidget(_app());
+    await tester.pump();
+
+    final card = find.byKey(const Key('home-community'));
+    expect(card, findsOneWidget);
+    final cardY = tester.getTopLeft(card).dy;
+    expect(cardY, greaterThan(tester.getTopLeft(find.text('Menu Utama')).dy));
+    expect(
+      cardY,
+      lessThan(tester.getTopLeft(find.byType(HomeMenuGrid)).dy),
+    );
+
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    expect(find.text('HALAMAN KOMUNITAS'), findsOneWidget);
+
+    await tester.tap(find.text('Beranda'));
+    await tester.pumpAndSettle();
+
+    // Tab berada di antara Beranda dan Profil.
+    final tab = tester.getCenter(find.byKey(const Key('nav-komunitas'))).dx;
+    expect(tab, greaterThan(tester.getCenter(find.text('Beranda')).dx));
+    expect(tab, lessThan(tester.getCenter(find.text('Profil')).dx));
+
+    await tester.tap(find.byKey(const Key('nav-komunitas')));
+    await tester.pumpAndSettle();
+    expect(find.text('HALAMAN KOMUNITAS'), findsOneWidget);
   });
 
   testWidgets('Admin Panel tidak tampil untuk anggota biasa', (tester) async {

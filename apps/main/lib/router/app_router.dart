@@ -7,6 +7,9 @@ import '../branding/club_brand.dart';
 import '../branding/club_logo.dart';
 import '../features/admin/presentation/screens/admin_panel_screen.dart';
 import '../features/admin/presentation/screens/admin_user_detail_screen.dart';
+import '../features/community/presentation/screens/communities_screen.dart';
+import '../features/community/presentation/screens/community_detail_screen.dart';
+import '../features/community/presentation/screens/community_form_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/quotes/presentation/screens/quote_form_screen.dart';
 import '../features/quotes/presentation/screens/quotes_screen.dart';
@@ -47,12 +50,32 @@ final appRouter = GoRouter(
       ),
     ),
 
-    // Halaman utama: navigasi bawah Beranda & Profil.
+    // Halaman utama: navigasi bawah Beranda, Komunitas & Profil.
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => MainShell(shell: shell),
       branches: [
         StatefulShellBranch(routes: [
           GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: AppRoutes.communities,
+            builder: (context, state) => const CommunitiesScreen(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const CommunityFormScreen(),
+              ),
+              GoRoute(
+                path: ':id',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => CommunityDetailScreen(
+                  communityId: state.pathParameters['id']!,
+                ),
+              ),
+            ],
+          ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(

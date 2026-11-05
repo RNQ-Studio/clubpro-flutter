@@ -10,6 +10,7 @@ import '../domain/entities/home_banner.dart';
 import 'home_providers.dart';
 import 'widgets/home_admin_panel_card.dart';
 import 'widgets/home_banner_slider.dart';
+import 'widgets/home_community_card.dart';
 import 'widgets/home_menu_grid.dart';
 import 'widgets/home_user_header.dart';
 
@@ -83,6 +84,10 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 14),
+              HomeCommunityCard(
+                onTap: () => context.go(AppRoutes.communities),
+              ),
+              const SizedBox(height: 18),
               HomeMenuGrid(onTap: (menu) => showComingSoonSheet(context, menu)),
               if (authState is AuthAuthenticated &&
                   authState.user.isSuperAdmin) ...[

@@ -11,6 +11,11 @@ import 'package:app_main/branding/club_logo.dart';
 import 'package:app_main/features/admin/presentation/admin_providers.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_panel_screen.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_user_detail_screen.dart';
+import 'package:app_main/features/community/domain/entities/community.dart';
+import 'package:app_main/features/community/presentation/community_providers.dart';
+import 'package:app_main/features/community/presentation/screens/communities_screen.dart';
+import 'package:app_main/features/community/presentation/screens/community_detail_screen.dart';
+import 'package:app_main/features/community/presentation/screens/community_form_screen.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
 import 'package:app_main/shell/main_shell.dart';
@@ -24,6 +29,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import '../test/features/admin/fake_admin_repository.dart';
+import '../test/features/community/fake_community_repository.dart';
 
 class _FixedAuthNotifier extends AuthNotifier {
   _FixedAuthNotifier(this._state);
@@ -99,6 +105,8 @@ void main() {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
+    // Bawaan test menggambar bayangan sebagai blok hitam.
+    debugDisableShadows = false;
 
     await tester.pumpWidget(RepaintBoundary(key: boundaryKey, child: app));
     await tester.pump(const Duration(milliseconds: 100));
@@ -120,6 +128,7 @@ void main() {
       Directory(outDir).createSync(recursive: true);
       File('$outDir/$name.png').writeAsBytesSync(png!.buffer.asUint8List());
     });
+    debugDisableShadows = true;
   }
 
   Widget material(Widget home, AuthState auth) => ProviderScope(
@@ -136,7 +145,12 @@ void main() {
         ),
       );
 
-  Widget shell(User user, {String location = '/'}) {
+  Widget shell(
+    User user, {
+    String location = '/',
+    FakeCommunityRepository? communities,
+  }) {
+    final community = communities ?? FakeCommunityRepository();
     final router = GoRouter(
       initialLocation: location,
       routes: [
@@ -145,6 +159,11 @@ void main() {
           branches: [
             StatefulShellBranch(routes: [
               GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                  path: AppRoutes.communities,
+                  builder: (_, __) => const CommunitiesScreen()),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(
@@ -160,6 +179,7 @@ void main() {
         authProvider
             .overrideWith(() => _FixedAuthNotifier(AuthAuthenticated(user))),
         homeBannersProvider.overrideWith((ref) async => defaultHomeBanners),
+        communityRepositoryProvider.overrideWithValue(community),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
@@ -236,6 +256,106 @@ void main() {
         locale: const Locale('id'),
       ),
     );
+  }
+
+  Widget communityApp(FakeCommunityRepository repository, String location) {
+    final router = GoRouter(
+      initialLocation: location,
+      routes: [
+        GoRoute(
+          path: AppRoutes.communities,
+          builder: (_, __) => const CommunitiesScreen(),
+          routes: [
+            GoRoute(
+              path: 'new',
+              builder: (_, __) => const CommunityFormScreen(),
+            ),
+            GoRoute(
+              path: ':id',
+              builder: (_, state) => CommunityDetailScreen(
+                communityId: state.pathParameters['id']!,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+    return ProviderScope(
+      overrides: [
+        communityRepositoryProvider.overrideWithValue(repository),
+        communityImagePickerProvider
+            .overrideWithValue(FakeCommunityImagePicker()),
+      ],
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('id'),
+      ),
+    );
+  }
+
+  FakeCommunityRepository filledCommunities() => FakeCommunityRepository(
+        pages: [
+          [
+            testCommunity('1'),
+            testCommunity('2', name: 'Sepak Bola Priangan'),
+            testCommunity('3', name: 'Fashion Nusantara Bandung'),
+          ],
+        ],
+        mine: [
+          testCommunity('9',
+              name: 'Fotografer Priangan', status: CommunityStatus.pending),
+        ],
+        detail: testDetail(status: CommunityStatus.pending),
+      );
+
+  /// Mengisi form sampai [steps] langkah lewat, seperti pengguna.
+  Future<void> fillForm(WidgetTester tester, int steps) async {
+    Finder field(String name) => find.byKey(Key('community-field-$name'));
+    Future<void> next() async {
+      await tester.tap(find.byKey(const Key('community-next')));
+      await tester.pumpAndSettle();
+    }
+
+    await tester.tap(find.byKey(const Key('community-logo')));
+    await tester.pumpAndSettle();
+    await tester.enterText(field('name'), 'Persatuan Pemanah Nusantara');
+    await tester.enterText(field('short_name'), 'PPN');
+    await tester.tap(find.byKey(const Key('community-type-panahan')));
+    await tester.pumpAndSettle();
+    if (steps < 1) return;
+    await next();
+
+    await tester.tap(find.byKey(const Key('community-province')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Jawa Barat').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('community-city-32')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kota Bandung').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        field('address'), 'Jl. Merdeka No. 10, Sumur Bandung');
+    if (steps < 2) return;
+    await next();
+
+    await tester.enterText(field('contact_name'), 'Rina Ayu Lestari');
+    await tester.enterText(field('contact_phone'), '0812 3456 7890');
+    if (steps < 3) return;
+    await next();
+
+    await tester.enterText(
+      field('description'),
+      'Komunitas pecinta panahan tradisional yang rutin berlatih setiap akhir '
+      'pekan di Bandung dan terbuka untuk pemula.',
+    );
+    await tester.tap(find.byKey(const Key('community-add-photo')));
+    await tester.pumpAndSettle();
+    if (steps < 4) return;
+    await next();
   }
 
   testWidgets('01-onboarding', (tester) async {
@@ -328,5 +448,119 @@ void main() {
     await shoot(
         tester, '13-admin-detail-desktop', admin(AppRoutes.adminUser('2')),
         size: const Size(1280, 900));
+  });
+
+  const tall = Size(360, 1000);
+  const desktop = Size(1280, 800);
+
+  testWidgets('14-komunitas-kosong', (tester) async {
+    await shoot(tester, '14-komunitas-kosong',
+        shell(_complete, location: AppRoutes.communities));
+  });
+
+  testWidgets('15-komunitas-daftar', (tester) async {
+    await shoot(
+      tester,
+      '15-komunitas-daftar',
+      shell(
+        _complete,
+        location: AppRoutes.communities,
+        communities: filledCommunities(),
+      ),
+    );
+  });
+
+  testWidgets('16-komunitas-daftar-desktop', (tester) async {
+    await shoot(
+      tester,
+      '16-komunitas-daftar-desktop',
+      communityApp(filledCommunities(), AppRoutes.communities),
+      size: desktop,
+    );
+  });
+
+  testWidgets('17-komunitas-detail', (tester) async {
+    await shoot(tester, '17-komunitas-detail',
+        communityApp(filledCommunities(), AppRoutes.community('9')),
+        size: tall);
+  });
+
+  testWidgets('18-form-identitas', (tester) async {
+    await shoot(
+      tester,
+      '18-form-identitas',
+      communityApp(FakeCommunityRepository(), AppRoutes.createCommunity),
+      size: tall,
+    );
+  });
+
+  testWidgets('19-form-galat', (tester) async {
+    await shoot(
+      tester,
+      '19-form-galat',
+      communityApp(FakeCommunityRepository(), AppRoutes.createCommunity),
+      size: tall,
+      before: () async {
+        await tester.tap(find.byKey(const Key('community-next')));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  testWidgets('20-form-lokasi', (tester) async {
+    await shoot(
+      tester,
+      '20-form-lokasi',
+      communityApp(FakeCommunityRepository(), AppRoutes.createCommunity),
+      size: tall,
+      before: () async {
+        await fillForm(tester, 1);
+        await tester.tap(find.byKey(const Key('community-province')));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  testWidgets('21-form-cerita', (tester) async {
+    await shoot(
+      tester,
+      '21-form-cerita',
+      communityApp(FakeCommunityRepository(), AppRoutes.createCommunity),
+      size: tall,
+      before: () => fillForm(tester, 3),
+    );
+  });
+
+  testWidgets('22-form-tinjau', (tester) async {
+    await shoot(
+      tester,
+      '22-form-tinjau',
+      communityApp(FakeCommunityRepository(), AppRoutes.createCommunity),
+      size: const Size(360, 1320),
+      before: () => fillForm(tester, 4),
+    );
+  });
+
+  testWidgets('23-form-desktop', (tester) async {
+    await shoot(
+      tester,
+      '23-form-desktop',
+      communityApp(FakeCommunityRepository(), AppRoutes.createCommunity),
+      size: desktop,
+      before: () => fillForm(tester, 0),
+    );
+  });
+
+  testWidgets('24-form-terkirim', (tester) async {
+    await shoot(
+      tester,
+      '24-form-terkirim',
+      communityApp(FakeCommunityRepository(), AppRoutes.createCommunity),
+      before: () async {
+        await fillForm(tester, 4);
+        await tester.tap(find.byKey(const Key('community-next')));
+        await tester.pumpAndSettle();
+      },
+    );
   });
 }

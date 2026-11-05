@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// Halaman utama setelah login: navigasi bawah Beranda & Profil.
+/// Halaman utama setelah login: navigasi bawah Beranda, Komunitas & Profil.
 class MainShell extends ConsumerWidget {
   const MainShell({super.key, required this.shell});
 
@@ -29,6 +29,12 @@ class MainShell extends ConsumerWidget {
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home_rounded),
             label: 'Beranda',
+          ),
+          const NavigationDestination(
+            key: Key('nav-komunitas'),
+            icon: Icon(Icons.diversity_3_outlined),
+            selectedIcon: Icon(Icons.diversity_3_rounded),
+            label: 'Komunitas',
           ),
           NavigationDestination(
             icon: Badge(
