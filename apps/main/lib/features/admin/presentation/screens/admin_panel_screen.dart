@@ -46,6 +46,20 @@ class _AdminPanelView extends ConsumerWidget {
       badge: pending > 0 ? '$pending menunggu verifikasi' : null,
       onTap: () => context.push(AppRoutes.adminCommunities),
     );
+    final bannerSummary = summary?.banners;
+    final banners = _AdminMenuCard(
+      menuKey: const Key('admin-menu-banners'),
+      icon: Icons.view_carousel_rounded,
+      color: const Color(0xFFE8710A),
+      title: 'Kelola Banner',
+      description:
+          'Atur banner di Beranda: foto, urutan, dan halaman tujuannya',
+      stat: bannerSummary == null
+          ? null
+          : '${bannerSummary.total} banner · ${bannerSummary.live} tayang',
+      onTap: () => context.push(AppRoutes.adminBanners),
+    );
+    final menus = [users, communities, banners];
 
     return Scaffold(
       appBar: AppBar(
@@ -69,21 +83,34 @@ class _AdminPanelView extends ConsumerWidget {
                     if (constraints.maxWidth < _twoColumnWidth) {
                       return Column(
                         children: [
-                          users,
-                          const SizedBox(height: 12),
-                          communities,
+                          for (final (i, menu) in menus.indexed) ...[
+                            if (i > 0) const SizedBox(height: 12),
+                            menu,
+                          ],
                         ],
                       );
                     }
-                    return IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(child: users),
-                          const SizedBox(width: 12),
-                          Expanded(child: communities),
+                    // Dua kolom; menu ganjil terakhir selebar satu kolom.
+                    return Column(
+                      children: [
+                        for (var i = 0; i < menus.length; i += 2) ...[
+                          if (i > 0) const SizedBox(height: 12),
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(child: menus[i]),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: i + 1 < menus.length
+                                      ? menus[i + 1]
+                                      : const SizedBox(),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
-                      ),
+                      ],
                     );
                   },
                 ),

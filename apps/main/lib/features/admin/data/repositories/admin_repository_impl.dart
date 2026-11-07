@@ -1,4 +1,5 @@
 import '../../../community/domain/entities/community.dart';
+import '../../domain/entities/admin_banner.dart';
 import '../../domain/entities/admin_community.dart';
 import '../../domain/entities/admin_user.dart';
 import '../../domain/repositories/admin_repository.dart';
@@ -56,4 +57,22 @@ class AdminRepositoryImpl implements AdminRepository {
         expected: expected,
         note: note,
       );
+
+  @override
+  Future<AdminBanners> getBanners() => _remote.fetchBanners();
+
+  @override
+  Future<AdminBanner> createBanner(AdminBannerInput input) =>
+      _remote.createBanner(input);
+
+  @override
+  Future<AdminBanner> updateBanner(String id, AdminBannerInput input) =>
+      _remote.updateBanner(id, input);
+
+  @override
+  Future<void> deleteBanner(String id) => _remote.deleteBanner(id);
+
+  @override
+  Future<AdminBanners> reorderBanners(List<String> ids) =>
+      _remote.reorderBanners(ids);
 }

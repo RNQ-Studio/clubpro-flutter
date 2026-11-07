@@ -1,5 +1,6 @@
 import '../../../community/domain/entities/community.dart';
 import '../../domain/entities/admin_community.dart';
+import 'admin_banner_model.dart';
 
 DateTime? _time(Object? value) =>
     value is String && value.isNotEmpty ? DateTime.tryParse(value) : null;
@@ -109,13 +110,18 @@ AdminCommunitySummary adminCommunitySummaryFromJson(
     );
 
 /// `GET v1/admin/summary`.
-AdminPanelSummary adminPanelSummaryFromJson(Map<String, dynamic> json) =>
-    AdminPanelSummary(
-      totalUsers: (json['users'] as Map<String, dynamic>)['total'] as int,
-      communities: adminCommunitySummaryFromJson(
-        json['communities'] as Map<String, dynamic>,
-      ),
-    );
+AdminPanelSummary adminPanelSummaryFromJson(Map<String, dynamic> json) {
+  final banners = json['banners'];
+  return AdminPanelSummary(
+    totalUsers: (json['users'] as Map<String, dynamic>)['total'] as int,
+    communities: adminCommunitySummaryFromJson(
+      json['communities'] as Map<String, dynamic>,
+    ),
+    banners: banners is Map<String, dynamic>
+        ? adminBannerSummaryFromJson(banners)
+        : null,
+  );
+}
 
 /// `GET v1/admin/communities`: `data` + `meta.pagination` + `meta.summary`.
 AdminCommunitiesPage adminCommunitiesPageFromJson(Map<String, dynamic> json) {

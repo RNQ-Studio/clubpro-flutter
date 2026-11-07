@@ -24,12 +24,13 @@ class HomeScreen extends ConsumerWidget {
     final link = banner.linkUrl;
     if (link == null || link.isEmpty) return;
     if (link.startsWith('/')) {
-      context.go(link);
+      // Ditumpuk di atas Beranda: tombol kembali kembali ke sini.
+      context.push(link);
       return;
     }
     final uri = Uri.tryParse(link);
-    if (uri == null ||
-        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    final web = uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+    if (!web || !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Tautan tidak dapat dibuka')),
@@ -71,7 +72,7 @@ class HomeScreen extends ConsumerWidget {
                     onTap: (b) => _openBanner(context, b),
                   ),
                   loading: () => const AspectRatio(
-                    aspectRatio: 16 / 8,
+                    aspectRatio: HomeBannerCard.aspectRatio,
                     child: Center(child: CircularProgressIndicator()),
                   ),
                   error: (_, __) => HomeBannerSlider(

@@ -9,7 +9,10 @@ import 'dart:ui' as ui;
 
 import 'package:app_main/branding/club_brand.dart';
 import 'package:app_main/branding/club_logo.dart';
+import 'package:app_main/features/admin/domain/entities/admin_banner.dart';
 import 'package:app_main/features/admin/presentation/admin_providers.dart';
+import 'package:app_main/features/admin/presentation/screens/admin_banner_form_screen.dart';
+import 'package:app_main/features/admin/presentation/screens/admin_banners_screen.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_communities_screen.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_community_detail_screen.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_panel_screen.dart';
@@ -217,9 +220,39 @@ void main() {
     );
   }
 
-  Widget admin(String location, {AdminCommunityDetail? review}) {
+  Widget admin(
+    String location, {
+    AdminCommunityDetail? review,
+    List<AdminBanner>? banners,
+  }) {
     final now = DateTime.now();
     final repository = FakeAdminRepository(
+      banners: banners ??
+          [
+            adminBanner(
+              '1',
+              title: 'Latihan Bersama Akhir Pekan',
+              subtitle: 'Terbuka untuk semua anggota',
+              linkUrl: '/communities/5',
+              linkCommunity: const AdminBannerCommunity(
+                  id: '5', name: 'Pemanah Nusantara'),
+            ),
+            adminBanner('2', title: '', linkUrl: AppRoutes.createCommunity),
+            adminBanner(
+              '3',
+              title: 'Kejuaraan Panahan Tradisional Tingkat Provinsi 2026',
+              imageUrl: null,
+              linkUrl: 'https://anaklangit.manahpro.web.id/kejuaraan-2026',
+              status: AdminBannerStatus.scheduled,
+              startsAt: DateTime(2026, 12, 1, 8),
+            ),
+            adminBanner(
+              '4',
+              title: 'Promo Iuran Tahunan',
+              status: AdminBannerStatus.inactive,
+              linkUrl: AppRoutes.profile,
+            ),
+          ],
       pages: [
         [
           adminUser(
@@ -308,6 +341,22 @@ void main() {
                 ),
               ],
             ),
+            GoRoute(
+              path: 'banners',
+              builder: (_, __) => const AdminBannersScreen(),
+              routes: [
+                GoRoute(
+                  path: 'new',
+                  builder: (_, __) => const AdminBannerFormScreen(),
+                ),
+                GoRoute(
+                  path: ':id',
+                  builder: (_, state) => AdminBannerFormScreen(
+                    bannerId: state.pathParameters['id'],
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ],
@@ -317,6 +366,8 @@ void main() {
         authProvider.overrideWith(
             () => _FixedAuthNotifier(const AuthAuthenticated(_superAdmin))),
         adminRepositoryProvider.overrideWithValue(repository),
+        communityImagePickerProvider
+            .overrideWithValue(FakeCommunityImagePicker()),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
@@ -926,6 +977,68 @@ void main() {
       '44-profil-anggota',
       communityApp(club(), AppRoutes.member('u2')),
     );
+  });
+
+  testWidgets('45-kelola-banner', (tester) async {
+    await shoot(tester, '45-kelola-banner', admin(AppRoutes.adminBanners),
+        photos: true);
+  });
+
+  testWidgets('46-kelola-banner-desktop', (tester) async {
+    await shoot(
+        tester, '46-kelola-banner-desktop', admin(AppRoutes.adminBanners),
+        size: desktop, photos: true);
+  });
+
+  testWidgets('47-banner-baru', (tester) async {
+    await shoot(tester, '47-banner-baru', admin(AppRoutes.adminBannerNew),
+        size: const Size(360, 1000), before: () async {
+      await tester.tap(find.byKey(const Key('admin-banner-save')));
+      await tester.pumpAndSettle();
+    });
+  });
+
+  testWidgets('48-banner-pratinjau', (tester) async {
+    await shoot(tester, '48-banner-pratinjau', admin(AppRoutes.adminBannerNew),
+        size: const Size(360, 1100), before: () async {
+      await tester.tap(find.byKey(const Key('admin-banner-photo')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('admin-banner-title')),
+          'Latihan Bersama Akhir Pekan');
+      await tester.enterText(find.byKey(const Key('admin-banner-subtitle')),
+          'Terbuka untuk semua anggota');
+      await tester.tap(find.byKey(const Key('admin-banner-link-type')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tautan luar (situs web)').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byKey(const Key('admin-banner-url')), 'anaklangit.manahpro');
+      await tester.tap(find.byKey(const Key('admin-banner-save')));
+      await tester.pumpAndSettle();
+    });
+  });
+
+  testWidgets('49-banner-ubah-desktop', (tester) async {
+    await shoot(
+        tester, '49-banner-ubah-desktop', admin(AppRoutes.adminBanner('1')),
+        size: const Size(1280, 1100), photos: true);
+  });
+
+  testWidgets('50-banner-pilih-komunitas', (tester) async {
+    await shoot(
+        tester, '50-banner-pilih-komunitas', admin(AppRoutes.adminBanner('1')),
+        before: () async {
+      await tester
+          .ensureVisible(find.byKey(const Key('admin-banner-community')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('admin-banner-community')));
+      await tester.pumpAndSettle();
+    });
+  });
+
+  testWidgets('51-admin-panel-tiga-menu', (tester) async {
+    await shoot(tester, '51-admin-panel-tiga-menu', admin(AppRoutes.adminPanel),
+        size: desktop);
   });
 
   testWidgets('32-beranda-bawah', (tester) async {

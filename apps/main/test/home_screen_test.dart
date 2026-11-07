@@ -5,6 +5,7 @@ import 'package:app_main/features/home/domain/entities/home_banner.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
 import 'package:app_main/features/home/presentation/widgets/home_app_version.dart';
+import 'package:app_main/features/home/presentation/widgets/home_banner_slider.dart';
 import 'package:app_main/features/home/presentation/widgets/home_menu_grid.dart';
 import 'package:app_main/features/home/presentation/widgets/home_my_communities.dart';
 import 'package:app_main/features/home/presentation/widgets/home_user_header.dart';
@@ -182,6 +183,43 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(
         tester.widget<PageView>(pageView).controller!.page, closeTo(1, 0.01));
+  });
+
+  testWidgets('banner bertujuan halaman app: terbuka lalu kembali ke Beranda',
+      (tester) async {
+    _phoneScreen(tester);
+    await tester.pumpWidget(_app(banners: const [
+      HomeBanner(id: '1', title: 'Klub Pilihan', linkUrl: '/communities/5'),
+    ]));
+    await tester.pump();
+
+    await tester.tap(find.text('Klub Pilihan'));
+    await tester.pumpAndSettle();
+    expect(find.text('KLUB 5'), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Menu Utama'), findsOneWidget);
+  });
+
+  testWidgets('banner foto bertulisan: tanpa teks dan gradasi di atasnya',
+      (tester) async {
+    _phoneScreen(tester);
+    await tester.pumpWidget(_app(banners: const [
+      HomeBanner(id: '1', title: ''),
+      HomeBanner(id: '2', title: 'Pendaftaran Dibuka'),
+    ]));
+    await tester.pump();
+
+    final cards = find.byType(HomeBannerCard);
+    expect(
+      find.descendant(of: cards.first, matching: find.byType(Text)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: cards.first, matching: find.byType(DecoratedBox)),
+      findsOneWidget, // latar warna saja
+    );
   });
 
   testWidgets('menu yang belum tersedia menampilkan "Segera hadir"',

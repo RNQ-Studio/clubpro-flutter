@@ -45,7 +45,7 @@ final class CommunityFormNotifierProvider
 }
 
 String _$communityFormNotifierHash() =>
-    r'751413d418a3e1216237342bc1b51a10e65a898f';
+    r'3e9496d5363e1bec0e16847335c7326a893f5b6a';
 
 /// Isian, langkah, dan pengiriman form pengajuan komunitas.
 

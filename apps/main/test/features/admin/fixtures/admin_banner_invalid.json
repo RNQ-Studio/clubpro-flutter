@@ -1,0 +1,13 @@
+{
+    "success": false,
+    "message": "Halaman tujuan tidak dikenal. (and 1 more error)",
+    "code": "VALIDATION_ERROR",
+    "errors": {
+        "link_url": [
+            "Halaman tujuan tidak dikenal."
+        ],
+        "image_asset_id": [
+            "Lampirkan foto banner."
+        ]
+    }
+}

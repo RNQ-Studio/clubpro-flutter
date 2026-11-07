@@ -2,8 +2,10 @@ import 'package:core/core.dart';
 import 'package:dio/dio.dart';
 
 import '../../../community/domain/entities/community.dart';
+import '../../domain/entities/admin_banner.dart';
 import '../../domain/entities/admin_community.dart';
 import '../../domain/entities/admin_user.dart';
+import '../models/admin_banner_model.dart';
 import '../models/admin_community_model.dart';
 import '../models/admin_user_model.dart';
 
@@ -101,6 +103,66 @@ class AdminRemoteDataSource {
             },
           ));
 
+  Future<AdminBanners> fetchBanners() =>
+      _banners(() => _dio.get('v1/admin/banners'));
+
+  Future<AdminBanner> createBanner(AdminBannerInput input) =>
+      _banner(() => _dio.post('v1/admin/banners', data: input.toPayload()));
+
+  Future<AdminBanner> updateBanner(String id, AdminBannerInput input) =>
+      _banner(() => _dio.put('v1/admin/banners/$id', data: input.toPayload()));
+
+  Future<void> deleteBanner(String id) async {
+    try {
+      await _dio.delete('v1/admin/banners/$id');
+    } on DioException catch (e) {
+      throw _error(e, notFound: _bannerNotFound);
+    }
+  }
+
+  /// [ids] memuat semua banner, dari yang tampil pertama.
+  Future<AdminBanners> reorderBanners(List<String> ids) => _banners(
+        () => _dio.put(
+          'v1/admin/banners/order',
+          data: {
+            'ids': [for (final id in ids) int.parse(id)],
+          },
+        ),
+      );
+
+  Future<AdminBanners> _banners(
+    Future<Response<dynamic>> Function() request,
+  ) async {
+    try {
+      final response = await request();
+      return adminBannersFromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _error(
+        e,
+        notFound: 'Kelola Banner belum aktif di server.',
+        conflict: _bannersChanged,
+      );
+    }
+  }
+
+  Future<AdminBanner> _banner(
+    Future<Response<dynamic>> Function() request,
+  ) async {
+    try {
+      final response = await request();
+      final body = response.data as Map<String, dynamic>;
+      return adminBannerFromJson(body['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _error(e, notFound: _bannerNotFound);
+    }
+  }
+
+  static const _bannerNotFound =
+      'Banner tidak ditemukan. Mungkin sudah dihapus.';
+
+  static const _bannersChanged =
+      'Daftar banner sudah berubah. Data terbaru sudah dimuat.';
+
   Future<AdminCommunityDetail> _communityDetail(
     Future<Response<dynamic>> Function() request,
   ) async {
@@ -129,13 +191,17 @@ class AdminRemoteDataSource {
     }
   }
 
-  static Exception _error(DioException e, {required String notFound}) {
+  static Exception _error(
+    DioException e, {
+    required String notFound,
+    String conflict =
+        'Status komunitas sudah berubah. Data terbaru sudah dimuat.',
+  }) {
     final status = e.response?.statusCode;
     return switch (status) {
       403 => const ServerException('Anda tidak memiliki akses ke Admin Panel.'),
       404 => ServerException(notFound),
-      409 => const AdminConflictException(
-          'Status komunitas sudah berubah. Data terbaru sudah dimuat.'),
+      409 => AdminConflictException(conflict),
       422 => ServerException(_validationMessage(e)),
       429 => const ServerException(
           'Terlalu banyak permintaan. Coba lagi beberapa saat lagi.'),

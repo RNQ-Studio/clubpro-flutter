@@ -1,4 +1,5 @@
 import '../../../community/domain/entities/community.dart';
+import '../entities/admin_banner.dart';
 import '../entities/admin_community.dart';
 import '../entities/admin_user.dart';
 
@@ -33,4 +34,15 @@ abstract interface class AdminRepository {
     required CommunityStatus expected,
     String? note,
   });
+
+  Future<AdminBanners> getBanners();
+
+  Future<AdminBanner> createBanner(AdminBannerInput input);
+
+  Future<AdminBanner> updateBanner(String id, AdminBannerInput input);
+
+  Future<void> deleteBanner(String id);
+
+  /// [ids] memuat semua banner; daftar basi → [AdminConflictException].
+  Future<AdminBanners> reorderBanners(List<String> ids);
 }

@@ -1,0 +1,17 @@
+{
+    "success": true,
+    "message": "Banner tersimpan",
+    "data": {
+        "id": 1,
+        "title": "Latihan Bersama",
+        "subtitle": null,
+        "image_url": "https://storage.googleapis.com/bucket/production/banner/latihan.jpg",
+        "link_url": "/profile",
+        "link_community": null,
+        "sort_order": 1,
+        "is_active": true,
+        "status": "live",
+        "starts_at": null,
+        "ends_at": null
+    }
+}

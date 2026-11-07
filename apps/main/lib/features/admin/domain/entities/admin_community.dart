@@ -1,4 +1,5 @@
 import '../../../community/domain/entities/community.dart';
+import 'admin_banner.dart';
 
 class AdminCommunityPerson {
   const AdminCommunityPerson({
@@ -133,11 +134,17 @@ class AdminCommunitiesPage {
 
 /// Angka di halaman menu Admin Panel.
 class AdminPanelSummary {
-  const AdminPanelSummary(
-      {required this.totalUsers, required this.communities});
+  const AdminPanelSummary({
+    required this.totalUsers,
+    required this.communities,
+    this.banners,
+  });
 
   final int totalUsers;
   final AdminCommunitySummary communities;
+
+  /// Null bila server belum memuat Kelola Banner.
+  final AdminBannerSummary? banners;
 }
 
 /// Saringan Kelola Komunitas.

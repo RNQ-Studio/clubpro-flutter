@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../branding/club_brand.dart';
 import '../branding/club_logo.dart';
+import '../features/admin/presentation/screens/admin_banner_form_screen.dart';
+import '../features/admin/presentation/screens/admin_banners_screen.dart';
 import '../features/admin/presentation/screens/admin_communities_screen.dart';
 import '../features/admin/presentation/screens/admin_community_detail_screen.dart';
 import '../features/admin/presentation/screens/admin_panel_screen.dart';
@@ -127,6 +129,25 @@ final appRouter = GoRouter(
               parentNavigatorKey: _rootNavigatorKey,
               builder: (context, state) => AdminCommunityDetailScreen(
                 communityId: state.pathParameters['id']!,
+              ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: 'banners',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const AdminBannersScreen(),
+          routes: [
+            GoRoute(
+              path: 'new',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const AdminBannerFormScreen(),
+            ),
+            GoRoute(
+              path: ':id',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => AdminBannerFormScreen(
+                bannerId: state.pathParameters['id']!,
               ),
             ),
           ],

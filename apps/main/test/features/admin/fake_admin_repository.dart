@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_main/features/admin/domain/entities/admin_banner.dart';
 import 'package:app_main/features/admin/domain/entities/admin_community.dart';
 import 'package:app_main/features/admin/domain/entities/admin_user.dart';
 import 'package:app_main/features/admin/domain/repositories/admin_repository.dart';
@@ -154,6 +155,33 @@ AdminCommunityDetail adminCommunityDetail({
       reviewer: reviewer,
     );
 
+const adminBannerSummary =
+    AdminBannerSummary(total: 4, live: 3, maxVisible: 10);
+
+AdminBanner adminBanner(
+  String id, {
+  String title = 'Latihan Bersama',
+  String? subtitle,
+  String? imageUrl = 'https://storage.googleapis.com/bucket/banner.jpg',
+  String? linkUrl,
+  AdminBannerCommunity? linkCommunity,
+  AdminBannerStatus status = AdminBannerStatus.live,
+  DateTime? startsAt,
+  DateTime? endsAt,
+}) =>
+    AdminBanner(
+      id: id,
+      title: title,
+      subtitle: subtitle,
+      imageUrl: imageUrl,
+      linkUrl: linkUrl,
+      linkCommunity: linkCommunity,
+      isActive: status != AdminBannerStatus.inactive,
+      status: status,
+      startsAt: startsAt,
+      endsAt: endsAt,
+    );
+
 /// Permintaan daftar yang diterima, untuk diperiksa test.
 typedef AdminUsersCall = ({int page, String search, AdminUserFilter filter});
 
@@ -167,7 +195,8 @@ class FakeAdminRepository implements AdminRepository {
     this.community,
     this.summaryError,
     this.reviewError,
-  });
+    List<AdminBanner>? banners,
+  }) : banners = banners ?? [];
 
   /// Halaman daftar berurutan; halaman ke-n dipakai untuk `page: n`.
   List<List<AdminUser>> pages;
@@ -186,6 +215,23 @@ class FakeAdminRepository implements AdminRepository {
 
   /// Melempar pada verifikasi, satu kali.
   Exception? reviewError;
+
+  /// Kelola Banner, sesuai urutan tampil.
+  List<AdminBanner> banners;
+  Exception? bannersError;
+
+  /// Melempar pada aksi banner berikutnya, satu kali.
+  Exception? bannerActionError;
+
+  /// Isi agar penyimpanan urutan menunggu sampai test menyelesaikannya.
+  Completer<void>? reorderGate;
+
+  /// Isi agar tambah/ubah banner menunggu sampai test menyelesaikannya.
+  Completer<void>? saveGate;
+  int bannerLoads = 0;
+  final bannerSaves = <({String? id, AdminBannerInput input})>[];
+  final bannerDeletes = <String>[];
+  final bannerOrders = <List<String>>[];
 
   final communityCalls =
       <({int page, String search, AdminCommunityFilter filter})>[];
@@ -252,6 +298,7 @@ class FakeAdminRepository implements AdminRepository {
     return const AdminPanelSummary(
       totalUsers: 128,
       communities: adminCommunitySummary,
+      banners: adminBannerSummary,
     );
   }
 
@@ -300,5 +347,78 @@ class FakeAdminRepository implements AdminRepository {
       reviewedAt: DateTime(2026, 11, 5, 14, 30),
       reviewer: const AdminCommunityPerson(id: '1', name: 'Pemilik'),
     );
+  }
+
+  void _bannerAction() {
+    final failure = bannerActionError;
+    if (failure != null) {
+      bannerActionError = null;
+      throw failure;
+    }
+  }
+
+  AdminBanners _banners() => AdminBanners(
+        banners: List.of(banners),
+        summary: AdminBannerSummary(
+          total: banners.length,
+          live: banners.where((b) => b.status == AdminBannerStatus.live).length,
+          maxVisible: 10,
+        ),
+      );
+
+  @override
+  Future<AdminBanners> getBanners() async {
+    bannerLoads++;
+    final failure = bannersError;
+    if (failure != null) throw failure;
+    return _banners();
+  }
+
+  @override
+  Future<AdminBanner> createBanner(AdminBannerInput input) async {
+    bannerSaves.add((id: null, input: input));
+    await saveGate?.future;
+    _bannerAction();
+    final banner = adminBanner(
+      '${100 + bannerSaves.length}',
+      title: input.title,
+      linkUrl: input.linkUrl,
+      status:
+          input.isActive ? AdminBannerStatus.live : AdminBannerStatus.inactive,
+    );
+    banners = [...banners, banner];
+    return banner;
+  }
+
+  @override
+  Future<AdminBanner> updateBanner(String id, AdminBannerInput input) async {
+    bannerSaves.add((id: id, input: input));
+    _bannerAction();
+    final banner = adminBanner(
+      id,
+      title: input.title,
+      linkUrl: input.linkUrl,
+      status:
+          input.isActive ? AdminBannerStatus.live : AdminBannerStatus.inactive,
+    );
+    banners = [for (final b in banners) b.id == id ? banner : b];
+    return banner;
+  }
+
+  @override
+  Future<void> deleteBanner(String id) async {
+    bannerDeletes.add(id);
+    _bannerAction();
+    banners = banners.where((b) => b.id != id).toList();
+  }
+
+  @override
+  Future<AdminBanners> reorderBanners(List<String> ids) async {
+    bannerOrders.add(ids);
+    await reorderGate?.future;
+    _bannerAction();
+    final byId = {for (final b in banners) b.id: b};
+    banners = [for (final id in ids) byId[id]!];
+    return _banners();
   }
 }

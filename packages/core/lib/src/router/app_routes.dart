@@ -21,6 +21,9 @@ abstract final class AppRoutes {
   static String adminUser(String id) => '$adminUsers/$id';
   static const String adminCommunities = '$adminPanel/communities';
   static String adminCommunity(String id) => '$adminCommunities/$id';
+  static const String adminBanners = '$adminPanel/banners';
+  static const String adminBannerNew = '$adminBanners/new';
+  static String adminBanner(String id) => '$adminBanners/$id';
 
   // Quotes
   static const String quotes = '/quotes';

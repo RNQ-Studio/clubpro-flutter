@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import '../../../../branding/club_logo.dart';
+import '../../../community/presentation/widgets/community_visuals.dart';
 import '../../domain/entities/home_banner.dart';
 
 /// Banner slider Beranda: geser manual atau otomatis tiap [interval].
@@ -26,14 +28,6 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
   final _controller = PageController(viewportFraction: 0.92);
   Timer? _timer;
   int _index = 0;
-
-  // Latar banner tanpa gambar: warna-warna cincin target.
-  static const _gradients = [
-    [Color(0xFF5C3A02), Color(0xFFBE8815)],
-    [Color(0xFF111111), Color(0xFF3F3A2E)],
-    [Color(0xFF764903), Color(0xFFDAA727)],
-    [Color(0xFF2B2416), Color(0xFF8A6512)],
-  ];
 
   @override
   void initState() {
@@ -80,7 +74,7 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
     return Column(
       children: [
         AspectRatio(
-          aspectRatio: 16 / 8,
+          aspectRatio: HomeBannerCard.aspectRatio,
           child: PageView.builder(
             key: const Key('home-banner-slider'),
             controller: _controller,
@@ -91,9 +85,10 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
             },
             itemBuilder: (context, i) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: _BannerCard(
+              child: HomeBannerCard(
                 banner: banners[i],
-                gradient: _gradients[i % _gradients.length],
+                gradient: HomeBannerCard
+                    .gradients[i % HomeBannerCard.gradients.length],
                 onTap: () => widget.onTap(banners[i]),
               ),
             ),
@@ -125,42 +120,66 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
   }
 }
 
-class _BannerCard extends StatelessWidget {
-  const _BannerCard({
+/// Satu slide; juga pratinjau di form Kelola Banner.
+class HomeBannerCard extends StatelessWidget {
+  const HomeBannerCard({
+    super.key,
     required this.banner,
-    required this.gradient,
-    required this.onTap,
+    this.gradient = _defaultGradient,
+    this.onTap,
+    this.imageBytes,
   });
+
+  /// Lebar : tinggi slide.
+  static const aspectRatio = 2.0;
+
+  // Latar banner tanpa gambar: warna-warna cincin target.
+  static const _defaultGradient = [Color(0xFF5C3A02), Color(0xFFBE8815)];
+  static const gradients = [
+    _defaultGradient,
+    [Color(0xFF111111), Color(0xFF3F3A2E)],
+    [Color(0xFF764903), Color(0xFFDAA727)],
+    [Color(0xFF2B2416), Color(0xFF8A6512)],
+  ];
 
   final HomeBanner banner;
   final List<Color> gradient;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+
+  /// Foto yang baru dipilih, sebelum diunggah.
+  final Uint8List? imageBytes;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final imageUrl = banner.imageUrl;
-    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
+    final bytes = imageBytes;
+    final hasImage = bytes != null || (imageUrl != null && imageUrl.isNotEmpty);
+    final subtitle = banner.subtitle;
+    final hasSubtitle = subtitle != null && subtitle.isNotEmpty;
+    // Foto yang sudah bertulisan tidak ditimpa teks maupun gradasi gelap.
+    final hasText = banner.title.isNotEmpty || hasSubtitle;
 
     final text = Column(
       mainAxisAlignment: MainAxisAlignment.end,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          banner.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 19,
-            height: 1.2,
+        if (banner.title.isNotEmpty)
+          Text(
+            banner.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 19,
+              height: 1.2,
+            ),
           ),
-        ),
-        if (banner.subtitle != null && banner.subtitle!.isNotEmpty) ...[
+        if (hasSubtitle) ...[
           const SizedBox(height: 4),
           Text(
-            banner.subtitle!,
+            subtitle,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -190,11 +209,12 @@ class _BannerCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (hasImage)
-                Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              if (bytes != null)
+                Image.memory(bytes, fit: BoxFit.cover)
+              else if (hasImage)
+                CommunityNetworkImage(
+                  url: imageUrl!,
+                  fallback: const SizedBox.shrink(),
                 )
               else
                 const Positioned(
@@ -205,21 +225,23 @@ class _BannerCard extends StatelessWidget {
                     child: ClubLogo(size: 150, fadeEdges: true),
                   ),
                 ),
-              // Gradasi gelap bawah agar teks terbaca di atas gambar.
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Color(0x99000000)],
-                    stops: [0.35, 1],
+              if (hasText) ...[
+                // Gradasi gelap bawah agar teks terbaca di atas gambar.
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Color(0x99000000)],
+                      stops: [0.35, 1],
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 18, 48, 16),
-                child: text,
-              ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 48, 16),
+                  child: text,
+                ),
+              ],
             ],
           ),
         ),
