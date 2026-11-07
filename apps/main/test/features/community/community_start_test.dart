@@ -58,6 +58,7 @@ Widget _startApp(FakeCommunityRepository repository) {
   return ProviderScope(
     overrides: _overrides(repository),
     child: MaterialApp.router(
+      theme: AppTheme.light,
       routerConfig: router,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,

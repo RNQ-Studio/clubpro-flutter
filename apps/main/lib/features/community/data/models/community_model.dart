@@ -66,6 +66,8 @@ class CommunityDetailModel extends CommunityDetail {
     super.canManage,
     super.pendingMembersCount,
     super.upcomingActivitiesCount,
+    super.pendingDuesPaymentsCount,
+    super.duesConfigured,
   });
 
   factory CommunityDetailModel.fromJson(Map<String, dynamic> json) =>
@@ -104,6 +106,9 @@ class CommunityDetailModel extends CommunityDetail {
         canManage: json['can_manage'] == true,
         pendingMembersCount: json['pending_members_count'] as int? ?? 0,
         upcomingActivitiesCount: json['upcoming_activities_count'] as int? ?? 0,
+        pendingDuesPaymentsCount:
+            json['pending_dues_payments_count'] as int? ?? 0,
+        duesConfigured: json['dues_configured'] as bool? ?? false,
       );
 }
 

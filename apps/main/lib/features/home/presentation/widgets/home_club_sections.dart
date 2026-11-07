@@ -1,5 +1,7 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../community/domain/entities/community.dart';
 import '../../../community/presentation/community_providers.dart';
@@ -133,6 +135,7 @@ class HomeManagerPanel extends StatelessWidget {
     final requests = community.pendingMembersCount;
     final upcoming = community.upcomingActivitiesCount;
     final photos = community.photos.length;
+    final duesPayments = community.pendingDuesPaymentsCount;
     final notice = switch (community.status) {
       CommunityStatus.pending => 'Menunggu verifikasi: komunitas belum bisa '
           'ditemukan dan diikuti anggota lain.',
@@ -230,6 +233,37 @@ class HomeManagerPanel extends StatelessWidget {
             title: 'Galeri',
             subtitle: photos > 0 ? '$photos foto' : 'Belum ada foto',
             onTap: () => onOpenTab(ClubTab.gallery),
+          ),
+          if (community.duesConfigured) ...[
+            _ManageRow(
+              rowKey: const Key('home-manage-dues-payments'),
+              icon: Icons.fact_check_rounded,
+              title: 'Verifikasi iuran',
+              subtitle: duesPayments > 0
+                  ? '$duesPayments bukti transfer menunggu'
+                  : 'Tidak ada yang menunggu',
+              count: duesPayments,
+              onTap: () =>
+                  context.push(AppRoutes.communityDuesPayments(community.id)),
+            ),
+            _ManageRow(
+              rowKey: const Key('home-manage-dues-calendar'),
+              icon: Icons.calendar_month_rounded,
+              title: 'Kalender iuran',
+              subtitle: 'Bulan yang lunas dan tunggakan tiap anggota',
+              onTap: () =>
+                  context.push(AppRoutes.communityDuesMembers(community.id)),
+            ),
+          ],
+          _ManageRow(
+            rowKey: const Key('home-manage-dues-settings'),
+            icon: Icons.tune_rounded,
+            title: 'Pengaturan iuran',
+            subtitle: community.duesConfigured
+                ? 'Nominal, uang masuk, tanggal mulai, rekening'
+                : 'Belum diatur — atur agar anggota bisa membayar',
+            onTap: () =>
+                context.push(AppRoutes.communityDuesSettings(community.id)),
           ),
         ],
       ),

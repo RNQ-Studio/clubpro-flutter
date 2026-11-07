@@ -4,6 +4,7 @@ import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:app_main/features/community/presentation/active_community_notifier.dart';
 import 'package:app_main/features/community/presentation/community_providers.dart';
 import 'package:app_main/features/community/presentation/widgets/club_hero.dart';
+import 'package:app_main/features/dues/presentation/dues_providers.dart';
 import 'package:app_main/features/home/data/banner_remote_data_source.dart';
 import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/domain/entities/home_banner.dart';
@@ -23,6 +24,7 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'features/community/fake_community_repository.dart';
+import 'features/dues/fake_dues_repository.dart';
 
 class _FakeRefresher implements AppRefresher {
   _FakeRefresher({this.error});
@@ -86,6 +88,7 @@ Widget _app({
   AppRefresher? refresher,
   FakeCommunityRepository? communities,
   FakeActiveCommunityStore? store,
+  FakeDuesRepository? dues,
 }) {
   final router = GoRouter(
     initialLocation: '/',
@@ -117,6 +120,32 @@ Widget _app({
                     '${state.uri.queryParameters['tab'] == null ? '' : ' tab=${state.uri.queryParameters['tab']}'}',
                   ),
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'dues',
+                    builder: (_, state) => Scaffold(
+                      appBar: AppBar(),
+                      body: Text('IURAN ${state.pathParameters['id']}'),
+                    ),
+                    routes: [
+                      for (final page in [
+                        'pay',
+                        'payments',
+                        'members',
+                        'settings',
+                      ])
+                        GoRoute(
+                          path: page,
+                          builder: (_, state) => Scaffold(
+                            appBar: AppBar(),
+                            body: Text(
+                              'IURAN ${state.pathParameters['id']} $page',
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -146,8 +175,12 @@ Widget _app({
           .overrideWithValue(communities ?? FakeCommunityRepository()),
       activeCommunityStoreProvider
           .overrideWithValue(store ?? FakeActiveCommunityStore()),
+      duesRepositoryProvider.overrideWithValue(
+        dues ?? FakeDuesRepository(overview: notConfigured),
+      ),
     ],
     child: MaterialApp.router(
+      theme: AppTheme.light,
       routerConfig: router,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -162,6 +195,8 @@ FakeCommunityRepository _member({
   CommunityStatus status = CommunityStatus.approved,
   int pendingMembersCount = 0,
   CommunityActivities activities = const CommunityActivities(),
+  bool duesConfigured = false,
+  int pendingDuesPaymentsCount = 0,
 }) =>
     FakeCommunityRepository(
       joined: [
@@ -173,6 +208,8 @@ FakeCommunityRepository _member({
         membersCount: 24,
         pendingMembersCount: pendingMembersCount,
         upcomingActivitiesCount: activities.upcoming.length,
+        duesConfigured: duesConfigured,
+        pendingDuesPaymentsCount: pendingDuesPaymentsCount,
       ),
       activities: activities,
     );
@@ -420,6 +457,111 @@ void main() {
       );
       expect(find.byKey(const Key('home-manager-notice')), findsOneWidget);
       expect(find.textContaining('belum bisa ditemukan'), findsOneWidget);
+    });
+  });
+
+  group('iuran', () {
+    testWidgets('iuran saya: tunggakan dan tombol Bayar', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: _member(duesConfigured: true),
+        dues: FakeDuesRepository(),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Iuran Saya'), findsOneWidget);
+      expect(find.text('Menunggak 3 bulan'), findsOneWidget);
+      expect(find.text('2 bulan menunggu verifikasi'), findsOneWidget);
+      // Tepat di bawah kartu komunitas.
+      expect(
+        tester.getTopLeft(find.byKey(const Key('home-dues-card'))).dy,
+        greaterThan(tester.getBottomLeft(find.byType(HomeClubCard)).dy),
+      );
+
+      await tester.tap(find.byKey(const Key('home-dues-pay')));
+      await tester.pumpAndSettle();
+      expect(find.text('IURAN 1 pay'), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('home-dues-card')));
+      await tester.pumpAndSettle();
+      expect(find.text('IURAN 1'), findsOneWidget);
+    });
+
+    testWidgets('iuran belum diatur atau gagal dimuat: kartu tidak tampil',
+        (tester) async {
+      _phoneScreen(tester);
+      // Server tetap mengirim data anggota walau iuran belum diatur.
+      await tester.pumpWidget(_app(
+        communities: _member(),
+        dues: FakeDuesRepository(overview: overviewWith(configured: false)),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('home-dues-card')), findsNothing);
+
+      await tester.pumpWidget(_app(
+        communities: _member(),
+        dues: FakeDuesRepository()
+          ..overviewError = const NetworkException('offline'),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('home-dues-card')), findsNothing);
+      expect(find.text('offline'), findsNothing);
+    });
+
+    testWidgets('pengelola: verifikasi, kalender, dan pengaturan iuran',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: _member(
+          role: CommunityRole.admin,
+          duesConfigured: true,
+          pendingDuesPaymentsCount: 2,
+        ),
+        dues: FakeDuesRepository(),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 bukti transfer menunggu'), findsOneWidget);
+      for (final (key, page) in [
+        ('home-manage-dues-payments', 'IURAN 1 payments'),
+        ('home-manage-dues-calendar', 'IURAN 1 members'),
+        ('home-manage-dues-settings', 'IURAN 1 settings'),
+      ]) {
+        await tester.ensureVisible(find.byKey(Key(key)));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(Key(key)));
+        await tester.pumpAndSettle();
+        expect(find.text(page), findsOneWidget, reason: key);
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('pengelola, iuran belum diatur: ajakan mengatur saja',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: _member(role: CommunityRole.creator),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('home-manage-dues-payments')), findsNothing);
+      expect(find.byKey(const Key('home-manage-dues-calendar')), findsNothing);
+      expect(find.textContaining('Belum diatur'), findsOneWidget);
+    });
+
+    testWidgets('anggota biasa: tanpa baris kelola iuran', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: _member(duesConfigured: true),
+        dues: FakeDuesRepository(),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('home-manage-dues-settings')), findsNothing);
+      expect(find.byKey(const Key('home-dues-card')), findsOneWidget);
     });
   });
 

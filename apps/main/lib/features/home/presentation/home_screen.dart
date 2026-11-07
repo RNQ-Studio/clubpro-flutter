@@ -13,6 +13,7 @@ import '../../community/presentation/community_providers.dart';
 import '../../community/presentation/widgets/club_hero.dart';
 import '../../community/presentation/widgets/community_start_view.dart';
 import '../../community/presentation/widgets/community_visuals.dart';
+import '../../dues/presentation/dues_providers.dart';
 import '../domain/entities/home_banner.dart';
 import 'home_providers.dart';
 import 'widgets/home_admin_panel_card.dart';
@@ -21,6 +22,7 @@ import 'widgets/home_banner_slider.dart';
 import 'widgets/home_club_card.dart';
 import 'widgets/home_club_chooser.dart';
 import 'widgets/home_club_sections.dart';
+import 'widgets/home_dues_card.dart';
 import 'widgets/home_user_header.dart';
 
 /// Beranda berpusat pada komunitas aktif: anggota melihat menu dan kegiatan
@@ -60,6 +62,7 @@ class HomeScreen extends ConsumerWidget {
     if (active != null) {
       ref.invalidate(communityDetailProvider(active.id));
       ref.invalidate(communityActivitiesProvider(active.id));
+      ref.invalidate(duesOverviewProvider(active.id, null));
     }
     await ref.read(authProvider.notifier).checkCurrentUser();
   }
@@ -205,6 +208,7 @@ class _ActiveClub extends ConsumerWidget {
                   )
               : null,
         ),
+        HomeDuesCard(communityId: community.id),
         if (banner != null) ...[const SizedBox(height: 16), banner!],
         const SizedBox(height: 20),
         const HomeSectionTitle('Menu Komunitas'),

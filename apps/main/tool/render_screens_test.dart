@@ -26,6 +26,12 @@ import 'package:app_main/features/community/presentation/screens/community_detai
 import 'package:app_main/features/community/presentation/screens/community_form_screen.dart';
 import 'package:app_main/features/community/presentation/screens/community_start_screen.dart';
 import 'package:app_main/features/community/presentation/screens/member_profile_screen.dart';
+import 'package:app_main/features/dues/presentation/dues_providers.dart';
+import 'package:app_main/features/dues/presentation/screens/dues_members_screen.dart';
+import 'package:app_main/features/dues/presentation/screens/dues_pay_screen.dart';
+import 'package:app_main/features/dues/presentation/screens/dues_payments_screen.dart';
+import 'package:app_main/features/dues/presentation/screens/dues_screen.dart';
+import 'package:app_main/features/dues/presentation/screens/dues_settings_screen.dart';
 import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/domain/entities/home_banner.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
@@ -44,6 +50,7 @@ import 'package:app_main/features/admin/domain/entities/admin_community.dart';
 
 import '../test/features/admin/fake_admin_repository.dart';
 import '../test/features/community/fake_community_repository.dart';
+import '../test/features/dues/fake_dues_repository.dart';
 
 class _FixedAuthNotifier extends AuthNotifier {
   _FixedAuthNotifier(this._state);
@@ -185,6 +192,7 @@ void main() {
     FakeCommunityRepository? communities,
     List<HomeBanner> banners = _homeBanners,
     Map<String, String>? saved,
+    FakeDuesRepository? dues,
   }) {
     final community = communities ?? FakeCommunityRepository();
     final router = GoRouter(
@@ -214,6 +222,9 @@ void main() {
         communityRepositoryProvider.overrideWithValue(community),
         activeCommunityStoreProvider
             .overrideWithValue(FakeActiveCommunityStore(saved)),
+        duesRepositoryProvider.overrideWithValue(
+          dues ?? FakeDuesRepository(overview: notConfigured),
+        ),
         appRefresherProvider.overrideWithValue(_ShownRefresher()),
       ],
       child: MaterialApp.router(
@@ -373,6 +384,74 @@ void main() {
         authProvider.overrideWith(
             () => _FixedAuthNotifier(const AuthAuthenticated(_superAdmin))),
         adminRepositoryProvider.overrideWithValue(repository),
+        communityImagePickerProvider
+            .overrideWithValue(FakeCommunityImagePicker()),
+      ],
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('id'),
+      ),
+    );
+  }
+
+  Widget duesApp(FakeDuesRepository dues, String location) {
+    final router = GoRouter(
+      initialLocation: location,
+      routes: [
+        GoRoute(
+          path: '/communities/:id/dues',
+          builder: (_, state) =>
+              DuesScreen(communityId: state.pathParameters['id']!),
+          routes: [
+            GoRoute(
+              path: 'pay',
+              builder: (_, state) =>
+                  DuesPayScreen(communityId: state.pathParameters['id']!),
+            ),
+            GoRoute(
+              path: 'settings',
+              builder: (_, state) =>
+                  DuesSettingsScreen(communityId: state.pathParameters['id']!),
+            ),
+            GoRoute(
+              path: 'payments',
+              builder: (_, state) =>
+                  DuesPaymentsScreen(communityId: state.pathParameters['id']!),
+            ),
+            GoRoute(
+              path: 'members',
+              builder: (_, state) =>
+                  DuesMembersScreen(communityId: state.pathParameters['id']!),
+              routes: [
+                GoRoute(
+                  path: ':userId',
+                  builder: (_, state) => DuesMemberScreen(
+                    communityId: state.pathParameters['id']!,
+                    userId: state.pathParameters['userId']!,
+                    initialYear: 2026,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    return ProviderScope(
+      overrides: [
+        authProvider.overrideWith(
+          () => _FixedAuthNotifier(AuthAuthenticated(_complete)),
+        ),
+        duesRepositoryProvider.overrideWithValue(dues),
+        communityRepositoryProvider.overrideWithValue(
+          FakeCommunityRepository(
+            detail: testDetail(myRole: CommunityRole.creator),
+          ),
+        ),
         communityImagePickerProvider
             .overrideWithValue(FakeCommunityImagePicker()),
       ],
@@ -1233,6 +1312,125 @@ void main() {
       '60-beranda-desktop-mulai',
       shell(_complete, communities: newcomer()),
       size: const Size(1280, 1000),
+    );
+  });
+
+  testWidgets('61-iuran-saya', (tester) async {
+    await shoot(tester, '61-iuran-saya',
+        duesApp(FakeDuesRepository(), AppRoutes.communityDues('1')),
+        size: const Size(360, 1500));
+  });
+
+  testWidgets('62-bayar-iuran', (tester) async {
+    await shoot(
+      tester,
+      '62-bayar-iuran',
+      duesApp(FakeDuesRepository(), AppRoutes.communityDuesPay('1')),
+      size: const Size(360, 1150),
+      before: () async {
+        await tester.ensureVisible(find.byKey(const Key('dues-proof-pick')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('dues-proof-pick')));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  testWidgets('63-pengaturan-iuran', (tester) async {
+    await shoot(
+      tester,
+      '63-pengaturan-iuran',
+      duesApp(FakeDuesRepository(overview: managerOverview()),
+          AppRoutes.communityDuesSettings('1')),
+      size: const Size(360, 1100),
+    );
+  });
+
+  testWidgets('64-verifikasi-iuran', (tester) async {
+    await shoot(
+      tester,
+      '64-verifikasi-iuran',
+      duesApp(FakeDuesRepository(payments: pendingPayments()),
+          AppRoutes.communityDuesPayments('1')),
+    );
+  });
+
+  testWidgets('65-kalender-anggota', (tester) async {
+    await shoot(
+      tester,
+      '65-kalender-anggota',
+      duesApp(FakeDuesRepository(members: membersPage()),
+          AppRoutes.communityDuesMembers('1')),
+    );
+  });
+
+  testWidgets('66-iuran-anggota', (tester) async {
+    await shoot(
+      tester,
+      '66-iuran-anggota',
+      duesApp(FakeDuesRepository(member: memberDetail()),
+          AppRoutes.communityDuesMember('1', '2')),
+      size: const Size(360, 1150),
+    );
+  });
+
+  testWidgets('67-ubah-status-bulan', (tester) async {
+    await shoot(
+      tester,
+      '67-ubah-status-bulan',
+      duesApp(FakeDuesRepository(member: memberDetail()),
+          AppRoutes.communityDuesMember('1', '2')),
+      before: () async {
+        await tester.tap(find.byKey(const Key('dues-month-2026-8')));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  testWidgets('68-beranda-iuran', (tester) async {
+    final repository = memberOf(role: CommunityRole.creator);
+    repository.detail = testDetail(
+      myRole: CommunityRole.creator,
+      membersCount: 128,
+      pendingMembersCount: 2,
+      upcomingActivitiesCount: 3,
+      duesConfigured: true,
+      pendingDuesPaymentsCount: 1,
+    );
+    await shoot(
+      tester,
+      '68-beranda-iuran',
+      shell(
+        _complete,
+        banners: const [],
+        communities: repository,
+        dues: FakeDuesRepository(),
+      ),
+      size: const Size(360, 1500),
+    );
+  });
+
+  testWidgets('69-iuran-desktop', (tester) async {
+    await shoot(
+      tester,
+      '69-iuran-desktop',
+      duesApp(FakeDuesRepository(overview: managerOverview()),
+          AppRoutes.communityDues('1')),
+      size: const Size(1280, 1000),
+    );
+  });
+
+  testWidgets('70-verifikasi-desktop', (tester) async {
+    await shoot(
+      tester,
+      '70-verifikasi-desktop',
+      duesApp(FakeDuesRepository(payments: memberOverview().payments),
+          AppRoutes.communityDuesPayments('1')),
+      size: const Size(1280, 900),
+      before: () async {
+        await tester.tap(find.text('Riwayat'));
+        await tester.pumpAndSettle();
+      },
     );
   });
 

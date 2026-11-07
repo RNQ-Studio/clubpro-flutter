@@ -1,0 +1,91 @@
+{
+  "success": true,
+  "message": "OK",
+  "data": {
+    "settings": {
+      "configured": true,
+      "monthly_amount": 50000,
+      "entry_fee": 100000,
+      "start_date": "2026-03-10",
+      "due_day": 10,
+      "bank_name": "BCA",
+      "account_number": "1234567890",
+      "account_name": "Komunitas Pemanah Nusantara"
+    },
+    "can_manage": true,
+    "year": 2026,
+    "me": {
+      "billable_from": "2026-11",
+      "arrears_count": 0,
+      "paid_until": null,
+      "entry_fee_paid": false,
+      "months": [
+        {
+          "month": "2026-01",
+          "status": "none"
+        },
+        {
+          "month": "2026-02",
+          "status": "none"
+        },
+        {
+          "month": "2026-03",
+          "status": "none"
+        },
+        {
+          "month": "2026-04",
+          "status": "none"
+        },
+        {
+          "month": "2026-05",
+          "status": "none"
+        },
+        {
+          "month": "2026-06",
+          "status": "none"
+        },
+        {
+          "month": "2026-07",
+          "status": "none"
+        },
+        {
+          "month": "2026-08",
+          "status": "none"
+        },
+        {
+          "month": "2026-09",
+          "status": "none"
+        },
+        {
+          "month": "2026-10",
+          "status": "none"
+        },
+        {
+          "month": "2026-11",
+          "status": "due"
+        },
+        {
+          "month": "2026-12",
+          "status": "upcoming"
+        }
+      ],
+      "entry_fee_due": 100000,
+      "next_unpaid_months": [
+        "2026-11",
+        "2026-12",
+        "2027-01",
+        "2027-02",
+        "2027-03",
+        "2027-04",
+        "2027-05",
+        "2027-06",
+        "2027-07",
+        "2027-08",
+        "2027-09",
+        "2027-10"
+      ]
+    },
+    "payments": [],
+    "pending_payments_count": 1
+  }
+}

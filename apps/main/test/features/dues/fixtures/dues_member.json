@@ -1,0 +1,151 @@
+{
+  "success": true,
+  "message": "OK",
+  "data": {
+    "settings": {
+      "configured": true,
+      "monthly_amount": 50000,
+      "entry_fee": 100000,
+      "start_date": "2026-03-10",
+      "due_day": 10,
+      "bank_name": "BCA",
+      "account_number": "1234567890",
+      "account_name": "Komunitas Pemanah Nusantara"
+    },
+    "year": 2026,
+    "member": {
+      "user_id": 2,
+      "name": "Budi Santoso",
+      "avatar_url": null,
+      "role": "member",
+      "joined_at": "2025-06-01T00:00:00+00:00",
+      "billable_from": "2026-03",
+      "arrears_count": 3,
+      "paid_until": "2026-05",
+      "entry_fee_paid": true,
+      "months": [
+        {
+          "month": "2026-01",
+          "status": "none"
+        },
+        {
+          "month": "2026-02",
+          "status": "none"
+        },
+        {
+          "month": "2026-03",
+          "status": "paid"
+        },
+        {
+          "month": "2026-04",
+          "status": "paid"
+        },
+        {
+          "month": "2026-05",
+          "status": "paid"
+        },
+        {
+          "month": "2026-06",
+          "status": "pending"
+        },
+        {
+          "month": "2026-07",
+          "status": "pending"
+        },
+        {
+          "month": "2026-08",
+          "status": "overdue"
+        },
+        {
+          "month": "2026-09",
+          "status": "overdue"
+        },
+        {
+          "month": "2026-10",
+          "status": "overdue"
+        },
+        {
+          "month": "2026-11",
+          "status": "due"
+        },
+        {
+          "month": "2026-12",
+          "status": "upcoming"
+        }
+      ],
+      "entry_fee_due": 0
+    },
+    "payments": [
+      {
+        "id": 3,
+        "user": {
+          "id": 2,
+          "name": "Budi Santoso",
+          "avatar_url": null
+        },
+        "months": [
+          "2026-06",
+          "2026-07"
+        ],
+        "months_count": 2,
+        "monthly_amount": 50000,
+        "entry_fee": 0,
+        "total_amount": 100000,
+        "proof_url": "https://anaklangit.manahpro.web.id/api/v1/assets/ab6a095b-6038-4fb6-8e70-ec900348d33f/file",
+        "note": null,
+        "status": "pending",
+        "review_note": null,
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "created_at": "2026-11-08T03:00:00+00:00"
+      },
+      {
+        "id": 2,
+        "user": {
+          "id": 2,
+          "name": "Budi Santoso",
+          "avatar_url": null
+        },
+        "months": [
+          "2026-03",
+          "2026-04",
+          "2026-05"
+        ],
+        "months_count": 3,
+        "monthly_amount": 50000,
+        "entry_fee": 100000,
+        "total_amount": 250000,
+        "proof_url": "https://anaklangit.manahpro.web.id/api/v1/assets/bb4ef7c4-5cc8-4ca4-8705-41efccaf6de6/file",
+        "note": "Transfer via m-banking",
+        "status": "approved",
+        "review_note": null,
+        "reviewed_by": "Rina Ayu",
+        "reviewed_at": "2026-11-08T03:00:00+00:00",
+        "created_at": "2026-11-08T03:00:00+00:00"
+      },
+      {
+        "id": 1,
+        "user": {
+          "id": 2,
+          "name": "Budi Santoso",
+          "avatar_url": null
+        },
+        "months": [
+          "2026-03",
+          "2026-04"
+        ],
+        "months_count": 2,
+        "monthly_amount": 50000,
+        "entry_fee": 100000,
+        "total_amount": 200000,
+        "proof_url": "https://anaklangit.manahpro.web.id/api/v1/assets/bcd67cc3-c385-4eed-a987-d954787ddf07/file",
+        "note": null,
+        "status": "rejected",
+        "review_note": "Nominal transfer kurang Rp50.000",
+        "reviewed_by": "Rina Ayu",
+        "reviewed_at": "2026-11-08T03:00:00+00:00",
+        "created_at": "2026-11-08T03:00:00+00:00"
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "message": "Pengaturan iuran disimpan",
+  "data": {
+    "configured": true,
+    "monthly_amount": 50000,
+    "entry_fee": 100000,
+    "start_date": "2026-03-10",
+    "due_day": 10,
+    "bank_name": "BCA",
+    "account_number": "1234567890",
+    "account_name": "Komunitas Pemanah Nusantara"
+  }
+}

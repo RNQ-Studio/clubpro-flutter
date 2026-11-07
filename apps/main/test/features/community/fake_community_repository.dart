@@ -85,8 +85,12 @@ CommunityDetail testDetail({
   int upcomingActivitiesCount = 0,
   List<CommunityPhoto> photos = const [],
   bool? canManage,
+  bool duesConfigured = false,
+  int pendingDuesPaymentsCount = 0,
 }) =>
     CommunityDetail(
+      duesConfigured: duesConfigured,
+      pendingDuesPaymentsCount: pendingDuesPaymentsCount,
       id: id,
       myRole: myRole,
       isMember: myRole != null,

@@ -132,6 +132,8 @@ class CommunityDetail extends Community {
     this.canManage = false,
     this.pendingMembersCount = 0,
     this.upcomingActivitiesCount = 0,
+    this.pendingDuesPaymentsCount = 0,
+    this.duesConfigured = false,
   });
 
   final String address;
@@ -154,6 +156,12 @@ class CommunityDetail extends Community {
   final bool canManage;
   final int pendingMembersCount;
   final int upcomingActivitiesCount;
+
+  /// Bukti transfer iuran yang menunggu verifikasi; hanya untuk pengelola.
+  final int pendingDuesPaymentsCount;
+
+  /// Iuran sudah diatur creator/admin.
+  final bool duesConfigured;
 
   bool get canJoin =>
       status == CommunityStatus.approved && !isMember && !isJoinPending;

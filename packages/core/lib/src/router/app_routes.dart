@@ -18,6 +18,18 @@ abstract final class AppRoutes {
   static String community(String id) => '$communities/$id';
   static String member(String userId) => '/members/$userId';
 
+  // Iuran komunitas
+  static String communityDues(String id) => '${community(id)}/dues';
+  static String communityDuesPay(String id) => '${communityDues(id)}/pay';
+  static String communityDuesSettings(String id) =>
+      '${communityDues(id)}/settings';
+  static String communityDuesPayments(String id) =>
+      '${communityDues(id)}/payments';
+  static String communityDuesMembers(String id) =>
+      '${communityDues(id)}/members';
+  static String communityDuesMember(String id, String userId) =>
+      '${communityDuesMembers(id)}/$userId';
+
   // Admin Panel (khusus super admin)
   static const String adminPanel = '/admin';
   static const String adminUsers = '$adminPanel/users';

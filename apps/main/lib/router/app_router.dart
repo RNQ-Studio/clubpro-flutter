@@ -18,6 +18,11 @@ import '../features/community/presentation/screens/community_form_screen.dart';
 import '../features/community/presentation/screens/community_start_screen.dart';
 import '../features/community/presentation/widgets/club_hero.dart';
 import '../features/community/presentation/screens/member_profile_screen.dart';
+import '../features/dues/presentation/screens/dues_members_screen.dart';
+import '../features/dues/presentation/screens/dues_pay_screen.dart';
+import '../features/dues/presentation/screens/dues_payments_screen.dart';
+import '../features/dues/presentation/screens/dues_screen.dart';
+import '../features/dues/presentation/screens/dues_settings_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/quotes/presentation/screens/quote_form_screen.dart';
 import '../features/quotes/presentation/screens/quotes_screen.dart';
@@ -85,6 +90,51 @@ final appRouter = GoRouter(
                 communityId: state.pathParameters['id']!,
                 initialTab: ClubTab.fromName(state.uri.queryParameters['tab']),
               ),
+              routes: [
+                GoRoute(
+                  path: 'dues',
+                  builder: (context, state) =>
+                      DuesScreen(communityId: state.pathParameters['id']!),
+                  routes: [
+                    GoRoute(
+                      path: 'pay',
+                      builder: (context, state) => DuesPayScreen(
+                        communityId: state.pathParameters['id']!,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'settings',
+                      builder: (context, state) => DuesSettingsScreen(
+                        communityId: state.pathParameters['id']!,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'payments',
+                      builder: (context, state) => DuesPaymentsScreen(
+                        communityId: state.pathParameters['id']!,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'members',
+                      builder: (context, state) => DuesMembersScreen(
+                        communityId: state.pathParameters['id']!,
+                      ),
+                      routes: [
+                        GoRoute(
+                          path: ':userId',
+                          builder: (context, state) => DuesMemberScreen(
+                            communityId: state.pathParameters['id']!,
+                            userId: state.pathParameters['userId']!,
+                            initialYear: int.tryParse(
+                              state.uri.queryParameters['year'] ?? '',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),

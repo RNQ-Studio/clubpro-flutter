@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "message": "Bulan ini sedang menunggu verifikasi pembayaran. Terima atau tolak pembayarannya dulu.",
+  "code": "VALIDATION_ERROR",
+  "errors": {
+    "month": [
+      "Bulan ini sedang menunggu verifikasi pembayaran. Terima atau tolak pembayarannya dulu."
+    ]
+  }
+}

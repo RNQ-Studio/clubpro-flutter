@@ -1,0 +1,5 @@
+{
+  "success": false,
+  "message": "Pembayaran ini sudah diverifikasi. Muat ulang untuk melihat yang terbaru.",
+  "code": "HTTP_ERROR"
+}
