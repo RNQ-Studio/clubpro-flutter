@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:app_main/features/community/presentation/community_providers.dart';
+import 'package:app_main/features/home/data/banner_remote_data_source.dart';
 import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/domain/entities/home_banner.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
@@ -31,6 +34,15 @@ class _FakeRefresher implements AppRefresher {
     final failure = error;
     if (failure != null) throw failure;
   }
+}
+
+class _FakeBannerSource implements BannerRemoteDataSource {
+  _FakeBannerSource(this._fetch);
+
+  final Future<List<HomeBanner>> Function() _fetch;
+
+  @override
+  Future<List<HomeBanner>> fetchBanners() => _fetch();
 }
 
 class _FixedAuthNotifier extends AuthNotifier {
@@ -68,6 +80,7 @@ const _banners = [
 Widget _app({
   User user = _incompleteUser,
   List<HomeBanner> banners = _banners,
+  Future<List<HomeBanner>>? loadingBanners,
   AppRefresher? refresher,
   FakeCommunityRepository? communities,
 }) {
@@ -113,7 +126,8 @@ Widget _app({
     overrides: [
       authProvider
           .overrideWith(() => _FixedAuthNotifier(AuthAuthenticated(user))),
-      homeBannersProvider.overrideWith((ref) async => banners),
+      homeBannersProvider
+          .overrideWith((ref) => loadingBanners ?? Future.value(banners)),
       appRefresherProvider.overrideWithValue(refresher),
       communityRepositoryProvider
           .overrideWithValue(communities ?? FakeCommunityRepository()),
@@ -615,9 +629,65 @@ void main() {
     expect(homeMenus.map((m) => m.id).toSet(), hasLength(homeMenus.length));
   });
 
-  test('banner bawaan tersedia bila server belum punya banner', () {
-    expect(defaultHomeBanners, isNotEmpty);
-    expect(defaultHomeBanners.first.title, contains('CEO'));
+  group('banner hanya dari Admin Panel', () {
+    ProviderContainer container(Future<List<HomeBanner>> Function() fetch) {
+      final c = ProviderContainer(overrides: [
+        bannerRemoteDataSourceProvider
+            .overrideWithValue(_FakeBannerSource(fetch)),
+      ]);
+      addTearDown(c.dispose);
+      return c;
+    }
+
+    test('banner dari server dipakai apa adanya', () async {
+      final banners = await container(() async => _banners)
+          .read(homeBannersProvider.future);
+      expect(banners.map((b) => b.id), ['1', '2']);
+    });
+
+    test('server tanpa banner atau gagal → kosong, tanpa banner bawaan',
+        () async {
+      expect(
+        await container(() async => const []).read(homeBannersProvider.future),
+        isEmpty,
+      );
+      expect(
+        await container(() => throw const NetworkException('offline'))
+            .read(homeBannersProvider.future),
+        isEmpty,
+      );
+    });
+
+    testWidgets('belum ada banner: bagiannya tidak tampil', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        banners: const [],
+        communities: FakeCommunityRepository(
+          joined: [testCommunity('1', shortName: 'PN')],
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('home-banner-slider')), findsNothing);
+      expect(find.byType(HomeBannerCard), findsNothing);
+      expect(find.textContaining('Selamat datang di CEO'), findsNothing);
+      // Menu Utama langsung di bawah Komunitas Saya, tanpa celah bekas banner.
+      final gap = tester.getTopLeft(find.text('Menu Utama')).dy -
+          tester.getBottomLeft(find.byType(HomeMyCommunities)).dy;
+      expect(gap, lessThanOrEqualTo(24));
+    });
+
+    testWidgets('saat memuat: tidak ada kotak pemuat banner', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(
+        _app(loadingBanners: Completer<List<HomeBanner>>().future),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const Key('home-banner-slider')), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('Menu Utama'), findsOneWidget);
+    });
   });
 
   test('salam mengikuti jam', () {

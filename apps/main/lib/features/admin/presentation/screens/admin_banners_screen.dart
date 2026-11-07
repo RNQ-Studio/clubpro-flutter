@@ -341,8 +341,7 @@ class _EmptyBanners extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Selama belum ada banner, Beranda menampilkan banner bawaan '
-          'aplikasi.',
+          'Selama belum ada banner, bagian banner tidak tampil di Beranda.',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,

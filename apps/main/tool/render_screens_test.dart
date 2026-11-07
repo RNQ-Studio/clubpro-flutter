@@ -25,6 +25,7 @@ import 'package:app_main/features/community/presentation/screens/community_detai
 import 'package:app_main/features/community/presentation/screens/community_form_screen.dart';
 import 'package:app_main/features/community/presentation/screens/member_profile_screen.dart';
 import 'package:app_main/features/home/domain/app_refresher.dart';
+import 'package:app_main/features/home/domain/entities/home_banner.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
 import 'package:core/core.dart';
@@ -180,6 +181,7 @@ void main() {
     User user, {
     String location = '/',
     FakeCommunityRepository? communities,
+    List<HomeBanner> banners = _homeBanners,
   }) {
     final community = communities ?? FakeCommunityRepository();
     final router = GoRouter(
@@ -205,7 +207,7 @@ void main() {
       overrides: [
         authProvider
             .overrideWith(() => _FixedAuthNotifier(AuthAuthenticated(user))),
-        homeBannersProvider.overrideWith((ref) async => defaultHomeBanners),
+        homeBannersProvider.overrideWith((ref) async => banners),
         communityRepositoryProvider.overrideWithValue(community),
         appRefresherProvider.overrideWithValue(_ShownRefresher()),
       ],
@@ -1041,6 +1043,14 @@ void main() {
         size: desktop);
   });
 
+  testWidgets('52-beranda-tanpa-banner', (tester) async {
+    await shoot(
+      tester,
+      '52-beranda-tanpa-banner',
+      shell(_complete, banners: const []),
+    );
+  });
+
   testWidgets('32-beranda-bawah', (tester) async {
     await shoot(
       tester,
@@ -1056,6 +1066,16 @@ void main() {
     );
   });
 }
+
+/// Banner contoh seperti yang dibuat di Kelola Banner.
+const _homeBanners = [
+  HomeBanner(
+    id: '1',
+    title: 'Latihan Bersama Akhir Pekan',
+    subtitle: 'Terbuka untuk semua anggota komunitas.',
+  ),
+  HomeBanner(id: '2', title: 'Pendaftaran Kejuaraan Dibuka'),
+];
 
 /// Semua unduhan gambar dijawab dengan PNG contoh.
 class _PhotoClient extends Fake implements HttpClient {

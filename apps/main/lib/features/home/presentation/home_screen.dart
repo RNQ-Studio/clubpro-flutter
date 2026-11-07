@@ -16,7 +16,7 @@ import 'widgets/home_menu_grid.dart';
 import 'widgets/home_my_communities.dart';
 import 'widgets/home_user_header.dart';
 
-/// Beranda: info anggota, komunitas saya, banner slider, dan menu utama.
+/// Beranda: info anggota, komunitas saya, banner (bila ada), dan menu utama.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -42,7 +42,8 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final banners = ref.watch(homeBannersProvider);
+    // Tetap berisi banner lama selama disegarkan; saat memuat pertama kali kosong.
+    final banners = ref.watch(homeBannersProvider).value ?? const [];
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -64,24 +65,14 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 10),
               const HomeMyCommunities(),
               const SizedBox(height: 12),
-              Padding(
-                padding: EdgeInsets.zero,
-                child: banners.when(
-                  data: (items) => HomeBannerSlider(
-                    banners: items,
-                    onTap: (b) => _openBanner(context, b),
-                  ),
-                  loading: () => const AspectRatio(
-                    aspectRatio: HomeBannerCard.aspectRatio,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (_, __) => HomeBannerSlider(
-                    banners: defaultHomeBanners,
-                    onTap: (b) => _openBanner(context, b),
-                  ),
+              if (banners.isNotEmpty) ...[
+                HomeBannerSlider(
+                  banners: banners,
+                  onTap: (b) => _openBanner(context, b),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 12),
+              ],
+              const SizedBox(height: 12),
               Text(
                 'Menu Utama',
                 style: theme.textTheme.titleMedium?.copyWith(
