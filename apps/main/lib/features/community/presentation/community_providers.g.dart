@@ -300,22 +300,25 @@ final class CommunityDetailFamily extends $Family
   String toString() => r'communityDetailProvider';
 }
 
-/// Komunitas yang diikuti, untuk Beranda.
+/// Komunitas yang diikuti beserta permintaan bergabung yang masih menunggu,
+/// untuk Beranda.
 
 @ProviderFor(joinedCommunities)
 final joinedCommunitiesProvider = JoinedCommunitiesProvider._();
 
-/// Komunitas yang diikuti, untuk Beranda.
+/// Komunitas yang diikuti beserta permintaan bergabung yang masih menunggu,
+/// untuk Beranda.
 
 final class JoinedCommunitiesProvider extends $FunctionalProvider<
         AsyncValue<List<Community>>, List<Community>, FutureOr<List<Community>>>
     with $FutureModifier<List<Community>>, $FutureProvider<List<Community>> {
-  /// Komunitas yang diikuti, untuk Beranda.
+  /// Komunitas yang diikuti beserta permintaan bergabung yang masih menunggu,
+  /// untuk Beranda.
   JoinedCommunitiesProvider._()
       : super(
           from: null,
           argument: null,
-          retry: null,
+          retry: noRetry,
           name: r'joinedCommunitiesProvider',
           isAutoDispose: true,
           dependencies: null,
@@ -337,7 +340,47 @@ final class JoinedCommunitiesProvider extends $FunctionalProvider<
   }
 }
 
-String _$joinedCommunitiesHash() => r'12deb987247509bfcf2a63e9d9294f844f9b6fbc';
+String _$joinedCommunitiesHash() => r'7d4ff4933ed8edb3bbb6b811b9290711f4ae12da';
+
+/// Rekomendasi: komunitas terverifikasi dengan anggota aktif terbanyak.
+
+@ProviderFor(recommendedCommunities)
+final recommendedCommunitiesProvider = RecommendedCommunitiesProvider._();
+
+/// Rekomendasi: komunitas terverifikasi dengan anggota aktif terbanyak.
+
+final class RecommendedCommunitiesProvider extends $FunctionalProvider<
+        AsyncValue<List<Community>>, List<Community>, FutureOr<List<Community>>>
+    with $FutureModifier<List<Community>>, $FutureProvider<List<Community>> {
+  /// Rekomendasi: komunitas terverifikasi dengan anggota aktif terbanyak.
+  RecommendedCommunitiesProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'recommendedCommunitiesProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$recommendedCommunitiesHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<Community>> $createElement(
+          $ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<Community>> create(Ref ref) {
+    return recommendedCommunities(ref);
+  }
+}
+
+String _$recommendedCommunitiesHash() =>
+    r'c46f860e1d1808d2dbf36af638e47cdce240fd1e';
 
 @ProviderFor(communityActivities)
 final communityActivitiesProvider = CommunityActivitiesFamily._();

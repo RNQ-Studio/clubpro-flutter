@@ -98,14 +98,22 @@ final class BannerRemoteDataSourceProvider extends $FunctionalProvider<
 String _$bannerRemoteDataSourceHash() =>
     r'a140578c8151d98ee849e6c2a58b5016943a3ce5';
 
+/// Hanya banner yang dikelola di Admin Panel. Belum ada banner, offline, atau
+/// server gagal → kosong, dan Beranda tidak menampilkan bagian banner.
+
 @ProviderFor(homeBanners)
 final homeBannersProvider = HomeBannersProvider._();
+
+/// Hanya banner yang dikelola di Admin Panel. Belum ada banner, offline, atau
+/// server gagal → kosong, dan Beranda tidak menampilkan bagian banner.
 
 final class HomeBannersProvider extends $FunctionalProvider<
         AsyncValue<List<HomeBanner>>,
         List<HomeBanner>,
         FutureOr<List<HomeBanner>>>
     with $FutureModifier<List<HomeBanner>>, $FutureProvider<List<HomeBanner>> {
+  /// Hanya banner yang dikelola di Admin Panel. Belum ada banner, offline, atau
+  /// server gagal → kosong, dan Beranda tidak menampilkan bagian banner.
   HomeBannersProvider._()
       : super(
           from: null,
@@ -132,4 +140,4 @@ final class HomeBannersProvider extends $FunctionalProvider<
   }
 }
 
-String _$homeBannersHash() => r'896bab6a657de2f78a1438fcbec48090137eff09';
+String _$homeBannersHash() => r'f647074798b0ab042466595c19f35502bcd62e5a';

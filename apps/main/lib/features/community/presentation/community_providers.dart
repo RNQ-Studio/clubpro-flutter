@@ -38,10 +38,29 @@ Future<List<Community>> myCommunities(Ref ref) =>
 Future<CommunityDetail> communityDetail(Ref ref, String id) =>
     ref.watch(communityRepositoryProvider).getCommunity(id);
 
-/// Komunitas yang diikuti, untuk Beranda.
-@riverpod
+/// Tanpa ulang otomatis: layar langsung menampilkan galat beserta tombol Coba
+/// Lagi, alih-alih tertahan memuat selama percobaan ulang.
+Duration? noRetry(int retryCount, Object error) => null;
+
+/// Komunitas yang diikuti beserta permintaan bergabung yang masih menunggu,
+/// untuk Beranda.
+@Riverpod(retry: noRetry)
 Future<List<Community>> joinedCommunities(Ref ref) =>
-    ref.watch(communityRepositoryProvider).getJoined();
+    ref.watch(communityRepositoryProvider).getJoined(includePending: true);
+
+/// Banyaknya rekomendasi komunitas.
+const recommendedCommunitiesLimit = 5;
+
+/// Rekomendasi: komunitas terverifikasi dengan anggota aktif terbanyak.
+@riverpod
+Future<List<Community>> recommendedCommunities(Ref ref) async {
+  final page = await ref.watch(communityRepositoryProvider).getCommunities(
+        page: 1,
+        sort: CommunitySort.popular,
+        perPage: recommendedCommunitiesLimit,
+      );
+  return page.communities;
+}
 
 @riverpod
 Future<CommunityActivities> communityActivities(Ref ref, String id) =>

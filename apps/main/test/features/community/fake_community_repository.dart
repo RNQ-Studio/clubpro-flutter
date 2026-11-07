@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:app_main/features/community/data/community_image_picker.dart';
 import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:app_main/features/community/domain/entities/community_draft.dart';
+import 'package:app_main/features/community/domain/repositories/active_community_store.dart';
 import 'package:app_main/features/community/domain/repositories/community_repository.dart';
 
 /// PNG 16×16 bergradasi emas.
@@ -51,6 +53,8 @@ Community testCommunity(
   String name = 'Pemanah Nusantara',
   CommunityStatus status = CommunityStatus.approved,
   CommunityRole? myRole,
+  CommunityMembershipStatus? myStatus,
+  int? membersCount,
   String shortName = 'PN',
 }) =>
     Community(
@@ -58,6 +62,8 @@ Community testCommunity(
       name: name,
       shortName: shortName,
       myRole: myRole,
+      myStatus: myStatus,
+      membersCount: membersCount,
       type: 'panahan',
       typeLabel: 'Panahan',
       status: status,
@@ -158,6 +164,29 @@ CommunityDraft completeDraft() => CommunityDraft(
       photos: [testImage('a.png'), testImage('b.png')],
     );
 
+/// Pilihan komunitas aktif di memori, per akun.
+class FakeActiveCommunityStore implements ActiveCommunityStore {
+  FakeActiveCommunityStore([Map<String, String>? saved]) : saved = {...?saved};
+
+  final Map<String, String> saved;
+  Exception? readError;
+  Exception? writeError;
+
+  @override
+  Future<String?> read(String userId) async {
+    final failure = readError;
+    if (failure != null) throw failure;
+    return saved[userId];
+  }
+
+  @override
+  Future<void> write(String userId, String communityId) async {
+    final failure = writeError;
+    if (failure != null) throw failure;
+    saved[userId] = communityId;
+  }
+}
+
 class FakeCommunityRepository implements CommunityRepository {
   FakeCommunityRepository({
     this.pages = const [],
@@ -204,7 +233,13 @@ class FakeCommunityRepository implements CommunityRepository {
   /// Melempar pada tindakan berikutnya, satu kali.
   Exception? actionError;
 
-  final listCalls = <({int page, String search, String? type})>[];
+  final listCalls = <({
+    int page,
+    String search,
+    String? type,
+    CommunitySort sort,
+    int? perPage,
+  })>[];
   final uploads = <String>[];
   final submitted = <CommunityDraft>[];
   final memberCalls = <({int page, bool pending})>[];
@@ -218,8 +253,16 @@ class FakeCommunityRepository implements CommunityRepository {
     required int page,
     String search = '',
     String? type,
+    CommunitySort sort = CommunitySort.name,
+    int? perPage,
   }) async {
-    listCalls.add((page: page, search: search, type: type));
+    listCalls.add((
+      page: page,
+      search: search,
+      type: type,
+      sort: sort,
+      perPage: perPage,
+    ));
     final failure = error;
     if (failure != null) throw failure;
     return CommunitiesPage(
@@ -282,12 +325,22 @@ class FakeCommunityRepository implements CommunityRepository {
     actions.add(action);
   }
 
+  /// Nilai `includePending` pada panggilan `getJoined` terakhir.
+  bool? joinedIncludePending;
+
+  /// Bila diisi, `getJoined` menunggu sampai selesai (untuk keadaan memuat).
+  Completer<void>? joinedGate;
+
   @override
-  Future<List<Community>> getJoined() async {
+  Future<List<Community>> getJoined({bool includePending = false}) async {
     joinedCalls++;
+    joinedIncludePending = includePending;
+    await joinedGate?.future;
     final failure = joinedError;
     if (failure != null) throw failure;
-    return joined;
+    return includePending
+        ? joined
+        : joined.where((c) => !c.isJoinRequest).toList();
   }
 
   @override

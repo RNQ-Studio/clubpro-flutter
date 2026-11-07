@@ -13,8 +13,16 @@ class CommunityRepositoryImpl implements CommunityRepository {
     required int page,
     String search = '',
     String? type,
+    CommunitySort sort = CommunitySort.name,
+    int? perPage,
   }) =>
-      _remote.fetchCommunities(page: page, search: search, type: type);
+      _remote.fetchCommunities(
+        page: page,
+        search: search,
+        type: type,
+        sort: sort,
+        perPage: perPage,
+      );
 
   @override
   Future<List<Community>> getMine() => _remote.fetchMine();
@@ -40,7 +48,8 @@ class CommunityRepositoryImpl implements CommunityRepository {
       _remote.submit(draft.toPayload());
 
   @override
-  Future<List<Community>> getJoined() => _remote.fetchJoined();
+  Future<List<Community>> getJoined({bool includePending = false}) =>
+      _remote.fetchJoined(includePending: includePending);
 
   @override
   Future<void> join(String communityId) => _remote.join(communityId);

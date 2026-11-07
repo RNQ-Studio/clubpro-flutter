@@ -19,10 +19,12 @@ import 'package:app_main/features/admin/presentation/screens/admin_panel_screen.
 import 'package:app_main/features/admin/presentation/screens/admin_user_detail_screen.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_users_screen.dart';
 import 'package:app_main/features/community/domain/entities/community.dart';
+import 'package:app_main/features/community/presentation/active_community_notifier.dart';
 import 'package:app_main/features/community/presentation/community_providers.dart';
 import 'package:app_main/features/community/presentation/screens/communities_screen.dart';
 import 'package:app_main/features/community/presentation/screens/community_detail_screen.dart';
 import 'package:app_main/features/community/presentation/screens/community_form_screen.dart';
+import 'package:app_main/features/community/presentation/screens/community_start_screen.dart';
 import 'package:app_main/features/community/presentation/screens/member_profile_screen.dart';
 import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/domain/entities/home_banner.dart';
@@ -182,6 +184,7 @@ void main() {
     String location = '/',
     FakeCommunityRepository? communities,
     List<HomeBanner> banners = _homeBanners,
+    Map<String, String>? saved,
   }) {
     final community = communities ?? FakeCommunityRepository();
     final router = GoRouter(
@@ -209,6 +212,8 @@ void main() {
             .overrideWith(() => _FixedAuthNotifier(AuthAuthenticated(user))),
         homeBannersProvider.overrideWith((ref) async => banners),
         communityRepositoryProvider.overrideWithValue(community),
+        activeCommunityStoreProvider
+            .overrideWithValue(FakeActiveCommunityStore(saved)),
         appRefresherProvider.overrideWithValue(_ShownRefresher()),
       ],
       child: MaterialApp.router(
@@ -586,6 +591,66 @@ void main() {
     await next();
   }
 
+  /// Komunitas terverifikasi terpopuler untuk rekomendasi.
+  List<Community> popularCommunities() => [
+        testCommunity('11', name: 'Gowes Bandung Raya', membersCount: 412),
+        testCommunity('12', name: 'Futsal Pasundan', membersCount: 287),
+        testCommunity('13', name: 'Pemanah Nusantara', membersCount: 128),
+        testCommunity('14', name: 'Fotografi Jalanan', membersCount: 96),
+        testCommunity('15', name: 'Kuliner Nusantara', membersCount: 64),
+      ];
+
+  /// Belum tergabung; [requests] = permintaan bergabung yang menunggu.
+  FakeCommunityRepository newcomer({List<Community> requests = const []}) =>
+      FakeCommunityRepository(
+        joined: requests,
+        pages: [popularCommunities()],
+      );
+
+  /// Anggota aktif komunitas [club] dengan peran [role].
+  FakeCommunityRepository memberOf({
+    CommunityRole role = CommunityRole.member,
+    CommunityStatus status = CommunityStatus.approved,
+    List<Community> others = const [],
+  }) {
+    final repository = club(role: role);
+    final detail = repository.detail!;
+    repository.joined = [
+      testCommunity(
+        '1',
+        myRole: role,
+        status: status,
+        membersCount: detail.membersCount,
+      ),
+      ...others,
+    ];
+    if (status != CommunityStatus.approved) {
+      repository.detail = testDetail(
+        myRole: role,
+        status: status,
+        membersCount: 1,
+        upcomingActivitiesCount: detail.upcomingActivitiesCount,
+        photos: detail.photos,
+      );
+    }
+    return repository;
+  }
+
+  final otherClubs = [
+    testCommunity(
+      '2',
+      name: 'Futsal Pasundan',
+      myRole: CommunityRole.admin,
+      membersCount: 287,
+    ),
+    testCommunity(
+      '3',
+      name: 'Gowes Bandung Raya',
+      myRole: CommunityRole.member,
+      membersCount: 412,
+    ),
+  ];
+
   testWidgets('01-onboarding', (tester) async {
     await shoot(
       tester,
@@ -634,14 +699,15 @@ void main() {
   });
 
   testWidgets('05-beranda', (tester) async {
-    await shoot(tester, '05-beranda', shell(_partial));
+    await shoot(tester, '05-beranda', shell(_partial, communities: newcomer()));
   });
 
-  testWidgets('06-segera-hadir', (tester) async {
-    await shoot(tester, '06-segera-hadir', shell(_partial), before: () async {
-      await tester.tap(find.byKey(const Key('home-menu-member-card')));
-      await tester.pumpAndSettle();
-    });
+  testWidgets('06-beranda-pilih-komunitas', (tester) async {
+    await shoot(
+      tester,
+      '06-beranda-pilih-komunitas',
+      shell(_complete, communities: memberOf(others: otherClubs)),
+    );
   });
 
   testWidgets('07-profil-belum-lengkap', (tester) async {
@@ -1047,7 +1113,126 @@ void main() {
     await shoot(
       tester,
       '52-beranda-tanpa-banner',
-      shell(_complete, banners: const []),
+      shell(_complete, banners: const [], communities: memberOf()),
+    );
+  });
+
+  testWidgets('53-beranda-anggota', (tester) async {
+    await shoot(
+        tester, '53-beranda-anggota', shell(_complete, communities: memberOf()),
+        size: const Size(360, 1180));
+  });
+
+  testWidgets('54-beranda-pengelola', (tester) async {
+    await shoot(
+      tester,
+      '54-beranda-pengelola',
+      shell(
+        _complete,
+        banners: const [],
+        communities: memberOf(role: CommunityRole.creator, others: otherClubs),
+        saved: {'1': '1'},
+      ),
+      size: const Size(360, 1400),
+    );
+  });
+
+  testWidgets('55-ganti-komunitas', (tester) async {
+    await shoot(
+      tester,
+      '55-ganti-komunitas',
+      shell(
+        _complete,
+        communities: memberOf(role: CommunityRole.creator, others: otherClubs),
+        saved: {'1': '1'},
+      ),
+      before: () async {
+        await tester.tap(find.byKey(const Key('home-club-switch')));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  testWidgets('56-gabung-komunitas', (tester) async {
+    await shoot(
+      tester,
+      '56-gabung-komunitas',
+      ProviderScope(
+        overrides: [
+          authProvider.overrideWith(
+              () => _FixedAuthNotifier(const AuthAuthenticated(_partial))),
+          communityRepositoryProvider.overrideWithValue(newcomer()),
+          activeCommunityStoreProvider
+              .overrideWithValue(FakeActiveCommunityStore()),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('id'),
+          home: const CommunityStartScreen(),
+        ),
+      ),
+      size: const Size(360, 900),
+    );
+  });
+
+  testWidgets('57-beranda-desktop', (tester) async {
+    await shoot(
+      tester,
+      '57-beranda-desktop',
+      shell(
+        _superAdmin,
+        communities: memberOf(role: CommunityRole.creator, others: otherClubs),
+        saved: {'1': '1'},
+      ),
+      size: const Size(1280, 1300),
+    );
+  });
+
+  testWidgets('58-beranda-menunggu-persetujuan', (tester) async {
+    await shoot(
+      tester,
+      '58-beranda-menunggu-persetujuan',
+      shell(
+        _complete,
+        banners: const [],
+        communities: newcomer(requests: [
+          testCommunity(
+            '12',
+            name: 'Futsal Pasundan',
+            myRole: CommunityRole.member,
+            myStatus: CommunityMembershipStatus.pending,
+          ),
+        ]),
+      ),
+      size: const Size(360, 1000),
+    );
+  });
+
+  testWidgets('59-beranda-menunggu-verifikasi', (tester) async {
+    await shoot(
+      tester,
+      '59-beranda-menunggu-verifikasi',
+      shell(
+        _complete,
+        banners: const [],
+        communities: memberOf(
+          role: CommunityRole.creator,
+          status: CommunityStatus.pending,
+        ),
+      ),
+      size: const Size(360, 1100),
+    );
+  });
+
+  testWidgets('60-beranda-desktop-mulai', (tester) async {
+    await shoot(
+      tester,
+      '60-beranda-desktop-mulai',
+      shell(_complete, communities: newcomer()),
+      size: const Size(1280, 1000),
     );
   });
 

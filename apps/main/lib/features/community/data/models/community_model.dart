@@ -17,6 +17,7 @@ class CommunityModel extends Community {
     super.logoUrl,
     super.createdAt,
     super.myRole,
+    super.myStatus,
     super.membersCount,
   });
 
@@ -33,6 +34,7 @@ class CommunityModel extends Community {
         logoUrl: json['logo_url'] as String?,
         createdAt: _time(json['created_at']),
         myRole: CommunityRole.fromApi(json['my_role']),
+        myStatus: CommunityMembershipStatus.fromApi(json['my_status']),
         membersCount: json['members_count'] as int?,
       );
 }

@@ -12,6 +12,9 @@ abstract final class AppRoutes {
   // Komunitas
   static const String communities = '/communities';
   static const String createCommunity = '$communities/new';
+
+  /// Langkah sesudah Lengkapi Data Diri: cari atau daftarkan komunitas.
+  static const String communityStart = '/start';
   static String community(String id) => '$communities/$id';
   static String member(String userId) => '/members/$userId';
 

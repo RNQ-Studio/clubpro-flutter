@@ -6,6 +6,8 @@ abstract interface class CommunityRepository {
     required int page,
     String search = '',
     String? type,
+    CommunitySort sort = CommunitySort.name,
+    int? perPage,
   });
 
   Future<List<Community>> getMine();
@@ -21,8 +23,9 @@ abstract interface class CommunityRepository {
 
   Future<CommunityDetail> submit(CommunityDraft draft);
 
-  /// Komunitas yang diikuti pengguna yang login.
-  Future<List<Community>> getJoined();
+  /// Komunitas yang diikuti pengguna yang login; [includePending] ikut memuat
+  /// permintaan bergabung yang belum diterima.
+  Future<List<Community>> getJoined({bool includePending = false});
 
   Future<void> join(String communityId);
 

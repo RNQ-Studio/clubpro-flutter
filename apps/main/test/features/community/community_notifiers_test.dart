@@ -77,8 +77,13 @@ void main() {
       await notifier.search('  bandung ');
       await notifier.retry();
 
-      expect(repository.listCalls.last,
-          (page: 1, search: 'bandung', type: 'fashion'));
+      expect(repository.listCalls.last, (
+        page: 1,
+        search: 'bandung',
+        type: 'fashion',
+        sort: CommunitySort.name,
+        perPage: null,
+      ));
     });
   });
 

@@ -28,6 +28,31 @@ enum CommunityRole {
       values.where((e) => e.apiValue == value).firstOrNull;
 }
 
+/// Keanggotaan pengguna yang login di satu komunitas.
+enum CommunityMembershipStatus {
+  active('active'),
+
+  /// Permintaan bergabung yang belum diterima creator/admin.
+  pending('pending');
+
+  const CommunityMembershipStatus(this.apiValue);
+  final String apiValue;
+
+  static CommunityMembershipStatus? fromApi(Object? value) =>
+      values.where((e) => e.apiValue == value).firstOrNull;
+}
+
+/// Urutan daftar komunitas.
+enum CommunitySort {
+  name('name'),
+
+  /// Anggota aktif terbanyak dulu.
+  popular('popular');
+
+  const CommunitySort(this.apiValue);
+  final String apiValue;
+}
+
 class Community {
   const Community({
     required this.id,
@@ -42,6 +67,7 @@ class Community {
     this.logoUrl,
     this.createdAt,
     this.myRole,
+    this.myStatus,
     this.membersCount,
   });
 
@@ -61,9 +87,15 @@ class Community {
 
   /// Peran pengguna yang login; null bila bukan anggota.
   final CommunityRole? myRole;
+
+  /// Null bila server tidak mengirimnya (dianggap anggota aktif bila [myRole] ada).
+  final CommunityMembershipStatus? myStatus;
   final int? membersCount;
 
   String get location => '$cityName, $provinceName';
+
+  /// Permintaan bergabung yang masih menunggu persetujuan.
+  bool get isJoinRequest => myStatus == CommunityMembershipStatus.pending;
 }
 
 class CommunityPhoto {

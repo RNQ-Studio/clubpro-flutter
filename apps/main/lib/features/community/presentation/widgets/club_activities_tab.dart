@@ -126,13 +126,14 @@ class ClubActivitiesTab extends ConsumerWidget {
                   if (later.isNotEmpty) ...[
                     const ClubGroupTitle('Berikutnya'),
                     for (final activity in later)
-                      _ActivityTile(activity: activity, menu: menu(activity)),
+                      ClubActivityTile(
+                          activity: activity, menu: menu(activity)),
                     const SizedBox(height: 14),
                   ],
                   if (activities.past.isNotEmpty) ...[
                     const ClubGroupTitle('Sudah Berlangsung'),
                     for (final activity in activities.past)
-                      _ActivityTile(
+                      ClubActivityTile(
                         activity: activity,
                         past: true,
                         menu: menu(activity),
@@ -255,8 +256,10 @@ class _NextActivityCard extends StatelessWidget {
   }
 }
 
-class _ActivityTile extends StatelessWidget {
-  const _ActivityTile({
+/// Satu kegiatan: tanggal, judul, jam, dan lokasi.
+class ClubActivityTile extends StatelessWidget {
+  const ClubActivityTile({
+    super.key,
     required this.activity,
     this.past = false,
     this.menu,

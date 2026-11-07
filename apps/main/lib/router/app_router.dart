@@ -15,6 +15,8 @@ import '../features/admin/presentation/screens/admin_users_screen.dart';
 import '../features/community/presentation/screens/communities_screen.dart';
 import '../features/community/presentation/screens/community_detail_screen.dart';
 import '../features/community/presentation/screens/community_form_screen.dart';
+import '../features/community/presentation/screens/community_start_screen.dart';
+import '../features/community/presentation/widgets/club_hero.dart';
 import '../features/community/presentation/screens/member_profile_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/quotes/presentation/screens/quote_form_screen.dart';
@@ -81,6 +83,7 @@ final appRouter = GoRouter(
               path: ':id',
               builder: (context, state) => CommunityDetailScreen(
                 communityId: state.pathParameters['id']!,
+                initialTab: ClubTab.fromName(state.uri.queryParameters['tab']),
               ),
             ),
           ],
@@ -91,7 +94,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.profileSetup,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ProfileSetupScreen(),
+      builder: (context, state) =>
+          const ProfileSetupScreen(doneLocation: AppRoutes.communityStart),
+    ),
+    GoRoute(
+      path: AppRoutes.communityStart,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const CommunityStartScreen(),
     ),
     GoRoute(
       path: AppRoutes.editProfile,

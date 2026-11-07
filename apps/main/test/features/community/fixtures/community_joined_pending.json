@@ -1,0 +1,38 @@
+{
+  "success": true,
+  "message": "OK",
+  "data": [
+    {
+      "id": 1,
+      "name": "Pemanah Nusantara",
+      "short_name": "PN",
+      "type": "panahan",
+      "type_label": "Panahan",
+      "status": "approved",
+      "logo_url": "https://anaklangit.manahpro.web.id/api/v1/assets/531e1b37-e432-4e0c-9335-b044d7cfbf1d/file",
+      "city_name": "Kota Bandung",
+      "province_name": "Jawa Barat",
+      "description": "Komunitas pecinta panahan tradisional yang rutin berlatih setiap akhir pekan di Bandung.",
+      "created_at": "2026-11-07T17:13:41+00:00",
+      "members_count": 2,
+      "my_role": "admin",
+      "my_status": "active"
+    },
+    {
+      "id": 2,
+      "name": "Sepak Bola Solo",
+      "short_name": "SBS",
+      "type": "sepak_bola",
+      "type_label": "Sepak Bola",
+      "status": "approved",
+      "logo_url": "https://anaklangit.manahpro.web.id/api/v1/assets/ac454fa4-36d0-49bd-aebd-c0acbf103060/file",
+      "city_name": "Kota Surakarta",
+      "province_name": "Jawa Tengah",
+      "description": "Komunitas sepak bola amatir di Solo; latihan rutin setiap Minggu pagi.",
+      "created_at": "2026-11-07T17:13:41+00:00",
+      "members_count": 4,
+      "my_role": "member",
+      "my_status": "pending"
+    }
+  ]
+}

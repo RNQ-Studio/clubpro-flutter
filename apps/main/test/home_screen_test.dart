@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:app_main/features/community/domain/entities/community.dart';
+import 'package:app_main/features/community/presentation/active_community_notifier.dart';
 import 'package:app_main/features/community/presentation/community_providers.dart';
+import 'package:app_main/features/community/presentation/widgets/club_hero.dart';
 import 'package:app_main/features/home/data/banner_remote_data_source.dart';
 import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/domain/entities/home_banner.dart';
@@ -9,8 +11,8 @@ import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
 import 'package:app_main/features/home/presentation/widgets/home_app_version.dart';
 import 'package:app_main/features/home/presentation/widgets/home_banner_slider.dart';
-import 'package:app_main/features/home/presentation/widgets/home_menu_grid.dart';
-import 'package:app_main/features/home/presentation/widgets/home_my_communities.dart';
+import 'package:app_main/features/home/presentation/widgets/home_club_card.dart';
+import 'package:app_main/features/home/presentation/widgets/home_club_sections.dart';
 import 'package:app_main/features/home/presentation/widgets/home_user_header.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
@@ -83,6 +85,7 @@ Widget _app({
   Future<List<HomeBanner>>? loadingBanners,
   AppRefresher? refresher,
   FakeCommunityRepository? communities,
+  FakeActiveCommunityStore? store,
 }) {
   final router = GoRouter(
     initialLocation: '/',
@@ -99,10 +102,20 @@ Widget _app({
             ),
             routes: [
               GoRoute(
+                path: 'new',
+                builder: (_, __) => Scaffold(
+                  appBar: AppBar(),
+                  body: const Text('HALAMAN DAFTARKAN'),
+                ),
+              ),
+              GoRoute(
                 path: ':id',
                 builder: (_, state) => Scaffold(
                   appBar: AppBar(),
-                  body: Text('KLUB ${state.pathParameters['id']}'),
+                  body: Text(
+                    'KLUB ${state.pathParameters['id']}'
+                    '${state.uri.queryParameters['tab'] == null ? '' : ' tab=${state.uri.queryParameters['tab']}'}',
+                  ),
                 ),
               ),
             ],
@@ -131,6 +144,8 @@ Widget _app({
       appRefresherProvider.overrideWithValue(refresher),
       communityRepositoryProvider
           .overrideWithValue(communities ?? FakeCommunityRepository()),
+      activeCommunityStoreProvider
+          .overrideWithValue(store ?? FakeActiveCommunityStore()),
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -141,6 +156,61 @@ Widget _app({
   );
 }
 
+/// Anggota satu komunitas: Beranda langsung membuka komunitas itu.
+FakeCommunityRepository _member({
+  CommunityRole role = CommunityRole.member,
+  CommunityStatus status = CommunityStatus.approved,
+  int pendingMembersCount = 0,
+  CommunityActivities activities = const CommunityActivities(),
+}) =>
+    FakeCommunityRepository(
+      joined: [
+        testCommunity('1', myRole: role, status: status, membersCount: 24),
+      ],
+      detail: testDetail(
+        myRole: role,
+        status: status,
+        membersCount: 24,
+        pendingMembersCount: pendingMembersCount,
+        upcomingActivitiesCount: activities.upcoming.length,
+      ),
+      activities: activities,
+    );
+
+final _clubs = [
+  testCommunity(
+    '1',
+    name: 'Pemanah Nusantara',
+    myRole: CommunityRole.creator,
+    membersCount: 24,
+  ),
+  testCommunity(
+    '2',
+    name: 'Futsal Bandung',
+    myRole: CommunityRole.admin,
+    membersCount: 12,
+  ),
+  testCommunity(
+    '3',
+    name: 'Gowes Bogor',
+    myRole: CommunityRole.member,
+    membersCount: 40,
+  ),
+];
+
+FakeCommunityRepository _manyClubs() => FakeCommunityRepository(
+      joined: _clubs,
+      detail: testDetail(myRole: CommunityRole.member),
+    );
+
+const _day = Duration(days: 1);
+
+/// Isi Beranda dibangun bertahap; gulir ke dasar agar semua bagiannya dibuat.
+Future<void> _scrollToEnd(WidgetTester tester) async {
+  await tester.drag(find.byType(ListView).first, const Offset(0, -4000));
+  await tester.pumpAndSettle();
+}
+
 void _phoneScreen(WidgetTester tester) {
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 2.7;
@@ -148,41 +218,585 @@ void _phoneScreen(WidgetTester tester) {
 }
 
 void main() {
-  testWidgets('Beranda: info user di atas, banner, lalu menu utama club',
+  testWidgets('Beranda anggota: info user, komunitas aktif, banner, menu',
       (tester) async {
     _phoneScreen(tester);
-    await tester.pumpWidget(_app());
-    await tester.pump();
+    await tester.pumpWidget(_app(communities: _member()));
+    await tester.pumpAndSettle();
 
     // Info singkat user: foto (inisial bila tanpa foto), nama, email.
     expect(find.text('Rina Ayu'), findsOneWidget);
     expect(find.text('rina@gmail.com'), findsOneWidget);
     expect(find.text('R'), findsOneWidget);
 
-    // Banner slider di bawah header.
-    expect(find.byKey(const Key('home-banner-slider')), findsOneWidget);
-    expect(find.text('Latihan Bersama Akhir Pekan'), findsOneWidget);
-    final headerY =
-        tester.getTopLeft(find.byKey(const Key('home-user-header'))).dy;
-    final bannerY =
-        tester.getTopLeft(find.byKey(const Key('home-banner-slider'))).dy;
-    final menuY = tester.getTopLeft(find.text('Menu Utama')).dy;
-    expect(headerY, lessThan(bannerY));
-    expect(bannerY, lessThan(menuY));
+    // Komunitas aktif di bawah info user, banner di bawahnya, lalu menu.
+    expect(find.text('Pemanah Nusantara'), findsOneWidget);
+    expect(find.text('Masuk sebagai anggota'), findsOneWidget);
+    expect(find.text('24 anggota'), findsOneWidget);
+    final header = tester.getRect(find.byType(HomeUserHeader));
+    final card = tester.getRect(find.byType(HomeClubCard));
+    final banner = tester.getRect(find.byKey(const Key('home-banner-slider')));
+    final menu = tester.getTopLeft(find.text('Menu Komunitas')).dy;
+    expect(header.bottom, lessThanOrEqualTo(card.top));
+    expect(card.bottom, lessThanOrEqualTo(banner.top));
+    expect(banner.bottom, lessThanOrEqualTo(menu));
 
-    // Menu utama sesuai lingkup CEO.
-    for (final menu in homeMenus) {
-      expect(find.text(menu.label), findsOneWidget);
+    for (final (tab, label, _, _) in HomeClubMenu.items) {
+      expect(
+        find.descendant(
+          of: find.byKey(Key('home-club-menu-$tab')),
+          matching: find.text(label),
+        ),
+        findsOneWidget,
+        reason: label,
+      );
     }
-    for (final label in [
-      'Kartu Anggota',
-      'Absensi',
-      'Iuran Bulanan',
-      'Top-up Saldo',
-      'Riwayat Transaksi'
+    expect(HomeClubMenu.items.map((i) => i.$2),
+        ['Info', 'Anggota', 'Kegiatan', 'Galeri']);
+    // Anggota biasa tidak melihat sisi pengelola, dan tidak bisa ganti
+    // komunitas karena hanya ikut satu.
+    expect(find.byKey(const Key('home-manager-panel')), findsNothing);
+    expect(find.byKey(const Key('home-club-switch')), findsNothing);
+  });
+
+  testWidgets('tidak ada lagi menu "Segera hadir"', (tester) async {
+    _phoneScreen(tester);
+    for (final communities in [
+      _member(),
+      _manyClubs(),
+      FakeCommunityRepository(),
     ]) {
-      expect(find.text(label), findsOneWidget, reason: label);
+      await tester.pumpWidget(_app(communities: communities));
+      await tester.pumpAndSettle();
+
+      for (final label in [
+        'Menu Utama',
+        'Kartu Anggota',
+        'Absensi',
+        'Iuran Bulanan',
+        'Top-up Saldo',
+        'Riwayat Transaksi',
+        'Pengumuman',
+        'Segera hadir',
+      ]) {
+        expect(find.text(label), findsNothing, reason: label);
+      }
     }
+  });
+
+  group('menu komunitas', () {
+    for (final (tab, label, query) in [
+      (ClubTab.info, 'Info', ''),
+      (ClubTab.members, 'Anggota', ' tab=anggota'),
+      (ClubTab.activities, 'Kegiatan', ' tab=kegiatan'),
+      (ClubTab.gallery, 'Galeri', ' tab=galeri'),
+    ]) {
+      testWidgets('$label membuka tabnya di halaman komunitas lalu kembali',
+          (tester) async {
+        _phoneScreen(tester);
+        await tester.pumpWidget(_app(communities: _member()));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(Key('home-club-menu-$tab')));
+        await tester.pumpAndSettle();
+        expect(find.text('KLUB 1$query'), findsOneWidget);
+
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeClubCard), findsOneWidget);
+      });
+    }
+
+    testWidgets('kartu komunitas membuka halaman komunitasnya', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(communities: _member()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('home-club-card')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('KLUB 1'), findsOneWidget);
+    });
+  });
+
+  group('sisi pengelola', () {
+    testWidgets('creator: panel Kelola Komunitas dengan permintaan menunggu',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: _member(
+          role: CommunityRole.creator,
+          pendingMembersCount: 2,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Masuk sebagai creator'), findsOneWidget);
+      expect(find.text('Kelola Komunitas'), findsOneWidget);
+      expect(find.text('Anda Creator di komunitas ini'), findsOneWidget);
+      expect(find.text('2 menunggu persetujuan'), findsOneWidget);
+      expect(find.text('Belum ada kegiatan terjadwal'), findsOneWidget);
+      expect(find.text('Belum ada foto'), findsOneWidget);
+      final badge = tester
+          .widget<Badge>(find.byKey(const Key('home-club-requests-badge')));
+      expect(badge.isLabelVisible, isTrue);
+
+      await tester.ensureVisible(find.byKey(const Key('home-manage-requests')));
+      await tester.tap(find.byKey(const Key('home-manage-requests')));
+      await tester.pumpAndSettle();
+      expect(find.text('KLUB 1 tab=anggota'), findsOneWidget);
+    });
+
+    testWidgets('admin: panel ikut tampil; kegiatan & galeri ke tabnya',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: _member(
+          role: CommunityRole.admin,
+          activities: CommunityActivities(upcoming: [
+            testActivity('a1', startsAt: DateTime.now().add(_day)),
+          ]),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Anda Admin di komunitas ini'), findsOneWidget);
+      expect(find.text('Tidak ada yang menunggu'), findsOneWidget);
+      expect(find.text('1 kegiatan mendatang'), findsOneWidget);
+      expect(
+        tester
+            .widget<Badge>(find.byKey(const Key('home-club-requests-badge')))
+            .isLabelVisible,
+        isFalse,
+      );
+
+      for (final (key, location) in [
+        ('home-manage-activities', 'KLUB 1 tab=kegiatan'),
+        ('home-manage-gallery', 'KLUB 1 tab=galeri'),
+      ]) {
+        await tester.ensureVisible(find.byKey(Key(key)));
+        await tester.tap(find.byKey(Key(key)));
+        await tester.pumpAndSettle();
+        expect(find.text(location), findsOneWidget, reason: key);
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('anggota biasa: tanpa panel walau server mengirim angka',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: _member(pendingMembersCount: 5),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kelola Komunitas'), findsNothing);
+      expect(
+        tester
+            .widget<Badge>(find.byKey(const Key('home-club-requests-badge')))
+            .isLabelVisible,
+        isFalse,
+      );
+    });
+
+    testWidgets('pengajuan belum diverifikasi: status di kartu dan panel',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: _member(
+          role: CommunityRole.creator,
+          status: CommunityStatus.pending,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byType(HomeClubCard),
+          matching: find.text('Menunggu Verifikasi'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('home-manager-notice')), findsOneWidget);
+      expect(find.textContaining('belum bisa ditemukan'), findsOneWidget);
+    });
+  });
+
+  group('kegiatan mendatang', () {
+    testWidgets('paling banyak tiga, terdekat dulu; Lihat semua ke tabnya',
+        (tester) async {
+      _phoneScreen(tester);
+      final now = DateTime.now();
+      await tester.pumpWidget(_app(
+        communities: _member(
+          activities: CommunityActivities(upcoming: [
+            for (var i = 1; i <= 4; i++)
+              testActivity('a$i',
+                  title: 'Kegiatan $i', startsAt: now.add(_day * i)),
+          ]),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      for (var i = 1; i <= 3; i++) {
+        expect(find.text('Kegiatan $i'), findsOneWidget);
+      }
+      expect(find.text('Kegiatan 4'), findsNothing);
+
+      await tester.ensureVisible(find.byKey(const Key('home-activities-all')));
+      await tester.tap(find.byKey(const Key('home-activities-all')));
+      await tester.pumpAndSettle();
+      expect(find.text('KLUB 1 tab=kegiatan'), findsOneWidget);
+    });
+
+    testWidgets('belum ada kegiatan', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(communities: _member()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Belum ada kegiatan terjadwal.'), findsOneWidget);
+    });
+  });
+
+  group('beberapa komunitas', () {
+    testWidgets('belum memilih: tanya masuk sebagai anggota komunitas mana',
+        (tester) async {
+      _phoneScreen(tester);
+      final store = FakeActiveCommunityStore();
+      await tester.pumpWidget(_app(communities: _manyClubs(), store: store));
+      await tester.pumpAndSettle();
+
+      expect(
+          find.text('Masuk sebagai anggota komunitas mana?'), findsOneWidget);
+      expect(find.byType(HomeClubCard), findsNothing);
+      expect(find.text('Menu Komunitas'), findsNothing);
+      for (final name in [
+        'Pemanah Nusantara',
+        'Futsal Bandung',
+        'Gowes Bogor'
+      ]) {
+        expect(find.text(name), findsOneWidget, reason: name);
+      }
+      // Peran ditandai per komunitas.
+      expect(find.text('Creator'), findsOneWidget);
+      expect(find.text('Admin'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('home-club-option-2')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(HomeClubCard), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(HomeClubCard),
+          matching: find.text('Futsal Bandung'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Masuk sebagai anggota komunitas mana?'), findsNothing);
+      expect(store.saved, {'1': '2'});
+    });
+
+    testWidgets('pilihan terakhir dipakai lagi saat membuka app',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: _manyClubs(),
+        store: FakeActiveCommunityStore({'1': '3'}),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Masuk sebagai anggota komunitas mana?'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(HomeClubCard),
+          matching: find.text('Gowes Bogor'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('ganti komunitas lewat lembar pilihan, lalu diingat',
+        (tester) async {
+      _phoneScreen(tester);
+      final store = FakeActiveCommunityStore({'1': '3'});
+      await tester.pumpWidget(_app(communities: _manyClubs(), store: store));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('home-club-switch')));
+      await tester.pumpAndSettle();
+      expect(find.text('Ganti Komunitas'), findsOneWidget);
+      expect(find.byKey(const Key('home-switcher-find')), findsOneWidget);
+      expect(find.byKey(const Key('home-switcher-create')), findsOneWidget);
+      // Yang sedang aktif ditandai.
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('home-club-option-3')),
+          matching: find.byIcon(Icons.check_circle_rounded),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('home-club-option-1')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ganti Komunitas'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(HomeClubCard),
+          matching: find.text('Pemanah Nusantara'),
+        ),
+        findsOneWidget,
+      );
+      expect(store.saved, {'1': '1'});
+    });
+
+    testWidgets('lembar pilihan: cari komunitas lain', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: _manyClubs(),
+        store: FakeActiveCommunityStore({'1': '3'}),
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('home-club-switch')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('home-switcher-find')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('HALAMAN KOMUNITAS'), findsOneWidget);
+    });
+  });
+
+  group('belum tergabung', () {
+    FakeCommunityRepository popular({List<Community> joined = const []}) =>
+        FakeCommunityRepository(
+          joined: joined,
+          pages: [
+            [
+              testCommunity('8', name: 'Gowes Bogor', membersCount: 140),
+              testCommunity('9', name: 'Futsal Bandung', membersCount: 75),
+            ],
+          ],
+        );
+
+    testWidgets('cari atau daftarkan, dengan rekomendasi terpopuler',
+        (tester) async {
+      _phoneScreen(tester);
+      final repository = popular();
+      await tester.pumpWidget(_app(communities: repository));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mulai bersama komunitas'), findsOneWidget);
+      expect(find.text('Cari Komunitas'), findsOneWidget);
+      expect(find.text('Daftarkan Komunitas Baru'), findsOneWidget);
+      expect(find.text('Rekomendasi Komunitas'), findsOneWidget);
+      expect(find.text('Paling banyak anggotanya'), findsOneWidget);
+      expect(find.text('140'), findsOneWidget);
+      expect(find.text('75'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Gowes Bogor')).dy,
+        lessThan(tester.getTopLeft(find.text('Futsal Bandung')).dy),
+      );
+      expect(repository.listCalls.single.sort, CommunitySort.popular);
+      expect(find.byType(HomeClubCard), findsNothing);
+    });
+
+    testWidgets('pilihan cari/daftarkan di atas banner', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(communities: popular()));
+      await tester.pumpAndSettle();
+
+      final create =
+          tester.getRect(find.byKey(const Key('community-start-create')));
+      // Terlihat tanpa menggulir.
+      expect(create.bottom, lessThan(tester.view.physicalSize.height / 2.7));
+      await _scrollToEnd(tester);
+      expect(find.byKey(const Key('home-banner-slider')), findsOneWidget);
+    });
+
+    for (final (key, page) in [
+      ('community-start-find', 'HALAMAN KOMUNITAS'),
+      ('community-start-create', 'HALAMAN DAFTARKAN'),
+      ('community-recommended-8', 'KLUB 8'),
+      ('community-recommended-all', 'HALAMAN KOMUNITAS'),
+    ]) {
+      testWidgets('$key membuka $page lalu bisa kembali', (tester) async {
+        _phoneScreen(tester);
+        await tester.pumpWidget(_app(communities: popular()));
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(find.byKey(Key(key)));
+        await tester.tap(find.byKey(Key(key)));
+        await tester.pumpAndSettle();
+        expect(find.text(page), findsOneWidget);
+
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+        expect(find.text('Mulai bersama komunitas'), findsOneWidget);
+      });
+    }
+
+    testWidgets('permintaan bergabung yang menunggu ikut tampil',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        communities: popular(joined: [
+          testCommunity(
+            '9',
+            name: 'Futsal Bandung',
+            myRole: CommunityRole.member,
+            myStatus: CommunityMembershipStatus.pending,
+          ),
+        ]),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Menunggu persetujuan pengurus'), findsOneWidget);
+      expect(
+          find.byKey(const Key('community-start-request-9')), findsOneWidget);
+      // Rekomendasi yang sudah diminta ditandai, bukan angka anggotanya.
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('community-recommended-9')),
+          matching: find.text('Menunggu'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('75'), findsNothing);
+      expect(find.byType(HomeClubCard), findsNothing);
+    });
+
+    testWidgets('rekomendasi gagal dimuat: coba lagi', (tester) async {
+      _phoneScreen(tester);
+      final repository = popular()..error = const NetworkException('offline');
+      await tester.pumpWidget(_app(communities: repository));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Rekomendasi gagal dimuat.'), findsOneWidget);
+      expect(find.text('Cari Komunitas'), findsOneWidget);
+
+      repository.error = null;
+      await tester
+          .ensureVisible(find.byKey(const Key('community-recommended-retry')));
+      await tester.tap(find.byKey(const Key('community-recommended-retry')));
+      await tester.pumpAndSettle();
+      expect(find.text('Gowes Bogor'), findsOneWidget);
+    });
+
+    testWidgets('belum ada komunitas terverifikasi', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Belum ada komunitas terverifikasi'),
+          findsOneWidget);
+    });
+  });
+
+  group('memuat & gagal', () {
+    testWidgets('selama dimuat: tempat kartu, tanpa pemutar', (tester) async {
+      _phoneScreen(tester);
+      final repository = _member()..joinedGate = Completer();
+      await tester.pumpWidget(_app(communities: repository));
+      await tester.pump();
+
+      expect(find.byKey(const Key('home-club-loading')), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(HomeUserHeader), findsOneWidget);
+
+      repository.joinedGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('home-club-loading')), findsNothing);
+      expect(find.byType(HomeClubCard), findsOneWidget);
+    });
+
+    testWidgets('gagal dimuat: Beranda utuh, coba lagi memuat ulang',
+        (tester) async {
+      _phoneScreen(tester);
+      final repository = _member()
+        ..joinedError = const ServerException('Server sibuk.');
+      await tester.pumpWidget(_app(communities: repository));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('home-club-error')), findsOneWidget);
+      expect(find.byType(HomeUserHeader), findsOneWidget);
+      expect(find.text('Server sibuk.'), findsNothing);
+
+      repository.joinedError = null;
+      await tester.tap(find.byKey(const Key('home-club-retry')));
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeClubCard), findsOneWidget);
+    });
+
+    testWidgets('tarik untuk menyegarkan memuat ulang komunitas',
+        (tester) async {
+      _phoneScreen(tester);
+      final repository = _member();
+      await tester.pumpWidget(_app(communities: repository));
+      await tester.pumpAndSettle();
+      expect(repository.joinedCalls, 1);
+
+      repository.joined = [
+        testCommunity('1', name: 'Nama Baru', myRole: CommunityRole.member),
+      ];
+      await tester.fling(
+        find.byType(ListView).first,
+        const Offset(0, 400),
+        1000,
+      );
+      await tester.pumpAndSettle();
+
+      expect(repository.joinedCalls, 2);
+      expect(find.text('Nama Baru'), findsOneWidget);
+    });
+  });
+
+  group('tanpa overflow', () {
+    for (final (name, communities, store) in [
+      (
+        'pengelola',
+        () => _member(role: CommunityRole.creator, pendingMembersCount: 12),
+        null,
+      ),
+      ('pilihan komunitas', _manyClubs, null),
+      ('ganti komunitas', _manyClubs, {'1': '1'}),
+      ('belum tergabung', FakeCommunityRepository.new, null),
+    ]) {
+      testWidgets('$name: layar sempit + teks besar', (tester) async {
+        tester.view.physicalSize = const Size(640, 1280); // 320×640 dp
+        tester.view.devicePixelRatio = 2;
+        tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+        await tester.pumpWidget(_app(
+          communities: communities(),
+          store: FakeActiveCommunityStore(store),
+        ));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+
+        await tester.drag(find.byType(ListView).first, const Offset(0, -900));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('layar lebar: isi tidak melar', (tester) async {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(communities: _member()));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSize(find.byType(HomeClubCard)).width,
+        lessThanOrEqualTo(HomeScreen.maxContentWidth),
+      );
+      expect(tester.getCenter(find.byType(HomeClubCard)).dx, 640);
+    });
   });
 
   testWidgets('banner bergeser otomatis', (tester) async {
@@ -202,7 +816,7 @@ void main() {
   testWidgets('banner bertujuan halaman app: terbuka lalu kembali ke Beranda',
       (tester) async {
     _phoneScreen(tester);
-    await tester.pumpWidget(_app(banners: const [
+    await tester.pumpWidget(_app(communities: _member(), banners: const [
       HomeBanner(id: '1', title: 'Klub Pilihan', linkUrl: '/communities/5'),
     ]));
     await tester.pump();
@@ -213,7 +827,7 @@ void main() {
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.text('Menu Utama'), findsOneWidget);
+    expect(find.byType(HomeUserHeader), findsOneWidget);
   });
 
   testWidgets('banner foto bertulisan: tanpa teks dan gradasi di atasnya',
@@ -234,19 +848,6 @@ void main() {
       find.descendant(of: cards.first, matching: find.byType(DecoratedBox)),
       findsOneWidget, // latar warna saja
     );
-  });
-
-  testWidgets('menu yang belum tersedia menampilkan "Segera hadir"',
-      (tester) async {
-    _phoneScreen(tester);
-    await tester.pumpWidget(_app());
-    await tester.pump();
-
-    await tester.tap(find.byKey(const Key('home-menu-dues')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Segera hadir'), findsOneWidget);
-    expect(find.textContaining('iuran bulanan'), findsOneWidget);
   });
 
   testWidgets('tidak ada navigasi bawah', (tester) async {
@@ -271,7 +872,7 @@ void main() {
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.text('Menu Utama'), findsOneWidget);
+    expect(find.byType(HomeUserHeader), findsOneWidget);
   });
 
   testWidgets('profil belum lengkap ditandai di foto', (tester) async {
@@ -302,34 +903,10 @@ void main() {
     expect(find.byIcon(Icons.verified_rounded), findsOneWidget);
   });
 
-  testWidgets('Komunitas menjadi kartu teratas Menu Utama dan bisa kembali',
-      (tester) async {
-    _phoneScreen(tester);
-    await tester.pumpWidget(_app());
-    await tester.pump();
-
-    final card = find.byKey(const Key('home-community'));
-    expect(card, findsOneWidget);
-    final cardY = tester.getTopLeft(card).dy;
-    expect(cardY, greaterThan(tester.getTopLeft(find.text('Menu Utama')).dy));
-    expect(cardY, lessThan(tester.getTopLeft(find.byType(HomeMenuGrid)).dy));
-
-    await tester.tap(card);
-    await tester.pumpAndSettle();
-    expect(find.text('HALAMAN KOMUNITAS'), findsOneWidget);
-
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
-    expect(find.text('Menu Utama'), findsOneWidget);
-  });
-
   group('versi dan pembaruan', () {
     Finder refreshButton() => find.byKey(const Key('home-refresh-app'));
 
-    Future<void> scrollToBottom(WidgetTester tester) async {
-      await tester.drag(find.byType(ListView).first, const Offset(0, -900));
-      await tester.pumpAndSettle();
-    }
+    const scrollToBottom = _scrollToEnd;
 
     setUp(() {
       PackageInfo.setMockInitialValues(
@@ -410,6 +987,7 @@ void main() {
     await tester.pumpWidget(_app(user: _completeUser));
     await tester.pump();
 
+    await _scrollToEnd(tester);
     expect(find.byKey(const Key('home-admin-panel')), findsNothing);
     expect(find.text('Admin Panel'), findsNothing);
   });
@@ -427,6 +1005,7 @@ void main() {
     ));
     await tester.pump();
 
+    await _scrollToEnd(tester);
     expect(find.byKey(const Key('home-admin-panel')), findsNothing);
   });
 
@@ -437,196 +1016,14 @@ void main() {
     await tester.pump();
 
     final card = find.byKey(const Key('home-admin-panel'));
+    await _scrollToEnd(tester);
     expect(card, findsOneWidget);
     expect(find.text('Admin Panel'), findsOneWidget);
-    expect(
-      tester.getTopLeft(card).dy,
-      greaterThan(tester.getTopLeft(find.text('Menu Utama')).dy),
-    );
 
-    await tester.ensureVisible(card);
-    await tester.pump();
     await tester.tap(card);
     await tester.pumpAndSettle();
 
     expect(find.text('HALAMAN ADMIN'), findsOneWidget);
-  });
-
-  testWidgets('layar sempit + teks besar tanpa overflow', (tester) async {
-    tester.view.physicalSize = const Size(720, 1280); // 360×640 dp
-    tester.view.devicePixelRatio = 2;
-    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
-    addTearDown(tester.view.reset);
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-
-    await tester.pumpWidget(_app());
-    await tester.pump();
-
-    expect(tester.takeException(), isNull);
-    await tester.drag(find.byType(ListView).first, const Offset(0, -600));
-    await tester.pump();
-    expect(tester.takeException(), isNull);
-  });
-
-  group('Komunitas Saya', () {
-    FakeCommunityRepository clubs() => FakeCommunityRepository(
-          joined: [
-            testCommunity(
-              '1',
-              shortName: 'PN',
-              myRole: CommunityRole.creator,
-            ),
-            testCommunity(
-              '2',
-              shortName: 'FBB',
-              myRole: CommunityRole.admin,
-            ),
-            testCommunity(
-              '3',
-              shortName: 'GBK',
-              myRole: CommunityRole.member,
-            ),
-          ],
-        );
-
-    testWidgets('berada di bawah info pengguna, di atas banner',
-        (tester) async {
-      _phoneScreen(tester);
-      await tester.pumpWidget(_app(communities: clubs()));
-      await tester.pumpAndSettle();
-
-      final row = tester.getRect(find.byType(HomeMyCommunities));
-      final header = tester.getRect(find.byType(HomeUserHeader));
-      final banner =
-          tester.getRect(find.byKey(const Key('home-banner-slider')));
-      expect(header.bottom, lessThanOrEqualTo(row.top));
-      expect(row.bottom, lessThanOrEqualTo(banner.top));
-      expect(find.text('Komunitas Saya'), findsOneWidget);
-      for (final name in ['PN', 'FBB', 'GBK']) {
-        expect(find.text(name), findsOneWidget);
-      }
-    });
-
-    testWidgets('peran ditandai: creator dan admin, anggota tidak',
-        (tester) async {
-      _phoneScreen(tester);
-      await tester.pumpWidget(_app(communities: clubs()));
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.workspace_premium_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.shield_rounded), findsOneWidget);
-    });
-
-    testWidgets('pengajuan yang menunggu verifikasi ditandai', (tester) async {
-      _phoneScreen(tester);
-      await tester.pumpWidget(_app(
-        communities: FakeCommunityRepository(
-          joined: [
-            testCommunity(
-              '1',
-              status: CommunityStatus.pending,
-              myRole: CommunityRole.creator,
-            ),
-          ],
-        ),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.hourglass_top_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.workspace_premium_rounded), findsNothing);
-    });
-
-    testWidgets('mengetuk komunitas membuka halaman klubnya', (tester) async {
-      _phoneScreen(tester);
-      await tester.pumpWidget(_app(communities: clubs()));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('home-community-2')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('KLUB 2'), findsOneWidget);
-    });
-
-    testWidgets('belum ikut komunitas: diajak mencari', (tester) async {
-      _phoneScreen(tester);
-      await tester.pumpWidget(_app());
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Belum ikut komunitas'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('home-discover-communities')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('HALAMAN KOMUNITAS'), findsOneWidget);
-    });
-
-    testWidgets('gagal dimuat: Beranda tetap utuh', (tester) async {
-      _phoneScreen(tester);
-      await tester.pumpWidget(_app(
-        communities: FakeCommunityRepository(
-          joined: const [],
-        )..joinedError = const ServerException('Fitur belum aktif.'),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Komunitas Saya'), findsNothing);
-      expect(find.text('Fitur belum aktif.'), findsNothing);
-      expect(find.byType(HomeUserHeader), findsOneWidget);
-      expect(find.text('Menu Utama'), findsOneWidget);
-    });
-
-    testWidgets('tarik untuk menyegarkan memuat ulang daftarnya',
-        (tester) async {
-      _phoneScreen(tester);
-      final repository = clubs();
-      await tester.pumpWidget(_app(communities: repository));
-      await tester.pumpAndSettle();
-      expect(repository.joinedCalls, 1);
-
-      repository.joined = [testCommunity('9', shortName: 'BARU')];
-      await tester.fling(
-        find.byType(ListView).first,
-        const Offset(0, 400),
-        1000,
-      );
-      await tester.pumpAndSettle();
-
-      expect(repository.joinedCalls, 2);
-      expect(find.text('BARU'), findsOneWidget);
-    });
-
-    testWidgets('banyak komunitas + teks besar tanpa overflow', (tester) async {
-      tester.view.physicalSize = const Size(640, 1280); // 320×640 dp
-      tester.view.devicePixelRatio = 2;
-      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
-      addTearDown(tester.view.reset);
-      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-
-      await tester.pumpWidget(_app(
-        communities: FakeCommunityRepository(
-          joined: [
-            for (var i = 0; i < 12; i++)
-              testCommunity(
-                '$i',
-                shortName: 'Nama Pendek Yang Panjang $i',
-                myRole: CommunityRole.member,
-              ),
-          ],
-        ),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  test('menu tanpa sisa istilah panahan & id unik', () {
-    final copy = [for (final m in homeMenus) '${m.label} ${m.description}']
-        .join(' ')
-        .toLowerCase();
-    for (final old in ['latihan', 'panah', 'busur', 'lomba', 'club']) {
-      expect(copy, isNot(contains(old)), reason: old);
-    }
-    expect(homeMenus.map((m) => m.id).toSet(), hasLength(homeMenus.length));
   });
 
   group('banner hanya dari Admin Panel', () {
@@ -660,33 +1057,29 @@ void main() {
 
     testWidgets('belum ada banner: bagiannya tidak tampil', (tester) async {
       _phoneScreen(tester);
-      await tester.pumpWidget(_app(
-        banners: const [],
-        communities: FakeCommunityRepository(
-          joined: [testCommunity('1', shortName: 'PN')],
-        ),
-      ));
+      await tester.pumpWidget(_app(banners: const [], communities: _member()));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('home-banner-slider')), findsNothing);
       expect(find.byType(HomeBannerCard), findsNothing);
       expect(find.textContaining('Selamat datang di CEO'), findsNothing);
-      // Menu Utama langsung di bawah Komunitas Saya, tanpa celah bekas banner.
-      final gap = tester.getTopLeft(find.text('Menu Utama')).dy -
-          tester.getBottomLeft(find.byType(HomeMyCommunities)).dy;
+      // Menu langsung di bawah kartu komunitas, tanpa celah bekas banner.
+      final gap = tester.getTopLeft(find.text('Menu Komunitas')).dy -
+          tester.getBottomLeft(find.byType(HomeClubCard)).dy;
       expect(gap, lessThanOrEqualTo(24));
     });
 
     testWidgets('saat memuat: tidak ada kotak pemuat banner', (tester) async {
       _phoneScreen(tester);
-      await tester.pumpWidget(
-        _app(loadingBanners: Completer<List<HomeBanner>>().future),
-      );
-      await tester.pump();
+      await tester.pumpWidget(_app(
+        loadingBanners: Completer<List<HomeBanner>>().future,
+        communities: _member(),
+      ));
+      await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('home-banner-slider')), findsNothing);
       expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.text('Menu Utama'), findsOneWidget);
+      expect(find.text('Menu Komunitas'), findsOneWidget);
     });
   });
 

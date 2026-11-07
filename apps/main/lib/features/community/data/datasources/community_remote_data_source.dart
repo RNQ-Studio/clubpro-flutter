@@ -17,6 +17,8 @@ class CommunityRemoteDataSource {
     required int page,
     String search = '',
     String? type,
+    CommunitySort sort = CommunitySort.name,
+    int? perPage,
   }) =>
       _guard(() async {
         final response = await _dio.get(
@@ -25,6 +27,8 @@ class CommunityRemoteDataSource {
             'page': page,
             if (search.isNotEmpty) 'search': search,
             if (type != null) 'type': type,
+            if (sort != CommunitySort.name) 'sort': sort.apiValue,
+            if (perPage != null) 'per_page': perPage,
           },
         );
         return communitiesPageFromJson(response.data as Map<String, dynamic>);
@@ -95,8 +99,12 @@ class CommunityRemoteDataSource {
         );
       });
 
-  Future<List<Community>> fetchJoined() => _guard(() async {
-        final response = await _dio.get('v1/communities/joined');
+  Future<List<Community>> fetchJoined({bool includePending = false}) =>
+      _guard(() async {
+        final response = await _dio.get(
+          'v1/communities/joined',
+          queryParameters: {if (includePending) 'include_pending': 1},
+        );
         return [
           for (final item in _data(response) as List<dynamic>)
             CommunityModel.fromJson(item as Map<String, dynamic>),

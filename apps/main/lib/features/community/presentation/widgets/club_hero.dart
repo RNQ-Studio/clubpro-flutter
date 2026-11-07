@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,6 +13,20 @@ abstract final class ClubTab {
   static const members = 1;
   static const gallery = 2;
   static const activities = 3;
+
+  /// Nilai `?tab=` di rute klub, berurutan sesuai indeks.
+  static const _names = ['info', 'anggota', 'galeri', 'kegiatan'];
+
+  /// Indeks dari `?tab=`; kosong atau tidak dikenal → Info.
+  static int fromName(String? name) {
+    final index = _names.indexOf(name ?? '');
+    return index < 0 ? info : index;
+  }
+
+  /// Halaman klub [communityId] yang langsung membuka [tab].
+  static String location(String communityId, int tab) => tab == info
+      ? AppRoutes.community(communityId)
+      : '${AppRoutes.community(communityId)}?tab=${_names[tab]}';
 }
 
 /// Sampul klub: foto pertama sebagai latar, logo, nama, angka, dan tombol gabung.

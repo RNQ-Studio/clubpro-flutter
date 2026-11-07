@@ -119,6 +119,28 @@ void main() {
         {'page': 2, 'search': 'rina', 'type': 'fashion'});
   });
 
+  test('rekomendasi: urutan terpopuler dan jumlah terbatas', () async {
+    final fake = _source(200, _fixture('community_popular'));
+
+    final page = await fake.source.fetchCommunities(
+      page: 1,
+      sort: CommunitySort.popular,
+      perPage: 5,
+    );
+
+    expect(fake.adapter.request!.queryParameters,
+        {'page': 1, 'sort': 'popular', 'per_page': 5});
+    expect(page.communities.map((c) => c.membersCount), [4, 2]);
+  });
+
+  test('urutan nama bawaan tidak dikirim', () async {
+    final fake = _source(200, _fixture('community_list'));
+
+    await fake.source.fetchCommunities(page: 1, sort: CommunitySort.name);
+
+    expect(fake.adapter.request!.queryParameters, {'page': 1});
+  });
+
   test('foto diunggah sebagai byte dengan batas simpan sementara', () async {
     final fake = _source(
       201,
@@ -229,6 +251,34 @@ void main() {
       expect(joined.first.name, 'Pemanah Nusantara');
       expect(joined.first.myRole, CommunityRole.admin);
       expect(joined.first.membersCount, greaterThan(0));
+    });
+
+    test('komunitas saya + permintaan yang menunggu', () async {
+      final fake = _source(200, _fixture('community_joined_pending'));
+
+      final joined = await fake.source.fetchJoined(includePending: true);
+
+      expect(fake.adapter.request!.path, 'v1/communities/joined');
+      expect(fake.adapter.request!.queryParameters, {'include_pending': 1});
+      final active = joined.firstWhere((c) => c.name == 'Pemanah Nusantara');
+      final request = joined.firstWhere((c) => c.name == 'Sepak Bola Solo');
+      expect(active.myStatus, CommunityMembershipStatus.active);
+      expect(active.isJoinRequest, isFalse);
+      expect(request.myStatus, CommunityMembershipStatus.pending);
+      expect(request.isJoinRequest, isTrue);
+      expect(request.myRole, CommunityRole.member);
+    });
+
+    test('tanpa permintaan: parameter tidak dikirim, status lama tetap aktif',
+        () async {
+      final fake = _source(200, _fixture('community_joined'));
+
+      final joined = await fake.source.fetchJoined();
+
+      expect(fake.adapter.request!.queryParameters, isEmpty);
+      // Respons server lama tanpa my_status: dianggap anggota aktif.
+      expect(joined.first.myStatus, isNull);
+      expect(joined.first.isJoinRequest, isFalse);
     });
 
     test('detail membawa keanggotaan pengguna dan galeri', () async {

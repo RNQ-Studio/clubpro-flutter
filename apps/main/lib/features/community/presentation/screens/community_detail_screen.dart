@@ -12,9 +12,16 @@ import '../widgets/community_visuals.dart';
 
 /// Halaman klub: sampul dan tab Info, Anggota, Galeri, Kegiatan.
 class CommunityDetailScreen extends ConsumerWidget {
-  const CommunityDetailScreen({super.key, required this.communityId});
+  const CommunityDetailScreen({
+    super.key,
+    required this.communityId,
+    this.initialTab = ClubTab.info,
+  });
 
   final String communityId;
+
+  /// Salah satu [ClubTab].
+  final int initialTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,18 +38,20 @@ class CommunityDetailScreen extends ConsumerWidget {
               onRetry: () => ref.invalidate(provider),
             ),
           ),
-          data: (community) => _ClubView(community: community),
+          data: (community) =>
+              _ClubView(community: community, initialTab: initialTab),
         );
   }
 }
 
 class _ClubView extends ConsumerWidget {
-  const _ClubView({required this.community});
+  const _ClubView({required this.community, required this.initialTab});
 
   /// Tinggi sampul pada skala teks normal.
   static const _heroHeight = 340.0;
 
   final CommunityDetail community;
+  final int initialTab;
 
   void _refresh(WidgetRef ref) {
     ref.invalidate(communityDetailProvider(community.id));
@@ -56,6 +65,7 @@ class _ClubView extends ConsumerWidget {
 
     return DefaultTabController(
       length: 4,
+      initialIndex: initialTab,
       child: Scaffold(
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
