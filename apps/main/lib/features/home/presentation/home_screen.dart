@@ -16,7 +16,7 @@ import 'widgets/home_menu_grid.dart';
 import 'widgets/home_my_communities.dart';
 import 'widgets/home_user_header.dart';
 
-/// Beranda: komunitas saya, info anggota, banner slider, dan menu utama.
+/// Beranda: info anggota, komunitas saya, banner slider, dan menu utama.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -55,13 +55,13 @@ class HomeScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
-              const HomeMyCommunities(),
-              const SizedBox(height: 6),
               if (authState is AuthAuthenticated)
                 HomeUserHeader(
                   user: authState.user,
                   onTap: () => context.go(AppRoutes.profile),
                 ),
+              const SizedBox(height: 10),
+              const HomeMyCommunities(),
               const SizedBox(height: 12),
               Padding(
                 padding: EdgeInsets.zero,

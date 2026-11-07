@@ -7,7 +7,7 @@ import '../../../community/domain/entities/community.dart';
 import '../../../community/presentation/community_providers.dart';
 import '../../../community/presentation/widgets/community_visuals.dart';
 
-/// Komunitas yang dibuat, dikelola, atau diikuti; baris teratas Beranda.
+/// Komunitas yang dibuat, dikelola, atau diikuti; tepat di bawah info anggota.
 class HomeMyCommunities extends ConsumerWidget {
   const HomeMyCommunities({super.key});
 

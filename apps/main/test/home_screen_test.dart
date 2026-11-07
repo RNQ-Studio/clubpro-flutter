@@ -437,14 +437,18 @@ void main() {
           ],
         );
 
-    testWidgets('berada paling atas, di atas info pengguna', (tester) async {
+    testWidgets('berada di bawah info pengguna, di atas banner',
+        (tester) async {
       _phoneScreen(tester);
       await tester.pumpWidget(_app(communities: clubs()));
       await tester.pumpAndSettle();
 
-      final row = tester.getTopLeft(find.byType(HomeMyCommunities));
-      final header = tester.getTopLeft(find.byType(HomeUserHeader));
-      expect(row.dy, lessThan(header.dy));
+      final row = tester.getRect(find.byType(HomeMyCommunities));
+      final header = tester.getRect(find.byType(HomeUserHeader));
+      final banner =
+          tester.getRect(find.byKey(const Key('home-banner-slider')));
+      expect(header.bottom, lessThanOrEqualTo(row.top));
+      expect(row.bottom, lessThanOrEqualTo(banner.top));
       expect(find.text('Komunitas Saya'), findsOneWidget);
       for (final name in ['PN', 'FBB', 'GBK']) {
         expect(find.text(name), findsOneWidget);
