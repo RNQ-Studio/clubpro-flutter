@@ -14,7 +14,9 @@ import 'package:app_main/features/admin/presentation/screens/admin_banners_scree
 import 'package:app_main/features/admin/presentation/screens/admin_panel_screen.dart';
 import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:app_main/features/community/presentation/community_providers.dart';
+import 'package:app_main/features/admin/data/models/admin_banner_model.dart';
 import 'package:app_main/features/home/domain/entities/home_banner.dart';
+import 'package:app_main/features/home/domain/entities/promotion_action.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:core/core.dart';
 import 'package:dio/dio.dart';
@@ -172,6 +174,7 @@ class _Harness {
         communityImagePickerProvider.overrideWithValue(picker),
       ],
       child: MaterialApp.router(
+        theme: AppTheme.light,
         routerConfig: router,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -215,10 +218,22 @@ List<String> _rowOrder(WidgetTester tester) => [
     ];
 
 Future<void> _chooseLink(WidgetTester tester, AdminBannerLinkType type) async {
-  await tester.ensureVisible(find.byKey(const Key('admin-banner-link-type')));
+  await _scrollTo(tester, find.byKey(const Key('admin-banner-link-type')));
   await tester.tap(find.byKey(const Key('admin-banner-link-type')));
   await tester.pumpAndSettle();
   await tester.tap(find.text(type.label).last);
+  await tester.pumpAndSettle();
+}
+
+/// Isi form dibangun bertahap; gulir sampai [finder] terlihat.
+Future<void> _scrollTo(WidgetTester tester, Finder finder) async {
+  await tester.scrollUntilVisible(
+    finder,
+    200,
+    scrollable: find
+        .descendant(of: find.byType(Form), matching: find.byType(Scrollable))
+        .first,
+  );
   await tester.pumpAndSettle();
 }
 
@@ -241,6 +256,8 @@ void main() {
       expect(AdminBannerLinkType.of('/profile'), AdminBannerLinkType.profile);
       expect(AdminBannerLinkType.of('https://anaklangit.manahpro.web.id'),
           AdminBannerLinkType.external);
+      expect(AdminBannerLinkType.of('https://wa.me/6281234567890?text=Halo'),
+          AdminBannerLinkType.whatsapp);
       expect(AdminBannerLinkType.communityId('/communities/12'), '12');
       expect(AdminBannerLinkType.communityId('/communities/0'), isNull);
       expect(AdminBannerLinkType.communityId('/communities/12/x'), isNull);
@@ -252,13 +269,25 @@ void main() {
           AppRoutes.createCommunity);
       expect(AdminBannerLinkType.profile.fixedLink, AppRoutes.profile);
       expect(AdminBannerLinkType.none.fixedLink, isNull);
+      expect(AdminBannerLinkType.whatsapp.fixedLink, isNull);
     });
 
     test('label baris daftar', () {
       final banners = _threeBanners();
       expect(banners[0].linkLabel, 'Panahan Nusantara');
-      expect(banners[1].linkLabel, 'Profil Saya');
-      expect(banners[2].linkLabel, 'Tidak membuka apa pun');
+      expect(banners[1].linkLabel, 'Halaman app: Profil Saya');
+      expect(banners[2].linkLabel, 'Tanpa tombol');
+      expect(
+        adminBanner('9', linkUrl: 'https://wa.me/6281234567890').linkLabel,
+        'WhatsApp +62 812-3456-7890',
+      );
+      // Label tombol seperti di popup: data lama tanpa label memakai bawaan.
+      expect(banners[0].button, 'Lihat Selengkapnya');
+      expect(banners[2].button, isNull);
+      expect(
+        adminBanner('9', linkUrl: '/profile', buttonLabel: 'Profil').button,
+        'Profil',
+      );
       expect(adminBanner('9', linkUrl: '/communities/9').linkLabel,
           'Komunitas tidak ditemukan');
       expect(
@@ -275,8 +304,19 @@ void main() {
       'title': 'Latihan Bersama',
       'subtitle': null,
       'link_url': '/profile',
+      'button_label': null,
       'is_active': true,
     });
+    expect(
+      const AdminBannerInput(
+        title: '',
+        subtitle: '',
+        linkUrl: 'https://wa.me/6281234567890',
+        buttonLabel: '  Chat Sekarang ',
+        isActive: true,
+      ).toPayload()['button_label'],
+      'Chat Sekarang',
+    );
     expect(
       const AdminBannerInput(
         title: '',
@@ -289,9 +329,21 @@ void main() {
         'title': null,
         'subtitle': 'Akhir pekan',
         'link_url': null,
+        'button_label': null,
         'is_active': false,
         'image_asset_id': 'aset-1',
       },
+    );
+    // Tanpa aksi tidak ada tombol, walau labelnya terisi.
+    expect(
+      const AdminBannerInput(
+        title: '',
+        subtitle: '',
+        linkUrl: ' ',
+        buttonLabel: 'Beli',
+        isActive: true,
+      ).toPayload()['button_label'],
+      isNull,
     );
   });
 
@@ -315,13 +367,15 @@ void main() {
       final result =
           await _source(200, _fixture('admin_banners')).source.fetchBanners();
 
-      expect(result.summary.total, 3);
-      expect(result.summary.live, 1);
+      expect(result.summary.total, 4);
+      expect(result.summary.live, 2);
       expect(result.summary.maxVisible, 10);
+      expect(result.summary.intervalHours, 12);
       expect(result.banners.map((b) => b.status), [
         AdminBannerStatus.live,
         AdminBannerStatus.inactive,
         AdminBannerStatus.scheduled,
+        AdminBannerStatus.live,
       ]);
 
       final first = result.banners.first;
@@ -331,6 +385,7 @@ void main() {
       expect(first.imageUrl, startsWith('https://'));
       expect(first.linkType, AdminBannerLinkType.community);
       expect(first.linkCommunity?.name, 'Panahan Nusantara');
+      expect(first.buttonLabel, 'Lihat Komunitas');
       expect(first.isActive, isTrue);
 
       // Foto bertulisan: tanpa judul, tanpa tujuan.
@@ -339,8 +394,41 @@ void main() {
 
       final scheduled = result.banners[2];
       expect(scheduled.linkType, AdminBannerLinkType.external);
+      expect(scheduled.buttonLabel, isNull);
+      expect(scheduled.button, 'Kunjungi Situs');
       expect(scheduled.startsAt, isNotNull);
       expect(scheduled.endsAt, isNotNull);
+
+      final whatsapp = result.banners[3];
+      expect(whatsapp.linkType, AdminBannerLinkType.whatsapp);
+      expect(whatsapp.button, 'Chat Sekarang');
+      expect(PromotionAction.whatsappMessage(whatsapp.linkUrl),
+          'Halo, saya tertarik promo busur');
+    });
+
+    test('jeda popup: dikirim dalam jam, daftar terbaru dikembalikan',
+        () async {
+      final saved = _source(200, _fixture('admin_banners'));
+      final result = await saved.source.updatePromotionInterval(12);
+      expect(saved.adapter.request!.method, 'PUT');
+      expect(saved.adapter.request!.path, 'v1/admin/banners/settings');
+      expect(saved.adapter.request!.data, {'interval_hours': 12});
+      expect(result.summary.intervalHours, 12);
+
+      await expectLater(
+        _source(422, _fixture('admin_promotion_interval_invalid'))
+            .source
+            .updatePromotionInterval(0),
+        throwsA(isA<ServerException>().having(
+            (e) => e.message, 'message', 'Jeda tampil paling sedikit 1 jam.')),
+      );
+    });
+
+    test('ringkasan tanpa jeda (server lama): jeda bawaan', () {
+      final summary = adminBannerSummaryFromJson(
+        {'total': 1, 'live': 1, 'max_visible': 10},
+      );
+      expect(summary.intervalHours, 24);
     });
 
     test('ringkasan Admin Panel memuat banner; server lama tanpa banner',
@@ -348,8 +436,9 @@ void main() {
       final summary = await _source(200, _fixture('admin_summary_with_banners'))
           .source
           .fetchSummary();
-      expect(summary.banners?.total, 3);
-      expect(summary.banners?.live, 1);
+      expect(summary.banners?.total, 4);
+      expect(summary.banners?.live, 2);
+      expect(summary.banners?.intervalHours, 12);
 
       final old =
           await _source(200, _fixture('admin_summary')).source.fetchSummary();
@@ -362,9 +451,10 @@ void main() {
       final created = _source(201, _fixture('admin_banner_saved'));
       final banner = await created.source.createBanner(
         const AdminBannerInput(
-          title: 'Latihan Bersama',
+          title: '',
           subtitle: '',
-          linkUrl: '/profile',
+          linkUrl: 'https://wa.me/6281234567890',
+          buttonLabel: 'Chat Admin',
           isActive: true,
           imageAssetId: 'aset-1',
         ),
@@ -372,13 +462,15 @@ void main() {
       expect(created.adapter.request!.method, 'POST');
       expect(created.adapter.request!.path, 'v1/admin/banners');
       expect(created.adapter.request!.data, {
-        'title': 'Latihan Bersama',
+        'title': null,
         'subtitle': null,
-        'link_url': '/profile',
+        'link_url': 'https://wa.me/6281234567890',
+        'button_label': 'Chat Admin',
         'is_active': true,
         'image_asset_id': 'aset-1',
       });
-      expect(banner.linkType, AdminBannerLinkType.profile);
+      expect(banner.linkType, AdminBannerLinkType.whatsapp);
+      expect(banner.buttonLabel, 'Chat Admin');
 
       final updated = _source(200, _fixture('admin_banner_saved'));
       await updated.source.updateBanner('1', _input);
@@ -417,17 +509,24 @@ void main() {
       await expectLater(
         _source(409, '{"success":false}').source.reorderBanners(['1']),
         throwsA(isA<AdminConflictException>().having((e) => e.message,
-            'message', contains('Daftar banner sudah berubah'))),
+            'message', contains('Daftar promosi sudah berubah'))),
       );
       await expectLater(
         _source(404, '{}').source.updateBanner('9', _input),
         throwsA(isA<ServerException>().having(
-            (e) => e.message, 'message', contains('Banner tidak ditemukan'))),
+            (e) => e.message, 'message', contains('Promosi tidak ditemukan'))),
       );
       await expectLater(
         _source(404, '{}').source.fetchBanners(),
         throwsA(isA<ServerException>().having((e) => e.message, 'message',
-            'Kelola Banner belum aktif di server.')),
+            'Paid Promotion belum aktif di server.')),
+      );
+      await expectLater(
+        _source(422, _fixture('admin_banner_whatsapp_invalid'))
+            .source
+            .createBanner(_input),
+        throwsA(isA<ServerException>().having((e) => e.message, 'message',
+            contains('Nomor WhatsApp tidak valid'))),
       );
     });
   });
@@ -443,15 +542,15 @@ void main() {
       container = ProviderContainer(
         overrides: [
           adminRepositoryProvider.overrideWithValue(repository),
-          homeBannersProvider.overrideWith((ref) async {
+          homePromotionsProvider.overrideWith((ref) async {
             homeLoads++;
-            return const <HomeBanner>[];
+            return const HomePromotions();
           }),
         ],
       );
       addTearDown(container.dispose);
       container.listen(adminBannersProvider, (_, __) {});
-      container.listen(homeBannersProvider, (_, __) {});
+      container.listen(homePromotionsProvider, (_, __) {});
       container.listen(adminSummaryProvider, (_, __) {});
     });
 
@@ -463,7 +562,7 @@ void main() {
 
     Future<void> ready() async {
       await container.read(adminBannersProvider.future);
-      await container.read(homeBannersProvider.future);
+      await container.read(homePromotionsProvider.future);
       await container.read(adminSummaryProvider.future);
     }
 
@@ -483,7 +582,7 @@ void main() {
 
       repository.reorderGate!.complete();
       await moving;
-      await container.read(homeBannersProvider.future);
+      await container.read(homePromotionsProvider.future);
       await container.read(adminSummaryProvider.future);
 
       expect(repository.bannerOrders, [
@@ -521,32 +620,68 @@ void main() {
       expect(order(), ['1', '2', '3', '4']);
     });
 
+    test('jeda popup tersimpan, ringkasan & Beranda disegarkan', () async {
+      await ready();
+
+      await container.read(adminBannersProvider.notifier).setInterval(72);
+      expect(repository.intervalSaves, [72]);
+      expect(
+        container.read(adminBannersProvider).requireValue.summary.intervalHours,
+        72,
+      );
+      expect(order(), ['1', '2', '3']);
+      await container.read(homePromotionsProvider.future);
+      await container.read(adminSummaryProvider.future);
+      expect(homeLoads, 2);
+      expect(repository.summaryLoads, 2);
+    });
+
+    test('jeda popup gagal: galat diteruskan, jeda tetap', () async {
+      await ready();
+      repository.bannerActionError = const NetworkException('Tidak terhubung');
+
+      await expectLater(
+        container.read(adminBannersProvider.notifier).setInterval(6),
+        throwsA(isA<NetworkException>()),
+      );
+      expect(
+        container.read(adminBannersProvider).requireValue.summary.intervalHours,
+        24,
+      );
+      expect(homeLoads, 1);
+    });
+
     test('menyimpan dan menghapus menyegarkan daftar dan Beranda', () async {
       await ready();
 
       await container.read(adminBannersProvider.notifier).save(_input);
       expect(order(), ['1', '2', '3', '101']);
-      await container.read(homeBannersProvider.future);
+      await container.read(homePromotionsProvider.future);
       expect(homeLoads, 2);
 
       await container.read(adminBannersProvider.notifier).delete('2');
       expect(order(), ['1', '3', '101']);
-      await container.read(homeBannersProvider.future);
+      await container.read(homePromotionsProvider.future);
       expect(homeLoads, 3);
     });
   });
 
   group('Admin Panel', () {
-    testWidgets('menu Kelola Banner dengan ringkasannya', (tester) async {
+    testWidgets('menu Paid Promotion dengan ringkasannya', (tester) async {
       final harness = await _open(tester, location: AppRoutes.adminPanel);
 
       final card = find.byKey(const Key('admin-menu-banners'));
       expect(card, findsOneWidget);
-      expect(find.text('4 banner · 3 tayang'), findsOneWidget);
+      expect(
+        find.descendant(of: card, matching: find.text('Paid Promotion')),
+        findsOneWidget,
+      );
+      expect(find.text('Kelola Banner'), findsNothing);
+      expect(find.text('4 promosi · 3 tayang · tiap 24 jam'), findsOneWidget);
 
       await tester.tap(card);
       await tester.pumpAndSettle();
-      expect(find.text('Kelola Banner'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'Paid Promotion'), findsOneWidget);
       expect(harness.admin.bannerLoads, 1);
     });
 
@@ -568,11 +703,17 @@ void main() {
       await _open(tester);
 
       expect(_rowOrder(tester), ['1', '2', '3']);
-      expect(find.text('3 banner · 2 tayang di Beranda'), findsOneWidget);
+      expect(
+          find.text('3 promosi · 2 tayang di popup Beranda'), findsOneWidget);
+      expect(find.text('Popup tampil setiap 24 jam'), findsOneWidget);
       expect(find.text('Latihan Bersama'), findsOneWidget);
       expect(find.text('Tanpa judul'), findsOneWidget);
-      expect(find.text('Panahan Nusantara'), findsOneWidget);
-      expect(find.text('Profil Saya'), findsOneWidget);
+      // Label tombol (bawaan untuk data lama) dan aksinya.
+      expect(find.text('"Lihat Selengkapnya" · Panahan Nusantara'),
+          findsOneWidget);
+      expect(find.text('"Lihat Selengkapnya" · Halaman app: Profil Saya'),
+          findsOneWidget);
+      expect(find.text('Tanpa tombol'), findsOneWidget);
       expect(find.text('Tayang'), findsNWidgets(2));
       expect(find.text('Nonaktif'), findsOneWidget);
       expect(find.byKey(const Key('admin-banner-limit')), findsNothing);
@@ -585,7 +726,7 @@ void main() {
 
       expect(find.byKey(const Key('admin-banner-limit')), findsOneWidget);
       expect(
-          find.textContaining('hanya menampilkan 10 banner'), findsOneWidget);
+          find.textContaining('hanya menampilkan 10 promosi'), findsOneWidget);
     });
 
     testWidgets('seret mengubah urutan dan tersimpan', (tester) async {
@@ -629,13 +770,15 @@ void main() {
       expect(_rowOrder(tester), ['1', '2', '3']);
     });
 
-    testWidgets('kosong: ajakan menambah banner', (tester) async {
+    testWidgets('kosong: ajakan menambah promosi, jeda tetap bisa diatur',
+        (tester) async {
       await _open(tester, banners: []);
 
-      expect(find.text('Belum ada banner'), findsOneWidget);
+      expect(find.text('Belum ada promosi'), findsOneWidget);
+      expect(find.byKey(const Key('admin-promotion-interval')), findsOneWidget);
       await tester.tap(find.byKey(const Key('admin-banner-add')));
       await tester.pumpAndSettle();
-      expect(find.text('Tambah Banner'), findsWidgets);
+      expect(find.text('Tambah Promosi'), findsWidgets);
       expect(find.byKey(const Key('admin-banner-photo-placeholder')),
           findsOneWidget);
     });
@@ -644,15 +787,83 @@ void main() {
       _size(tester, 420, 1000);
       final harness = _Harness();
       harness.admin.bannersError =
-          const ServerException('Kelola Banner belum aktif di server.');
+          const ServerException('Paid Promotion belum aktif di server.');
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
 
-      expect(find.text('Kelola Banner belum aktif di server.'), findsOneWidget);
+      expect(
+          find.text('Paid Promotion belum aktif di server.'), findsOneWidget);
       harness.admin.bannersError = null;
       await tester.tap(find.text('Coba Lagi'));
       await tester.pumpAndSettle();
       expect(_rowOrder(tester), ['1', '2', '3']);
+    });
+
+    testWidgets('ubah jeda popup: pilihan cepat, validasi, tersimpan',
+        (tester) async {
+      final harness = await _open(tester);
+
+      await tester.tap(find.byKey(const Key('admin-promotion-interval-edit')));
+      await tester.pumpAndSettle();
+      final field = find.byKey(const Key('admin-promotion-interval-field'));
+      expect(
+          tester
+              .widget<EditableText>(find.descendant(
+                  of: field, matching: find.byType(EditableText)))
+              .controller
+              .text,
+          '24');
+
+      for (final (input, error) in [
+        ('0', 'Antara 1 dan 720 jam (30 hari).'),
+        ('721', 'Antara 1 dan 720 jam (30 hari).'),
+        ('', 'Isi jumlah jam, mis. 24.'),
+      ]) {
+        await tester.enterText(field, input);
+        await tester
+            .tap(find.byKey(const Key('admin-promotion-interval-save')));
+        await tester.pumpAndSettle();
+        expect(find.text(error), findsOneWidget, reason: input);
+      }
+      expect(harness.admin.intervalSaves, isEmpty);
+
+      await tester.tap(find.byKey(const Key('admin-promotion-interval-72')));
+      await tester.pumpAndSettle();
+      expect(find.text('Antara 1 dan 720 jam (30 hari).'), findsNothing);
+      await tester.tap(find.byKey(const Key('admin-promotion-interval-save')));
+      await tester.pumpAndSettle();
+
+      expect(harness.admin.intervalSaves, [72]);
+      expect(find.text('Popup tampil setiap 72 jam (3 hari)'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'ubah jeda: batal atau nilai sama tidak menyimpan; gagal → '
+        'pesan', (tester) async {
+      final harness = await _open(tester);
+
+      await tester.tap(find.byKey(const Key('admin-promotion-interval-edit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Batal'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('admin-promotion-interval-edit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('admin-promotion-interval-save')));
+      await tester.pumpAndSettle();
+      expect(harness.admin.intervalSaves, isEmpty);
+
+      harness.admin.bannerActionError =
+          const ServerException('Jeda tampil paling sedikit 1 jam.');
+      await tester.tap(find.byKey(const Key('admin-promotion-interval-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byKey(const Key('admin-promotion-interval-field')), '6');
+      await tester.tap(find.byKey(const Key('admin-promotion-interval-save')));
+      await tester.pumpAndSettle();
+      expect(find.text('Jeda tampil paling sedikit 1 jam.'), findsOneWidget);
+      expect(find.text('Popup tampil setiap 24 jam'), findsOneWidget);
     });
 
     testWidgets('bukan super admin: tidak memuat apa pun', (tester) async {
@@ -674,13 +885,19 @@ void main() {
       final harness = await _open(tester, location: AppRoutes.adminBannerNew);
 
       await _save(tester);
-      expect(find.text('Lampirkan foto banner.'), findsOneWidget);
+      expect(find.text('Lampirkan gambar promosi.'), findsOneWidget);
       expect(harness.admin.bannerSaves, isEmpty);
       expect(harness.communities.uploads, isEmpty);
 
       await tester.tap(find.byKey(const Key('admin-banner-photo')));
       await tester.pumpAndSettle();
-      expect(find.text('Lampirkan foto banner.'), findsNothing);
+      expect(find.text('Lampirkan gambar promosi.'), findsNothing);
+      // Pratinjau portrait 2:3, seperti di popup.
+      final preview =
+          tester.getSize(find.byKey(const Key('admin-banner-preview')));
+      expect(preview.width / preview.height, closeTo(2 / 3, 0.01));
+      expect(
+          find.byKey(const Key('admin-banner-button-preview')), findsNothing);
       expect(find.byKey(const Key('admin-banner-preview')), findsOneWidget);
 
       await tester.enterText(
@@ -696,6 +913,14 @@ void main() {
       );
 
       await _chooseLink(tester, AdminBannerLinkType.profile);
+      // Label usulan terisi dan pratinjau tombol muncul.
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('admin-banner-button-preview')),
+          matching: find.text('Lihat Profil'),
+        ),
+        findsOneWidget,
+      );
       await _save(tester);
 
       expect(harness.communities.uploads, ['banner:foto-1-0.png']);
@@ -705,10 +930,11 @@ void main() {
         'title': 'Latihan Bersama',
         'subtitle': null,
         'link_url': '/profile',
+        'button_label': 'Lihat Profil',
         'is_active': true,
         'image_asset_id': 'aset-foto-1-0.png',
       });
-      expect(find.text('Banner ditambahkan'), findsOneWidget);
+      expect(find.text('Promosi ditambahkan'), findsOneWidget);
       // Kembali ke daftar yang sudah memuat banner baru.
       expect(_rowOrder(tester), ['1', '2', '3', '101']);
     });
@@ -731,6 +957,88 @@ void main() {
       await _save(tester);
       expect(harness.admin.bannerSaves.single.input.linkUrl,
           'https://anaklangit.manahpro.web.id/info');
+      expect(
+          harness.admin.bannerSaves.single.input.buttonLabel, 'Kunjungi Situs');
+    });
+
+    testWidgets('chat WhatsApp: nomor dirapikan, pesan awal, label sendiri',
+        (tester) async {
+      final harness = await _open(tester, location: AppRoutes.adminBannerNew);
+      await tester.tap(find.byKey(const Key('admin-banner-photo')));
+      await tester.pumpAndSettle();
+
+      await _chooseLink(tester, AdminBannerLinkType.whatsapp);
+      final number = find.byKey(const Key('admin-banner-wa-number'));
+      await _scrollTo(tester, number);
+      await tester.enterText(number, '12345');
+      await _save(tester);
+      await _scrollTo(tester, number);
+      expect(find.text('Nomor WhatsApp tidak valid, mis. 0812 3456 7890.'),
+          findsOneWidget);
+      expect(harness.admin.bannerSaves, isEmpty);
+
+      await tester.enterText(number, '0812-3456-7890');
+      await tester.enterText(find.byKey(const Key('admin-banner-wa-message')),
+          'Halo, saya mau tanya promo');
+      final label = find.byKey(const Key('admin-banner-button-label'));
+      await _scrollTo(tester, label);
+      expect(
+        tester
+            .widget<EditableText>(
+                find.descendant(of: label, matching: find.byType(EditableText)))
+            .controller
+            .text,
+        'Chat via WhatsApp',
+      );
+      await tester.enterText(label, 'Chat Sekarang');
+      await tester.pump();
+      await _save(tester);
+
+      final input = harness.admin.bannerSaves.single.input;
+      expect(input.linkUrl,
+          'https://wa.me/6281234567890?text=Halo%2C%20saya%20mau%20tanya%20promo');
+      expect(input.buttonLabel, 'Chat Sekarang');
+    });
+
+    testWidgets('ganti aksi: label usulan ikut berganti, label sendiri tetap',
+        (tester) async {
+      await _open(tester, location: AppRoutes.adminBannerNew);
+      final label = find.byKey(const Key('admin-banner-button-label'));
+      String text() => tester
+          .widget<EditableText>(
+              find.descendant(of: label, matching: find.byType(EditableText)))
+          .controller
+          .text;
+
+      await _chooseLink(tester, AdminBannerLinkType.whatsapp);
+      await _scrollTo(tester, label);
+      expect(text(), 'Chat via WhatsApp');
+      await _chooseLink(tester, AdminBannerLinkType.communities);
+      await _scrollTo(tester, label);
+      expect(text(), 'Cari Komunitas');
+
+      await tester.enterText(label, 'Gabung Sekarang');
+      await _chooseLink(tester, AdminBannerLinkType.createCommunity);
+      await _scrollTo(tester, label);
+      expect(text(), 'Gabung Sekarang');
+
+      await _chooseLink(tester, AdminBannerLinkType.none);
+      expect(label, findsNothing);
+    });
+
+    testWidgets('label tombol wajib bila ada aksi', (tester) async {
+      final harness = await _open(tester, location: AppRoutes.adminBannerNew);
+      await tester.tap(find.byKey(const Key('admin-banner-photo')));
+      await tester.pumpAndSettle();
+
+      await _chooseLink(tester, AdminBannerLinkType.profile);
+      final label = find.byKey(const Key('admin-banner-button-label'));
+      await _scrollTo(tester, label);
+      await tester.enterText(label, '   ');
+      await _save(tester);
+      await _scrollTo(tester, label);
+      expect(find.text('Isi label tombol.'), findsOneWidget);
+      expect(harness.admin.bannerSaves, isEmpty);
     });
 
     testWidgets('komunitas tujuan dipilih dari yang terverifikasi',
@@ -741,6 +1049,7 @@ void main() {
 
       await _chooseLink(tester, AdminBannerLinkType.community);
       await _save(tester);
+      await _scrollTo(tester, find.byKey(const Key('admin-banner-community')));
       expect(find.text('Pilih komunitas tujuan.'), findsOneWidget);
       expect(harness.admin.bannerSaves, isEmpty);
 
@@ -782,7 +1091,7 @@ void main() {
       expect(harness.admin.bannerSaves, hasLength(2));
       expect(harness.admin.bannerSaves.last.input.imageAssetId,
           'aset-foto-1-0.png');
-      expect(find.text('Banner ditambahkan'), findsOneWidget);
+      expect(find.text('Promosi ditambahkan'), findsOneWidget);
     });
 
     testWidgets('tombol simpan tidak mengirim dua kali', (tester) async {
@@ -818,10 +1127,11 @@ void main() {
     testWidgets('isian terisi; simpan tanpa mengganti foto', (tester) async {
       final harness = await _open(tester, location: AppRoutes.adminBanner('1'));
 
-      expect(find.text('Ubah Banner'), findsOneWidget);
+      expect(find.text('Ubah Promosi'), findsOneWidget);
       expect(find.text('Setiap akhir pekan'), findsWidgets);
-      expect(find.text('Panahan Nusantara'), findsOneWidget);
       expect(find.text('Ganti Foto'), findsOneWidget);
+      await _scrollTo(tester, find.byKey(const Key('admin-banner-community')));
+      expect(find.text('Panahan Nusantara'), findsOneWidget);
 
       await tester.enterText(
           find.byKey(const Key('admin-banner-title')), 'Latihan Rutin');
@@ -836,10 +1146,38 @@ void main() {
         'title': 'Latihan Rutin',
         'subtitle': 'Setiap akhir pekan',
         'link_url': '/communities/5',
+        // Data lama tanpa label: tersimpan dengan label yang selama ini tampil.
+        'button_label': 'Lihat Selengkapnya',
         'is_active': false,
       });
       expect(harness.communities.uploads, isEmpty);
-      expect(find.text('Banner tersimpan'), findsOneWidget);
+      expect(find.text('Promosi tersimpan'), findsOneWidget);
+    });
+
+    testWidgets('promosi WhatsApp: nomor, pesan, dan label terisi kembali',
+        (tester) async {
+      final harness = await _open(
+        tester,
+        banners: [
+          adminBanner(
+            '1',
+            linkUrl: 'https://wa.me/6281234567890?text=Halo%20kak',
+            buttonLabel: 'Chat Admin',
+          ),
+        ],
+        location: AppRoutes.adminBanner('1'),
+      );
+
+      await _scrollTo(
+          tester, find.byKey(const Key('admin-banner-button-label')));
+      expect(find.text('+62 812-3456-7890'), findsOneWidget);
+      expect(find.text('Halo kak'), findsOneWidget);
+      expect(find.text('Chat Admin'), findsWidgets);
+      await _save(tester);
+
+      final input = harness.admin.bannerSaves.single.input;
+      expect(input.linkUrl, 'https://wa.me/6281234567890?text=Halo%20kak');
+      expect(input.buttonLabel, 'Chat Admin');
     });
 
     testWidgets('mengganti foto mengunggah foto baru', (tester) async {
@@ -864,6 +1202,7 @@ void main() {
       );
 
       await _save(tester);
+      await _scrollTo(tester, find.byKey(const Key('admin-banner-community')));
       expect(find.text('Pilih komunitas tujuan.'), findsOneWidget);
       expect(harness.admin.bannerSaves, isEmpty);
     });
@@ -881,6 +1220,7 @@ void main() {
         location: AppRoutes.adminBanner('1'),
       );
 
+      await _scrollTo(tester, find.byKey(const Key('admin-banner-active')));
       expect(find.textContaining('Jadwal tayang dari back-office'),
           findsOneWidget);
     });
@@ -903,14 +1243,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(harness.admin.bannerDeletes, ['2']);
-      expect(find.text('Banner dihapus'), findsOneWidget);
+      expect(find.text('Promosi dihapus'), findsOneWidget);
       expect(_rowOrder(tester), ['1', '3']);
     });
 
     testWidgets('banner yang tidak ada', (tester) async {
       await _open(tester, location: AppRoutes.adminBanner('99'));
 
-      expect(find.text('Banner tidak ditemukan. Mungkin sudah dihapus.'),
+      expect(find.text('Promosi tidak ditemukan. Mungkin sudah dihapus.'),
           findsOneWidget);
     });
   });

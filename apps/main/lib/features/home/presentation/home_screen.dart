@@ -5,7 +5,6 @@ import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../community/domain/entities/community.dart';
 import '../../community/presentation/active_community_notifier.dart';
@@ -14,49 +13,30 @@ import '../../community/presentation/widgets/club_hero.dart';
 import '../../community/presentation/widgets/community_start_view.dart';
 import '../../community/presentation/widgets/community_visuals.dart';
 import '../../dues/presentation/dues_providers.dart';
-import '../domain/entities/home_banner.dart';
 import 'home_providers.dart';
 import 'widgets/home_admin_panel_card.dart';
 import 'widgets/home_app_version.dart';
-import 'widgets/home_banner_slider.dart';
 import 'widgets/home_club_card.dart';
 import 'widgets/home_club_chooser.dart';
 import 'widgets/home_club_sections.dart';
 import 'widgets/home_dues_card.dart';
 import 'widgets/home_user_header.dart';
+import 'widgets/promotion_popup_gate.dart';
 
 /// Beranda berpusat pada komunitas aktif: anggota melihat menu dan kegiatan
 /// komunitasnya, pengelola juga melihat yang perlu ditindaklanjuti. Belum
 /// tergabung → cari atau daftarkan komunitas; beberapa komunitas tanpa pilihan
-/// tersimpan → pilih dulu masuk sebagai anggota yang mana.
+/// tersimpan → pilih dulu masuk sebagai anggota yang mana. Paid Promotion
+/// tampil sebagai popup di atasnya tiap sekian jam ([PromotionPopupGate]).
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   /// Lebar isi di layar lebar agar kartu tidak melar.
   static const maxContentWidth = 760.0;
 
-  Future<void> _openBanner(BuildContext context, HomeBanner banner) async {
-    final link = banner.linkUrl;
-    if (link == null || link.isEmpty) return;
-    if (link.startsWith('/')) {
-      // Ditumpuk di atas Beranda: tombol kembali kembali ke sini.
-      context.push(link);
-      return;
-    }
-    final uri = Uri.tryParse(link);
-    final web = uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
-    if (!web || !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tautan tidak dapat dibuka')),
-        );
-      }
-    }
-  }
-
   Future<void> _refresh(WidgetRef ref) async {
     final active = ref.read(activeCommunityProvider).value?.active;
-    ref.invalidate(homeBannersProvider);
+    ref.invalidate(homePromotionsProvider);
     ref.invalidate(joinedCommunitiesProvider);
     ref.invalidate(recommendedCommunitiesProvider);
     if (active != null) {
@@ -71,17 +51,8 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final user = authState is AuthAuthenticated ? authState.user : null;
-    // Tetap berisi banner lama selama disegarkan; saat memuat pertama kali kosong.
-    final banners = ref.watch(homeBannersProvider).value ?? const [];
     final mine = ref.watch(activeCommunityProvider);
     final mineValue = mine.value;
-
-    final bannerSlider = banners.isEmpty
-        ? null
-        : HomeBannerSlider(
-            banners: banners,
-            onTap: (b) => _openBanner(context, b),
-          );
 
     final List<Widget> clubSection;
     if (mineValue == null) {
@@ -91,15 +62,10 @@ class HomeScreen extends ConsumerWidget {
                 onRetry: () => ref.invalidate(joinedCommunitiesProvider),
               )
             : const _ClubLoading(),
-        if (bannerSlider != null) ...[const SizedBox(height: 16), bannerSlider],
       ];
     } else if (mineValue.active case final active?) {
       clubSection = [
-        _ActiveClub(
-          community: active,
-          joined: mineValue.joined,
-          banner: bannerSlider,
-        ),
+        _ActiveClub(community: active, joined: mineValue.joined),
       ];
     } else if (mineValue.needsChoice) {
       clubSection = [
@@ -108,7 +74,6 @@ class HomeScreen extends ConsumerWidget {
           onChoose: (c) =>
               ref.read(activeCommunityProvider.notifier).choose(c.id),
         ),
-        if (bannerSlider != null) ...[const SizedBox(height: 16), bannerSlider],
       ];
     } else {
       clubSection = [
@@ -127,42 +92,41 @@ class HomeScreen extends ConsumerWidget {
               ),
         ),
         const SizedBox(height: 14),
-        // Pilihan cari/daftarkan lebih dulu; banner tidak boleh mendorongnya
-        // ke bawah layar.
         CommunityStartView(requests: mineValue.requests),
-        if (bannerSlider != null) ...[const SizedBox(height: 20), bannerSlider],
       ];
     }
 
-    return Scaffold(
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () => _refresh(ref),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final side =
-                  math.max(16.0, (constraints.maxWidth - maxContentWidth) / 2);
-              return ListView(
-                padding: EdgeInsets.fromLTRB(side, 12, side, 24),
-                children: [
-                  if (user != null)
-                    HomeUserHeader(
-                      user: user,
-                      onTap: () => context.go(AppRoutes.profile),
-                    ),
-                  const SizedBox(height: 10),
-                  ...clubSection,
-                  if (user != null && user.isSuperAdmin) ...[
-                    const SizedBox(height: 24),
-                    HomeAdminPanelCard(
-                      onTap: () => context.push(AppRoutes.adminPanel),
-                    ),
+    return PromotionPopupGate(
+      child: Scaffold(
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: () => _refresh(ref),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final side = math.max(
+                    16.0, (constraints.maxWidth - maxContentWidth) / 2);
+                return ListView(
+                  padding: EdgeInsets.fromLTRB(side, 12, side, 24),
+                  children: [
+                    if (user != null)
+                      HomeUserHeader(
+                        user: user,
+                        onTap: () => context.go(AppRoutes.profile),
+                      ),
+                    const SizedBox(height: 10),
+                    ...clubSection,
+                    if (user != null && user.isSuperAdmin) ...[
+                      const SizedBox(height: 24),
+                      HomeAdminPanelCard(
+                        onTap: () => context.push(AppRoutes.adminPanel),
+                      ),
+                    ],
+                    const SizedBox(height: 28),
+                    const HomeAppVersion(),
                   ],
-                  const SizedBox(height: 28),
-                  const HomeAppVersion(),
-                ],
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -172,17 +136,12 @@ class HomeScreen extends ConsumerWidget {
 
 /// Isi Beranda untuk komunitas aktif.
 class _ActiveClub extends ConsumerWidget {
-  const _ActiveClub({
-    required this.community,
-    required this.joined,
-    required this.banner,
-  });
+  const _ActiveClub({required this.community, required this.joined});
 
   final Community community;
 
   /// Semua komunitas yang diikuti, termasuk [community].
   final List<Community> joined;
-  final Widget? banner;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -209,7 +168,6 @@ class _ActiveClub extends ConsumerWidget {
               : null,
         ),
         HomeDuesCard(communityId: community.id),
-        if (banner != null) ...[const SizedBox(height: 16), banner!],
         const SizedBox(height: 20),
         const HomeSectionTitle('Menu Komunitas'),
         HomeClubMenu(

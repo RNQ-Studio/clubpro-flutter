@@ -1,0 +1,10 @@
+{
+    "success": false,
+    "message": "Nomor WhatsApp tidak valid. Tulis dengan kode negara, mis. 6281234567890.",
+    "code": "VALIDATION_ERROR",
+    "errors": {
+        "link_url": [
+            "Nomor WhatsApp tidak valid. Tulis dengan kode negara, mis. 6281234567890."
+        ]
+    }
+}

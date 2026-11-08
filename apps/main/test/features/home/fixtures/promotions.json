@@ -1,0 +1,33 @@
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 1,
+            "title": "Latihan Bersama",
+            "subtitle": "Setiap akhir pekan",
+            "image_url": "https://storage.googleapis.com/bucket/production/banner/latihan.jpg",
+            "link_url": "/communities/1",
+            "button_label": "Lihat Komunitas"
+        },
+        {
+            "id": 4,
+            "title": "",
+            "subtitle": null,
+            "image_url": "https://storage.googleapis.com/bucket/production/banner/busur.jpg",
+            "link_url": "https://wa.me/6281234567890?text=Halo%2C%20saya%20tertarik%20promo%20busur",
+            "button_label": "Chat Sekarang"
+        },
+        {
+            "id": 5,
+            "title": "",
+            "subtitle": null,
+            "image_url": "https://storage.googleapis.com/bucket/production/banner/baru.jpg",
+            "link_url": "https://wa.me/6281234567890",
+            "button_label": "Chat Admin"
+        }
+    ],
+    "meta": {
+        "interval_hours": 12
+    }
+}

@@ -11,6 +11,7 @@ AdminBanner adminBannerFromJson(Map<String, dynamic> json) {
     subtitle: json['subtitle'] as String?,
     imageUrl: json['image_url'] as String?,
     linkUrl: json['link_url'] as String?,
+    buttonLabel: json['button_label'] as String?,
     linkCommunity: community is Map<String, dynamic>
         ? AdminBannerCommunity(
             id: community['id'].toString(),
@@ -29,6 +30,8 @@ AdminBannerSummary adminBannerSummaryFromJson(Map<String, dynamic> json) =>
       total: json['total'] as int,
       live: json['live'] as int,
       maxVisible: json['max_visible'] as int,
+      // Server lama tanpa jeda popup → bawaan server.
+      intervalHours: json['interval_hours'] as int? ?? 24,
     );
 
 /// `GET v1/admin/banners`: `data` + `meta.summary`.

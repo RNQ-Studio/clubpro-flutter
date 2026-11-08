@@ -20,7 +20,7 @@ class AdminBannersState {
   final AdminBannerSummary summary;
   final bool isSavingOrder;
 
-  /// Banner tayang yang tidak muat di slider Beranda.
+  /// Promosi tayang yang tidak muat di popup Beranda.
   Set<String> get overLimitIds {
     var live = 0;
     return {
@@ -35,7 +35,7 @@ class AdminBannersState {
       banners.where((banner) => banner.id == id).firstOrNull;
 }
 
-/// Kelola Banner. Setiap perubahan ikut menyegarkan slider Beranda.
+/// Paid Promotion. Setiap perubahan ikut menyegarkan popup Beranda.
 @riverpod
 class AdminBannersNotifier extends _$AdminBannersNotifier {
   @override
@@ -94,6 +94,15 @@ class AdminBannersNotifier extends _$AdminBannersNotifier {
     return banner;
   }
 
+  /// Jeda tampil popup; gagal → galatnya diteruskan, daftar tidak berubah.
+  Future<void> setInterval(int hours) async {
+    final saved =
+        await ref.read(adminRepositoryProvider).updatePromotionInterval(hours);
+    if (!ref.mounted) return;
+    state = AsyncData(_state(saved));
+    _changed();
+  }
+
   Future<void> delete(String id) async {
     await ref.read(adminRepositoryProvider).deleteBanner(id);
     if (!ref.mounted) return;
@@ -102,7 +111,7 @@ class AdminBannersNotifier extends _$AdminBannersNotifier {
   }
 
   void _changed() {
-    ref.invalidate(homeBannersProvider);
+    ref.invalidate(homePromotionsProvider);
     ref.invalidate(adminSummaryProvider);
   }
 }

@@ -75,4 +75,8 @@ class AdminRepositoryImpl implements AdminRepository {
   @override
   Future<AdminBanners> reorderBanners(List<String> ids) =>
       _remote.reorderBanners(ids);
+
+  @override
+  Future<AdminBanners> updatePromotionInterval(int hours) =>
+      _remote.updatePromotionInterval(hours);
 }

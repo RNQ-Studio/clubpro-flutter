@@ -164,6 +164,7 @@ AdminBanner adminBanner(
   String? subtitle,
   String? imageUrl = 'https://storage.googleapis.com/bucket/banner.jpg',
   String? linkUrl,
+  String? buttonLabel,
   AdminBannerCommunity? linkCommunity,
   AdminBannerStatus status = AdminBannerStatus.live,
   DateTime? startsAt,
@@ -175,6 +176,7 @@ AdminBanner adminBanner(
       subtitle: subtitle,
       imageUrl: imageUrl,
       linkUrl: linkUrl,
+      buttonLabel: buttonLabel,
       linkCommunity: linkCommunity,
       isActive: status != AdminBannerStatus.inactive,
       status: status,
@@ -216,8 +218,12 @@ class FakeAdminRepository implements AdminRepository {
   /// Melempar pada verifikasi, satu kali.
   Exception? reviewError;
 
-  /// Kelola Banner, sesuai urutan tampil.
+  /// Paid Promotion, sesuai urutan tampil.
   List<AdminBanner> banners;
+
+  /// Jeda tampil popup Paid Promotion.
+  int intervalHours = 24;
+  final intervalSaves = <int>[];
   Exception? bannersError;
 
   /// Melempar pada aksi banner berikutnya, satu kali.
@@ -363,6 +369,7 @@ class FakeAdminRepository implements AdminRepository {
           total: banners.length,
           live: banners.where((b) => b.status == AdminBannerStatus.live).length,
           maxVisible: 10,
+          intervalHours: intervalHours,
         ),
       );
 
@@ -383,6 +390,7 @@ class FakeAdminRepository implements AdminRepository {
       '${100 + bannerSaves.length}',
       title: input.title,
       linkUrl: input.linkUrl,
+      buttonLabel: input.buttonLabel,
       status:
           input.isActive ? AdminBannerStatus.live : AdminBannerStatus.inactive,
     );
@@ -398,6 +406,7 @@ class FakeAdminRepository implements AdminRepository {
       id,
       title: input.title,
       linkUrl: input.linkUrl,
+      buttonLabel: input.buttonLabel,
       status:
           input.isActive ? AdminBannerStatus.live : AdminBannerStatus.inactive,
     );
@@ -419,6 +428,14 @@ class FakeAdminRepository implements AdminRepository {
     _bannerAction();
     final byId = {for (final b in banners) b.id: b};
     banners = [for (final id in ids) byId[id]!];
+    return _banners();
+  }
+
+  @override
+  Future<AdminBanners> updatePromotionInterval(int hours) async {
+    intervalSaves.add(hours);
+    _bannerAction();
+    intervalHours = hours;
     return _banners();
   }
 }

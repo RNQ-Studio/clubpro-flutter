@@ -98,46 +98,88 @@ final class BannerRemoteDataSourceProvider extends $FunctionalProvider<
 String _$bannerRemoteDataSourceHash() =>
     r'a140578c8151d98ee849e6c2a58b5016943a3ce5';
 
-/// Hanya banner yang dikelola di Admin Panel. Belum ada banner, offline, atau
-/// server gagal → kosong, dan Beranda tidak menampilkan bagian banner.
+@ProviderFor(promotionPopupStore)
+final promotionPopupStoreProvider = PromotionPopupStoreProvider._();
 
-@ProviderFor(homeBanners)
-final homeBannersProvider = HomeBannersProvider._();
-
-/// Hanya banner yang dikelola di Admin Panel. Belum ada banner, offline, atau
-/// server gagal → kosong, dan Beranda tidak menampilkan bagian banner.
-
-final class HomeBannersProvider extends $FunctionalProvider<
-        AsyncValue<List<HomeBanner>>,
-        List<HomeBanner>,
-        FutureOr<List<HomeBanner>>>
-    with $FutureModifier<List<HomeBanner>>, $FutureProvider<List<HomeBanner>> {
-  /// Hanya banner yang dikelola di Admin Panel. Belum ada banner, offline, atau
-  /// server gagal → kosong, dan Beranda tidak menampilkan bagian banner.
-  HomeBannersProvider._()
+final class PromotionPopupStoreProvider extends $FunctionalProvider<
+    PromotionPopupStore,
+    PromotionPopupStore,
+    PromotionPopupStore> with $Provider<PromotionPopupStore> {
+  PromotionPopupStoreProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
-          name: r'homeBannersProvider',
+          name: r'promotionPopupStoreProvider',
           isAutoDispose: true,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
 
   @override
-  String debugGetCreateSourceHash() => _$homeBannersHash();
+  String debugGetCreateSourceHash() => _$promotionPopupStoreHash();
 
   @$internal
   @override
-  $FutureProviderElement<List<HomeBanner>> $createElement(
+  $ProviderElement<PromotionPopupStore> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  PromotionPopupStore create(Ref ref) {
+    return promotionPopupStore(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PromotionPopupStore value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PromotionPopupStore>(value),
+    );
+  }
+}
+
+String _$promotionPopupStoreHash() =>
+    r'142eb5593a4f7d85f44b48dd0613f2df8a481da5';
+
+/// Popup Paid Promotion dari Admin Panel. Belum ada promosi, offline, atau
+/// server gagal → kosong, dan popup tidak tampil.
+
+@ProviderFor(homePromotions)
+final homePromotionsProvider = HomePromotionsProvider._();
+
+/// Popup Paid Promotion dari Admin Panel. Belum ada promosi, offline, atau
+/// server gagal → kosong, dan popup tidak tampil.
+
+final class HomePromotionsProvider extends $FunctionalProvider<
+        AsyncValue<HomePromotions>, HomePromotions, FutureOr<HomePromotions>>
+    with $FutureModifier<HomePromotions>, $FutureProvider<HomePromotions> {
+  /// Popup Paid Promotion dari Admin Panel. Belum ada promosi, offline, atau
+  /// server gagal → kosong, dan popup tidak tampil.
+  HomePromotionsProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'homePromotionsProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$homePromotionsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<HomePromotions> $createElement(
           $ProviderPointer pointer) =>
       $FutureProviderElement(pointer);
 
   @override
-  FutureOr<List<HomeBanner>> create(Ref ref) {
-    return homeBanners(ref);
+  FutureOr<HomePromotions> create(Ref ref) {
+    return homePromotions(ref);
   }
 }
 
-String _$homeBannersHash() => r'f647074798b0ab042466595c19f35502bcd62e5a';
+String _$homePromotionsHash() => r'8419444ffdc1dbfd08b0de2d64284bd884b460e5';

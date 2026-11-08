@@ -45,4 +45,7 @@ abstract interface class AdminRepository {
 
   /// [ids] memuat semua banner; daftar basi → [AdminConflictException].
   Future<AdminBanners> reorderBanners(List<String> ids);
+
+  /// Popup Paid Promotion tampil lagi sesudah [hours] jam.
+  Future<AdminBanners> updatePromotionInterval(int hours);
 }

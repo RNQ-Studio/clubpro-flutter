@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../admin_community_providers.dart';
+import '../widgets/admin_banner_widgets.dart';
 import '../widgets/admin_gate.dart';
 import '../widgets/admin_widgets.dart';
 
@@ -49,14 +50,15 @@ class _AdminPanelView extends ConsumerWidget {
     final bannerSummary = summary?.banners;
     final banners = _AdminMenuCard(
       menuKey: const Key('admin-menu-banners'),
-      icon: Icons.view_carousel_rounded,
+      icon: Icons.campaign_rounded,
       color: const Color(0xFFE8710A),
-      title: 'Kelola Banner',
-      description:
-          'Atur banner di Beranda: foto, urutan, dan halaman tujuannya',
+      title: 'Paid Promotion',
+      description: 'Popup promosi di Beranda: gambar, tombol WhatsApp atau '
+          'tautan, dan jeda tampilnya',
       stat: bannerSummary == null
           ? null
-          : '${bannerSummary.total} banner · ${bannerSummary.live} tayang',
+          : '${bannerSummary.total} promosi · ${bannerSummary.live} tayang · '
+              'tiap ${promotionIntervalLabel(bannerSummary.intervalHours)}',
       onTap: () => context.push(AppRoutes.adminBanners),
     );
     final menus = [users, communities, banners];

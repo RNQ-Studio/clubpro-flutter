@@ -1,0 +1,10 @@
+{
+    "success": false,
+    "message": "Jeda tampil paling sedikit 1 jam.",
+    "code": "VALIDATION_ERROR",
+    "errors": {
+        "interval_hours": [
+            "Jeda tampil paling sedikit 1 jam."
+        ]
+    }
+}

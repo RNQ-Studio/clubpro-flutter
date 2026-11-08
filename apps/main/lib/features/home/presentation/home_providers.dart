@@ -3,8 +3,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/app_refresher.dart';
 import '../data/banner_remote_data_source.dart';
+import '../data/prefs_promotion_popup_store.dart';
 import '../domain/app_refresher.dart';
 import '../domain/entities/home_banner.dart';
+import '../domain/repositories/promotion_popup_store.dart';
 
 part 'home_providers.g.dart';
 
@@ -16,13 +18,16 @@ AppRefresher? appRefresher(Ref ref) => createAppRefresher();
 BannerRemoteDataSource bannerRemoteDataSource(Ref ref) =>
     BannerRemoteDataSource(ref.watch(apiClientProvider).dio);
 
-/// Hanya banner yang dikelola di Admin Panel. Belum ada banner, offline, atau
-/// server gagal → kosong, dan Beranda tidak menampilkan bagian banner.
 @riverpod
-Future<List<HomeBanner>> homeBanners(Ref ref) async {
+PromotionPopupStore promotionPopupStore(Ref ref) => PrefsPromotionPopupStore();
+
+/// Popup Paid Promotion dari Admin Panel. Belum ada promosi, offline, atau
+/// server gagal → kosong, dan popup tidak tampil.
+@riverpod
+Future<HomePromotions> homePromotions(Ref ref) async {
   try {
-    return await ref.watch(bannerRemoteDataSourceProvider).fetchBanners();
+    return await ref.watch(bannerRemoteDataSourceProvider).fetchPromotions();
   } catch (_) {
-    return const [];
+    return const HomePromotions();
   }
 }

@@ -15,9 +15,10 @@
             "rejected": 0
         },
         "banners": {
-            "total": 3,
-            "live": 1,
-            "max_visible": 10
+            "total": 4,
+            "live": 2,
+            "max_visible": 10,
+            "interval_hours": 12
         }
     }
 }

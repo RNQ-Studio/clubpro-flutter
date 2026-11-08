@@ -51,6 +51,7 @@ import 'package:app_main/features/admin/domain/entities/admin_community.dart';
 import '../test/features/admin/fake_admin_repository.dart';
 import '../test/features/community/fake_community_repository.dart';
 import '../test/features/dues/fake_dues_repository.dart';
+import '../test/features/home/fake_promotion_popup_store.dart';
 
 class _FixedAuthNotifier extends AuthNotifier {
   _FixedAuthNotifier(this._state);
@@ -191,6 +192,7 @@ void main() {
     String location = '/',
     FakeCommunityRepository? communities,
     List<HomeBanner> banners = _homeBanners,
+    bool popup = false,
     Map<String, String>? saved,
     FakeDuesRepository? dues,
   }) {
@@ -218,7 +220,13 @@ void main() {
       overrides: [
         authProvider
             .overrideWith(() => _FixedAuthNotifier(AuthAuthenticated(user))),
-        homeBannersProvider.overrideWith((ref) async => banners),
+        homePromotionsProvider.overrideWith(
+          (ref) async => HomePromotions(banners: banners),
+        ),
+        // Selain shot popup: popup baru saja tampil, Beranda tidak tertutup.
+        promotionPopupStoreProvider.overrideWithValue(
+          FakePromotionPopupStore(popup ? null : {'1': DateTime.now()}),
+        ),
         communityRepositoryProvider.overrideWithValue(community),
         activeCommunityStoreProvider
             .overrideWithValue(FakeActiveCommunityStore(saved)),
@@ -1156,7 +1164,7 @@ void main() {
           'Terbuka untuk semua anggota');
       await tester.tap(find.byKey(const Key('admin-banner-link-type')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Tautan luar (situs web)').last);
+      await tester.tap(find.text('Buka tautan di browser').last);
       await tester.pumpAndSettle();
       await tester.enterText(
           find.byKey(const Key('admin-banner-url')), 'anaklangit.manahpro');
@@ -1175,8 +1183,14 @@ void main() {
     await shoot(
         tester, '50-banner-pilih-komunitas', admin(AppRoutes.adminBanner('1')),
         before: () async {
-      await tester
-          .ensureVisible(find.byKey(const Key('admin-banner-community')));
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('admin-banner-community')),
+        200,
+        scrollable: find
+            .descendant(
+                of: find.byType(Form), matching: find.byType(Scrollable))
+            .first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('admin-banner-community')));
       await tester.pumpAndSettle();
@@ -1434,6 +1448,109 @@ void main() {
     );
   });
 
+  Future<void> promoPhotos(WidgetTester tester, {bool landscape = false}) =>
+      tester.runAsync(() async {
+        _photoBytes = await _promoImage(
+          landscape ? const Size(960, 480) : const Size(540, 810),
+          landscape ? 'Diskon Busur 30%' : 'Diskon Busur\nRecurve 30%',
+          'Khusus anggota komunitas · s.d. 30 Nov',
+        );
+      });
+
+  const promotions = [
+    HomeBanner(
+      id: '1',
+      title: '',
+      imageUrl: 'https://anaklangit.manahpro.web.id/promo-busur.png',
+      linkUrl: 'https://wa.me/6281234567890?text=Halo',
+      buttonLabel: 'Chat Penjual via WhatsApp',
+    ),
+    HomeBanner(
+      id: '2',
+      title: 'Kejuaraan Panahan Tradisional 2026',
+      subtitle: 'Daftar sebelum 1 Desember',
+      linkUrl: 'https://anaklangit.manahpro.web.id/kejuaraan',
+    ),
+    HomeBanner(id: '3', title: 'Latihan Bersama Akhir Pekan'),
+  ];
+
+  for (final (name, size) in [
+    ('71-popup-promosi', const Size(360, 780)),
+    ('72-popup-promosi-desktop', desktop),
+    ('73-popup-promosi-500', const Size(500, 900)),
+    ('74-popup-promosi-pendek', const Size(390, 640)),
+  ]) {
+    testWidgets(name, (tester) async {
+      await promoPhotos(tester);
+      addTearDown(() => _photoBytes = null);
+      await shoot(
+        tester,
+        name,
+        shell(_complete,
+            banners: promotions, popup: true, communities: memberOf()),
+        size: size,
+        photos: true,
+        before: () => tester.pumpAndSettle(),
+      );
+    });
+  }
+
+  testWidgets('75-popup-gambar-landscape', (tester) async {
+    await promoPhotos(tester, landscape: true);
+    addTearDown(() => _photoBytes = null);
+    await shoot(
+      tester,
+      '75-popup-gambar-landscape',
+      shell(
+        _complete,
+        // URL lain: gambar portrait shot sebelumnya masih di cache.
+        banners: const [
+          HomeBanner(
+            id: '1',
+            title: '',
+            imageUrl: 'https://anaklangit.manahpro.web.id/promo-landscape.png',
+            linkUrl: 'https://wa.me/6281234567890',
+            buttonLabel: 'Chat Penjual via WhatsApp',
+          ),
+        ],
+        popup: true,
+        communities: memberOf(),
+      ),
+      photos: true,
+      before: () => tester.pumpAndSettle(),
+    );
+  });
+
+  testWidgets('76-jeda-popup', (tester) async {
+    await shoot(tester, '76-jeda-popup', admin(AppRoutes.adminBanners),
+        before: () async {
+      await tester.tap(find.byKey(const Key('admin-promotion-interval-edit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('admin-promotion-interval-72')));
+      await tester.pumpAndSettle();
+    });
+  });
+
+  testWidgets('77-promosi-whatsapp', (tester) async {
+    await promoPhotos(tester);
+    addTearDown(() => _photoBytes = null);
+    await shoot(
+        tester,
+        '77-promosi-whatsapp',
+        admin(AppRoutes.adminBanner('5'), banners: [
+          adminBanner(
+            '5',
+            title: '',
+            imageUrl: 'https://anaklangit.manahpro.web.id/promo-busur.png',
+            linkUrl: 'https://wa.me/6281234567890?text=Halo%2C%20saya%20'
+                'tertarik%20promo%20busur',
+            buttonLabel: 'Chat Penjual via WhatsApp',
+          ),
+        ]),
+        size: const Size(360, 1500),
+        photos: true);
+  });
+
   testWidgets('32-beranda-bawah', (tester) async {
     await shoot(
       tester,
@@ -1460,6 +1577,57 @@ const _homeBanners = [
   HomeBanner(id: '2', title: 'Pendaftaran Kejuaraan Dibuka'),
 ];
 
+/// Gambar pengganti untuk shot tertentu; null = PNG contoh.
+List<int>? _photoBytes;
+
+/// Gambar promosi contoh dengan teks, agar rasio dan potongan terlihat.
+Future<List<int>> _promoImage(Size size, String headline, String detail) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  final rect = Offset.zero & size;
+  canvas.drawRect(
+    rect,
+    Paint()
+      ..shader = ui.Gradient.linear(rect.topLeft, rect.bottomRight, const [
+        Color(0xFF0E3B2E),
+        Color(0xFF1F7A53),
+        Color(0xFFE0B341),
+      ], const [
+        0,
+        0.55,
+        1,
+      ]),
+  );
+  canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.26),
+      size.shortestSide * 0.32, Paint()..color = const Color(0x22FFFFFF));
+  void text(String value, double top, double fontSize, FontWeight weight) {
+    (TextPainter(
+      text: TextSpan(
+        text: value,
+        style: TextStyle(
+          fontFamily: 'Roboto',
+          fontSize: fontSize,
+          fontWeight: weight,
+          color: Colors.white,
+          height: 1.15,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: size.width * 0.84))
+        .paint(canvas, Offset(size.width * 0.08, top));
+  }
+
+  text('PAID PROMOTION', size.height * 0.08, size.shortestSide * 0.05,
+      FontWeight.w500);
+  text(headline, size.height * 0.5, size.shortestSide * 0.12, FontWeight.bold);
+  text(detail, size.height * 0.86, size.shortestSide * 0.045, FontWeight.w500);
+  final image = await recorder
+      .endRecording()
+      .toImage(size.width.round(), size.height.round());
+  final data = await image.toByteData(format: ui.ImageByteFormat.png);
+  return data!.buffer.asUint8List();
+}
+
 /// Semua unduhan gambar dijawab dengan PNG contoh.
 class _PhotoClient extends Fake implements HttpClient {
   @override
@@ -1479,7 +1647,7 @@ class _PhotoResponse extends Fake implements HttpClientResponse {
   int get statusCode => 200;
 
   @override
-  int get contentLength => testImageBytes.length;
+  int get contentLength => (_photoBytes ?? testImageBytes).length;
 
   @override
   HttpClientResponseCompressionState get compressionState =>
@@ -1492,7 +1660,7 @@ class _PhotoResponse extends Fake implements HttpClientResponse {
     void Function()? onDone,
     bool? cancelOnError,
   }) =>
-      Stream.value(testImageBytes as List<int>).listen(
+      Stream.value(_photoBytes ?? testImageBytes as List<int>).listen(
         onData,
         onError: onError,
         onDone: onDone,

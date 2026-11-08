@@ -11,7 +11,7 @@ import '../widgets/admin_banner_widgets.dart';
 import '../widgets/admin_gate.dart';
 import '../widgets/admin_widgets.dart';
 
-/// Kelola Banner: urutan di sini sama dengan urutan slider Beranda.
+/// Paid Promotion: urutan di sini sama dengan urutan slide popup Beranda.
 class AdminBannersScreen extends StatelessWidget {
   const AdminBannersScreen({super.key});
 
@@ -41,6 +41,26 @@ class _AdminBannersView extends ConsumerWidget {
     }
   }
 
+  Future<void> _editInterval(
+    BuildContext context,
+    WidgetRef ref,
+    int current,
+  ) async {
+    final hours = await showPromotionIntervalDialog(context, current);
+    if (hours == null || hours == current || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    String message;
+    try {
+      await ref.read(adminBannersProvider.notifier).setInterval(hours);
+      message = 'Popup tampil setiap ${promotionIntervalLabel(hours)}';
+    } catch (e) {
+      message = e.toString();
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final banners = ref.watch(adminBannersProvider);
@@ -48,7 +68,7 @@ class _AdminBannersView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kelola Banner'),
+        title: const Text('Paid Promotion'),
         leading: context.canPop()
             ? null
             : BackButton(onPressed: () => context.go(AppRoutes.adminPanel)),
@@ -58,7 +78,7 @@ class _AdminBannersView extends ConsumerWidget {
               key: const Key('admin-banner-add'),
               onPressed: () => context.push(AppRoutes.adminBannerNew),
               icon: const Icon(Icons.add_photo_alternate_rounded),
-              label: const Text('Tambah Banner'),
+              label: const Text('Tambah Promosi'),
             )
           : null,
       body: banners.when(
@@ -75,10 +95,19 @@ class _AdminBannersView extends ConsumerWidget {
               // Daftar tetap bisa digulir dari tepi layar lebar.
               final side =
                   math.max(16.0, (constraints.maxWidth - _maxWidth) / 2);
+              final interval = _IntervalCard(
+                hours: state.summary.intervalHours,
+                onEdit: () =>
+                    _editInterval(context, ref, state.summary.intervalHours),
+              );
               if (state.banners.isEmpty) {
                 return ListView(
-                  padding: EdgeInsets.fromLTRB(side, 48, side, 24),
-                  children: const [_EmptyBanners()],
+                  padding: EdgeInsets.fromLTRB(side, 12, side, 24),
+                  children: [
+                    interval,
+                    const SizedBox(height: 36),
+                    const _EmptyBanners(),
+                  ],
                 );
               }
               final overLimit = state.overLimitIds;
@@ -86,7 +115,7 @@ class _AdminBannersView extends ConsumerWidget {
                 key: const Key('admin-banner-list'),
                 buildDefaultDragHandles: false,
                 padding: EdgeInsets.fromLTRB(side, 0, side, 96),
-                header: _Intro(state: state),
+                header: _Intro(state: state, interval: interval),
                 itemCount: state.banners.length,
                 onReorder: (from, to) =>
                     _move(context, ref, from, to > from ? to - 1 : to),
@@ -110,10 +139,66 @@ class _AdminBannersView extends ConsumerWidget {
   }
 }
 
+/// Jeda tampil popup, berlaku untuk semua promosi.
+class _IntervalCard extends StatelessWidget {
+  const _IntervalCard({required this.hours, required this.onEdit});
+
+  final int hours;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      key: const Key('admin-promotion-interval'),
+      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+      decoration: BoxDecoration(
+        color: adminGold.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: adminGold.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.schedule_rounded, color: adminGold),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Popup tampil setiap ${promotionIntervalLabel(hours)}',
+                  key: const Key('admin-promotion-interval-label'),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Muncul saat Beranda dibuka, lalu lagi sesudah jeda ini, '
+                  'per pengguna di tiap perangkat.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            key: const Key('admin-promotion-interval-edit'),
+            onPressed: onEdit,
+            child: const Text('Ubah'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Intro extends StatelessWidget {
-  const _Intro({required this.state});
+  const _Intro({required this.state, required this.interval});
 
   final AdminBannersState state;
+  final Widget interval;
 
   @override
   Widget build(BuildContext context) {
@@ -126,8 +211,11 @@ class _Intro extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          interval,
+          const SizedBox(height: 16),
           Text(
-            '${summary.total} banner · ${summary.live} tayang di Beranda',
+            '${summary.total} promosi · ${summary.live} tayang di popup '
+            'Beranda',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -139,8 +227,8 @@ class _Intro extends StatelessWidget {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  'Seret untuk mengubah urutan tampil. Ketuk banner untuk '
-                  'mengubah foto, teks, atau tujuannya.',
+                  'Seret untuk mengubah urutan slide. Ketuk promosi untuk '
+                  'mengubah gambar, tombol, atau aksinya.',
                   style: theme.textTheme.bodySmall?.copyWith(color: muted),
                 ),
               ),
@@ -166,8 +254,8 @@ class _Intro extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Beranda hanya menampilkan ${summary.maxVisible} banner '
-                      'tayang teratas. $hidden banner di bawahnya belum '
+                      'Popup hanya menampilkan ${summary.maxVisible} promosi '
+                      'tayang teratas. $hidden promosi di bawahnya belum '
                       'terlihat.',
                       style: theme.textTheme.bodySmall,
                     ),
@@ -235,7 +323,7 @@ class _BannerRow extends StatelessWidget {
                 AdminBannerThumb(
                   url: banner.imageUrl,
                   // Ponsel: judul butuh ruang lebih.
-                  width: MediaQuery.sizeOf(context).width < 480 ? 80 : 112,
+                  width: MediaQuery.sizeOf(context).width < 480 ? 52 : 64,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -263,7 +351,7 @@ class _BannerRow extends StatelessWidget {
                           ),
                           if (overLimit)
                             const AdminBadge(
-                              label: 'Lewat batas Beranda',
+                              label: 'Lewat batas popup',
                               color: adminGold,
                             ),
                         ],
@@ -271,13 +359,23 @@ class _BannerRow extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.touch_app_outlined,
-                              size: 14, color: muted),
+                          Icon(
+                            banner.linkType == AdminBannerLinkType.whatsapp
+                                ? Icons.chat_outlined
+                                : Icons.touch_app_outlined,
+                            size: 14,
+                            color: muted,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              banner.linkLabel,
-                              maxLines: 1,
+                              switch (banner.button) {
+                                final label? =>
+                                  '"$label" · ${banner.linkLabel}',
+                                null => 'Tanpa tombol',
+                              },
+                              key: Key('admin-banner-action-${banner.id}'),
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: muted,
@@ -334,14 +432,15 @@ class _EmptyBanners extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Belum ada banner',
+          'Belum ada promosi',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 6),
         Text(
-          'Selama belum ada banner, bagian banner tidak tampil di Beranda.',
+          'Selama belum ada promosi yang tayang, popup tidak muncul di '
+          'Beranda.',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
@@ -352,7 +451,7 @@ class _EmptyBanners extends StatelessWidget {
           key: const Key('admin-banner-add'),
           onPressed: () => context.push(AppRoutes.adminBannerNew),
           icon: const Icon(Icons.add_photo_alternate_rounded),
-          label: const Text('Tambah Banner'),
+          label: const Text('Tambah Promosi'),
         ),
       ],
     );

@@ -130,6 +130,14 @@ class AdminRemoteDataSource {
         ),
       );
 
+  /// Jeda tampil popup Paid Promotion, dalam jam.
+  Future<AdminBanners> updatePromotionInterval(int hours) => _banners(
+        () => _dio.put(
+          'v1/admin/banners/settings',
+          data: {'interval_hours': hours},
+        ),
+      );
+
   Future<AdminBanners> _banners(
     Future<Response<dynamic>> Function() request,
   ) async {
@@ -139,7 +147,7 @@ class AdminRemoteDataSource {
     } on DioException catch (e) {
       throw _error(
         e,
-        notFound: 'Kelola Banner belum aktif di server.',
+        notFound: 'Paid Promotion belum aktif di server.',
         conflict: _bannersChanged,
       );
     }
@@ -158,10 +166,10 @@ class AdminRemoteDataSource {
   }
 
   static const _bannerNotFound =
-      'Banner tidak ditemukan. Mungkin sudah dihapus.';
+      'Promosi tidak ditemukan. Mungkin sudah dihapus.';
 
   static const _bannersChanged =
-      'Daftar banner sudah berubah. Data terbaru sudah dimuat.';
+      'Daftar promosi sudah berubah. Data terbaru sudah dimuat.';
 
   Future<AdminCommunityDetail> _communityDetail(
     Future<Response<dynamic>> Function() request,

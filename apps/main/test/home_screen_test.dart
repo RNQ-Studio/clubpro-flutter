@@ -8,15 +8,17 @@ import 'package:app_main/features/dues/presentation/dues_providers.dart';
 import 'package:app_main/features/home/data/banner_remote_data_source.dart';
 import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/domain/entities/home_banner.dart';
+import 'package:app_main/features/home/domain/entities/promotion_action.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
 import 'package:app_main/features/home/presentation/widgets/home_app_version.dart';
-import 'package:app_main/features/home/presentation/widgets/home_banner_slider.dart';
 import 'package:app_main/features/home/presentation/widgets/home_club_card.dart';
 import 'package:app_main/features/home/presentation/widgets/home_club_sections.dart';
 import 'package:app_main/features/home/presentation/widgets/home_user_header.dart';
+import 'package:app_main/features/home/presentation/widgets/promotion_popup.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +27,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import 'features/community/fake_community_repository.dart';
 import 'features/dues/fake_dues_repository.dart';
+import 'features/home/fake_promotion_popup_store.dart';
 
 class _FakeRefresher implements AppRefresher {
   _FakeRefresher({this.error});
@@ -43,10 +46,10 @@ class _FakeRefresher implements AppRefresher {
 class _FakeBannerSource implements BannerRemoteDataSource {
   _FakeBannerSource(this._fetch);
 
-  final Future<List<HomeBanner>> Function() _fetch;
+  final Future<HomePromotions> Function() _fetch;
 
   @override
-  Future<List<HomeBanner>> fetchBanners() => _fetch();
+  Future<HomePromotions> fetchPromotions() => _fetch();
 }
 
 class _FixedAuthNotifier extends AuthNotifier {
@@ -81,10 +84,13 @@ const _banners = [
   HomeBanner(id: '2', title: 'Pendaftaran Kejuaraan Dibuka'),
 ];
 
+/// Tanpa promosi bawaan: popup menutupi Beranda.
 Widget _app({
   User user = _incompleteUser,
-  List<HomeBanner> banners = _banners,
-  Future<List<HomeBanner>>? loadingBanners,
+  List<HomeBanner> promotions = const [],
+  int intervalHours = 24,
+  Future<HomePromotions>? loadingPromotions,
+  FakePromotionPopupStore? popupStore,
   AppRefresher? refresher,
   FakeCommunityRepository? communities,
   FakeActiveCommunityStore? store,
@@ -168,8 +174,16 @@ Widget _app({
     overrides: [
       authProvider
           .overrideWith(() => _FixedAuthNotifier(AuthAuthenticated(user))),
-      homeBannersProvider
-          .overrideWith((ref) => loadingBanners ?? Future.value(banners)),
+      homePromotionsProvider.overrideWith(
+        (ref) =>
+            loadingPromotions ??
+            Future.value(HomePromotions(
+              banners: promotions,
+              intervalHours: intervalHours,
+            )),
+      ),
+      promotionPopupStoreProvider
+          .overrideWithValue(popupStore ?? FakePromotionPopupStore()),
       appRefresherProvider.overrideWithValue(refresher),
       communityRepositoryProvider
           .overrideWithValue(communities ?? FakeCommunityRepository()),
@@ -255,7 +269,7 @@ void _phoneScreen(WidgetTester tester) {
 }
 
 void main() {
-  testWidgets('Beranda anggota: info user, komunitas aktif, banner, menu',
+  testWidgets('Beranda anggota: info user, komunitas aktif, menu',
       (tester) async {
     _phoneScreen(tester);
     await tester.pumpWidget(_app(communities: _member()));
@@ -266,17 +280,16 @@ void main() {
     expect(find.text('rina@gmail.com'), findsOneWidget);
     expect(find.text('R'), findsOneWidget);
 
-    // Komunitas aktif di bawah info user, banner di bawahnya, lalu menu.
+    // Komunitas aktif di bawah info user, lalu menu; banner tidak lagi di sini.
     expect(find.text('Pemanah Nusantara'), findsOneWidget);
     expect(find.text('Masuk sebagai anggota'), findsOneWidget);
     expect(find.text('24 anggota'), findsOneWidget);
     final header = tester.getRect(find.byType(HomeUserHeader));
     final card = tester.getRect(find.byType(HomeClubCard));
-    final banner = tester.getRect(find.byKey(const Key('home-banner-slider')));
     final menu = tester.getTopLeft(find.text('Menu Komunitas')).dy;
     expect(header.bottom, lessThanOrEqualTo(card.top));
-    expect(card.bottom, lessThanOrEqualTo(banner.top));
-    expect(banner.bottom, lessThanOrEqualTo(menu));
+    expect(card.bottom, lessThanOrEqualTo(menu));
+    expect(find.byKey(const Key('home-banner-slider')), findsNothing);
 
     for (final (tab, label, _, _) in HomeClubMenu.items) {
       expect(
@@ -744,17 +757,15 @@ void main() {
       expect(find.byType(HomeClubCard), findsNothing);
     });
 
-    testWidgets('pilihan cari/daftarkan di atas banner', (tester) async {
+    testWidgets('pilihan cari/daftarkan terlihat tanpa menggulir',
+        (tester) async {
       _phoneScreen(tester);
       await tester.pumpWidget(_app(communities: popular()));
       await tester.pumpAndSettle();
 
       final create =
           tester.getRect(find.byKey(const Key('community-start-create')));
-      // Terlihat tanpa menggulir.
       expect(create.bottom, lessThan(tester.view.physicalSize.height / 2.7));
-      await _scrollToEnd(tester);
-      expect(find.byKey(const Key('home-banner-slider')), findsOneWidget);
     });
 
     for (final (key, page) in [
@@ -941,55 +952,291 @@ void main() {
     });
   });
 
-  testWidgets('banner bergeser otomatis', (tester) async {
-    _phoneScreen(tester);
-    await tester.pumpWidget(_app());
-    await tester.pump();
-
-    final pageView = find.byKey(const Key('home-banner-slider'));
-    expect(tester.widget<PageView>(pageView).controller!.page, 0);
-
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(
-        tester.widget<PageView>(pageView).controller!.page, closeTo(1, 0.01));
-  });
-
-  testWidgets('banner bertujuan halaman app: terbuka lalu kembali ke Beranda',
-      (tester) async {
-    _phoneScreen(tester);
-    await tester.pumpWidget(_app(communities: _member(), banners: const [
-      HomeBanner(id: '1', title: 'Klub Pilihan', linkUrl: '/communities/5'),
-    ]));
-    await tester.pump();
-
-    await tester.tap(find.text('Klub Pilihan'));
-    await tester.pumpAndSettle();
-    expect(find.text('KLUB 5'), findsOneWidget);
-
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
-    expect(find.byType(HomeUserHeader), findsOneWidget);
-  });
-
-  testWidgets('banner foto bertulisan: tanpa teks dan gradasi di atasnya',
-      (tester) async {
-    _phoneScreen(tester);
-    await tester.pumpWidget(_app(banners: const [
-      HomeBanner(id: '1', title: ''),
-      HomeBanner(id: '2', title: 'Pendaftaran Dibuka'),
-    ]));
-    await tester.pump();
-
-    final cards = find.byType(HomeBannerCard);
-    expect(
-      find.descendant(of: cards.first, matching: find.byType(Text)),
-      findsNothing,
+  group('popup Paid Promotion', () {
+    const whatsapp = HomeBanner(
+      id: 'wa',
+      title: '',
+      linkUrl: 'https://wa.me/6281234567890?text=Halo',
+      buttonLabel: 'Chat Sekarang',
     );
-    expect(
-      find.descendant(of: cards.first, matching: find.byType(DecoratedBox)),
-      findsOneWidget, // latar warna saja
+    const site = HomeBanner(
+      id: 'web',
+      title: 'Promo Busur',
+      linkUrl: 'https://anaklangit.manahpro.web.id/promo',
     );
+    const plain = HomeBanner(id: 'plain', title: 'Ayo Istirahat');
+
+    Finder popup() => find.byKey(const Key('promotion-popup'));
+    PageController slider(WidgetTester tester) => tester
+        .widget<PageView>(find.byKey(const Key('promotion-slider')))
+        .controller!;
+
+    testWidgets(
+        'pertama kali: tampil besar & portrait, tombol tutup di kanan atas, '
+        'tercatat per akun', (tester) async {
+      _phoneScreen(tester);
+      final store = FakePromotionPopupStore();
+      await tester.pumpWidget(_app(
+        communities: _member(),
+        promotions: const [whatsapp, site],
+        popupStore: store,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(popup(), findsOneWidget);
+      final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+      final image = tester.getRect(find.byKey(const Key('promotion-slider')));
+      final whole = tester.getRect(popup());
+      expect(image.width / image.height, closeTo(2 / 3, 0.01));
+      expect(whole.height, lessThanOrEqualTo(screen.height * 0.8 + 0.5));
+      // Selebar mungkin di ponsel: ±90% lebar layar.
+      expect(image.width, closeTo(screen.width * 0.9, 1));
+      expect(whole.center.dx, closeTo(screen.width / 2, 1));
+
+      final close = tester.getRect(find.byKey(const Key('promotion-close')));
+      expect(image.contains(close.center), isTrue);
+      expect(image.right - close.right, lessThan(24));
+      expect(close.top - image.top, lessThan(24));
+
+      // Tombol di bawah gambar, sesuai slide pertama.
+      final button = tester.getRect(find.byKey(const Key('promotion-button')));
+      expect(button.top, greaterThan(image.bottom));
+      expect(find.text('Chat Sekarang'), findsOneWidget);
+
+      expect(store.marks.map((m) => m.$1), ['1']);
+
+      await tester.tap(find.byKey(const Key('promotion-close')));
+      await tester.pumpAndSettle();
+      expect(popup(), findsNothing);
+      expect(find.byType(HomeClubCard), findsOneWidget);
+    });
+
+    testWidgets('ketuk di luar popup menutupnya', (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(promotions: const [plain]));
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(6, 6));
+      await tester.pumpAndSettle();
+      expect(popup(), findsNothing);
+    });
+
+    testWidgets('desktop: tidak melebihi 80% tinggi layar', (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(_app(promotions: const [whatsapp, site]));
+      await tester.pumpAndSettle();
+
+      final image = tester.getRect(find.byKey(const Key('promotion-slider')));
+      final whole = tester.getRect(popup());
+      expect(whole.height, closeTo(640, 1));
+      expect(image.width / image.height, closeTo(2 / 3, 0.01));
+      expect(image.width, lessThanOrEqualTo(PromotionPopup.maxWidth));
+    });
+
+    for (final (label, ago, hours, shows) in [
+      ('baru 23 jam dari 24 jam: tidak tampil', 23, 24, false),
+      ('sudah 25 jam dari 24 jam: tampil lagi', 25, 24, true),
+      ('jeda 6 jam, sudah 7 jam: tampil lagi', 7, 6, true),
+      ('jeda 72 jam, baru 30 jam: tidak tampil', 30, 72, false),
+    ]) {
+      testWidgets(label, (tester) async {
+        _phoneScreen(tester);
+        final store = FakePromotionPopupStore(
+          {'1': DateTime.now().subtract(Duration(hours: ago))},
+        );
+        await tester.pumpWidget(_app(
+          promotions: const [plain],
+          intervalHours: hours,
+          popupStore: store,
+        ));
+        await tester.pumpAndSettle();
+
+        expect(popup(), shows ? findsOneWidget : findsNothing);
+        expect(store.marks, hasLength(shows ? 1 : 0));
+      });
+    }
+
+    testWidgets('akun lain di perangkat yang sama punya hitungan sendiri',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(
+        promotions: const [plain],
+        popupStore: FakePromotionPopupStore({'2': DateTime.now()}),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(popup(), findsOneWidget);
+    });
+
+    testWidgets('promosi selesai dimuat belakangan: popup tampil saat itu',
+        (tester) async {
+      _phoneScreen(tester);
+      final loading = Completer<HomePromotions>();
+      await tester.pumpWidget(_app(
+        communities: _member(),
+        loadingPromotions: loading.future,
+      ));
+      await tester.pumpAndSettle();
+      expect(popup(), findsNothing);
+      expect(find.byType(HomeClubCard), findsOneWidget);
+
+      loading.complete(const HomePromotions(banners: [plain]));
+      await tester.pumpAndSettle();
+      expect(popup(), findsOneWidget);
+    });
+
+    testWidgets('app kembali ke depan sesudah jedanya lewat: tampil lagi',
+        (tester) async {
+      _phoneScreen(tester);
+      final store = FakePromotionPopupStore(
+        {'1': DateTime.now().subtract(const Duration(hours: 1))},
+      );
+      await tester
+          .pumpWidget(_app(promotions: const [plain], popupStore: store));
+      await tester.pumpAndSettle();
+      expect(popup(), findsNothing);
+
+      store.shown['1'] = DateTime.now().subtract(const Duration(hours: 25));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(popup(), findsOneWidget);
+    });
+
+    testWidgets('tombol WhatsApp membuka chat lalu popup tertutup',
+        (tester) async {
+      _phoneScreen(tester);
+      final launcher = FakeUrlLauncher.install();
+      await tester.pumpWidget(_app(promotions: const [whatsapp]));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Chat Sekarang'));
+      await tester.pumpAndSettle();
+
+      expect(launcher.launched, ['https://wa.me/6281234567890?text=Halo']);
+      expect(popup(), findsNothing);
+    });
+
+    testWidgets('ketuk gambar menjalankan aksi yang sama', (tester) async {
+      _phoneScreen(tester);
+      final launcher = FakeUrlLauncher.install();
+      await tester.pumpWidget(_app(promotions: const [site]));
+      await tester.pumpAndSettle();
+
+      // Data lama tanpa label: label bawaan sesuai aksi.
+      expect(find.text('Kunjungi Situs'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('promotion-slide-web')));
+      await tester.pumpAndSettle();
+
+      expect(launcher.launched, ['https://anaklangit.manahpro.web.id/promo']);
+    });
+
+    testWidgets('tautan tidak bisa dibuka: diberi tahu', (tester) async {
+      _phoneScreen(tester);
+      FakeUrlLauncher.install(canOpen: false);
+      await tester.pumpWidget(_app(promotions: const [site]));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('promotion-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tautan tidak dapat dibuka'), findsOneWidget);
+    });
+
+    testWidgets('tombol halaman app: terbuka lalu kembali ke Beranda',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(communities: _member(), promotions: const [
+        HomeBanner(
+          id: '1',
+          title: 'Klub Pilihan',
+          linkUrl: '/communities/5',
+          buttonLabel: 'Lihat Klub',
+        ),
+      ]));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Lihat Klub'));
+      await tester.pumpAndSettle();
+      expect(find.text('KLUB 5'), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeClubCard), findsOneWidget);
+      expect(popup(), findsNothing);
+    });
+
+    testWidgets('tanpa aksi: tanpa tombol, ketuk gambar tidak menutupnya',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(promotions: const [plain]));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('promotion-button')), findsNothing);
+      expect(find.byKey(const Key('promotion-dot-0')), findsNothing);
+      await tester.tap(find.byKey(const Key('promotion-slide-plain')));
+      await tester.pumpAndSettle();
+      expect(popup(), findsOneWidget);
+    });
+
+    testWidgets('geser otomatis tiap 5 detik; titik & tombol ikut slide',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(promotions: const [whatsapp, site, plain]));
+      await tester.pumpAndSettle();
+      expect(slider(tester).page, 0);
+      expect(find.text('Chat Sekarang'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(slider(tester).page, closeTo(1, 0.01));
+      expect(find.text('Kunjungi Situs'), findsOneWidget);
+      expect(find.text('Chat Sekarang'), findsNothing);
+
+      final height = tester.getSize(popup()).height;
+      await tester.tap(find.byKey(const Key('promotion-dot-2')));
+      await tester.pumpAndSettle();
+      expect(slider(tester).page, closeTo(2, 0.01));
+      // Slide tanpa tombol: ruang tombol tetap, popup tidak melompat.
+      expect(find.byKey(const Key('promotion-button')), findsNothing);
+      expect(tester.getSize(popup()).height, height);
+    });
+
+    testWidgets('bisa digeser dengan mouse (web desktop)', (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(_app(promotions: const [whatsapp, site]));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const Key('promotion-slider')),
+        const Offset(-300, 0),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pumpAndSettle();
+      expect(slider(tester).page, closeTo(1, 0.01));
+    });
+
+    testWidgets('gambar bertulisan: tanpa teks dan gradasi di atasnya',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(promotions: const [
+        HomeBanner(id: '1', title: ''),
+        HomeBanner(id: '2', title: 'Pendaftaran Dibuka'),
+      ]));
+      await tester.pumpAndSettle();
+
+      final first = find.byKey(const Key('promotion-slide-1'));
+      expect(find.descendant(of: first, matching: find.byType(Text)),
+          findsNothing);
+      expect(
+        find.descendant(of: first, matching: find.byType(DecoratedBox)),
+        findsOneWidget, // latar warna saja
+      );
+    });
   });
 
   testWidgets('tidak ada navigasi bawah', (tester) async {
@@ -1168,8 +1415,8 @@ void main() {
     expect(find.text('HALAMAN ADMIN'), findsOneWidget);
   });
 
-  group('banner hanya dari Admin Panel', () {
-    ProviderContainer container(Future<List<HomeBanner>> Function() fetch) {
+  group('promosi hanya dari Admin Panel', () {
+    ProviderContainer container(Future<HomePromotions> Function() fetch) {
       final c = ProviderContainer(overrides: [
         bannerRemoteDataSourceProvider
             .overrideWithValue(_FakeBannerSource(fetch)),
@@ -1178,50 +1425,153 @@ void main() {
       return c;
     }
 
-    test('banner dari server dipakai apa adanya', () async {
-      final banners = await container(() async => _banners)
-          .read(homeBannersProvider.future);
-      expect(banners.map((b) => b.id), ['1', '2']);
+    test('promosi dari server dipakai apa adanya', () async {
+      final promotions = await container(
+        () async => const HomePromotions(banners: _banners, intervalHours: 6),
+      ).read(homePromotionsProvider.future);
+      expect(promotions.banners.map((b) => b.id), ['1', '2']);
+      expect(promotions.intervalHours, 6);
     });
 
-    test('server tanpa banner atau gagal → kosong, tanpa banner bawaan',
-        () async {
-      expect(
-        await container(() async => const []).read(homeBannersProvider.future),
-        isEmpty,
-      );
-      expect(
-        await container(() => throw const NetworkException('offline'))
-            .read(homeBannersProvider.future),
-        isEmpty,
-      );
+    test('server gagal → kosong, popup tidak tampil', () async {
+      final promotions =
+          await container(() => throw const NetworkException('offline'))
+              .read(homePromotionsProvider.future);
+      expect(promotions.banners, isEmpty);
+      expect(promotions.isDue(null, DateTime.now()), isFalse);
     });
 
-    testWidgets('belum ada banner: bagiannya tidak tampil', (tester) async {
+    testWidgets('belum ada promosi: tidak ada popup maupun banner di Beranda',
+        (tester) async {
       _phoneScreen(tester);
-      await tester.pumpWidget(_app(banners: const [], communities: _member()));
+      final store = FakePromotionPopupStore();
+      await tester.pumpWidget(_app(communities: _member(), popupStore: store));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('home-banner-slider')), findsNothing);
-      expect(find.byType(HomeBannerCard), findsNothing);
-      expect(find.textContaining('Selamat datang di CEO'), findsNothing);
+      expect(find.byKey(const Key('promotion-popup')), findsNothing);
+      expect(store.marks, isEmpty);
       // Menu langsung di bawah kartu komunitas, tanpa celah bekas banner.
       final gap = tester.getTopLeft(find.text('Menu Komunitas')).dy -
           tester.getBottomLeft(find.byType(HomeClubCard)).dy;
       expect(gap, lessThanOrEqualTo(24));
     });
+  });
 
-    testWidgets('saat memuat: tidak ada kotak pemuat banner', (tester) async {
-      _phoneScreen(tester);
-      await tester.pumpWidget(_app(
-        loadingBanners: Completer<List<HomeBanner>>().future,
-        communities: _member(),
-      ));
-      await tester.pumpAndSettle();
+  group('aturan jeda & aksi promosi', () {
+    final now = DateTime(2026, 11, 8, 12);
+    const promotions = HomePromotions(
+      banners: [HomeBanner(id: '1', title: '')],
+      intervalHours: 24,
+    );
 
-      expect(find.byKey(const Key('home-banner-slider')), findsNothing);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.text('Menu Komunitas'), findsOneWidget);
+    test('jeda dihitung dari terakhir tampil', () {
+      expect(promotions.isDue(null, now), isTrue);
+      expect(
+        promotions.isDue(
+            now.subtract(const Duration(hours: 23, minutes: 59)), now),
+        isFalse,
+      );
+      expect(promotions.isDue(now.subtract(const Duration(hours: 24)), now),
+          isTrue);
+      // Jam perangkat dimundurkan: jangan tampil terus-menerus.
+      expect(promotions.isDue(now.add(const Duration(hours: 2)), now), isFalse);
+      expect(const HomePromotions().isDue(null, now), isFalse);
+    });
+
+    test('nomor WhatsApp dirapikan ke kode negara', () {
+      for (final (input, expected) in [
+        ('0812-3456-7890', '6281234567890'),
+        ('+62 812 3456 7890', '6281234567890'),
+        ('6281234567890', '6281234567890'),
+        ('(0812) 3456.7890', '6281234567890'),
+        ('+1 415 555 0100', '14155550100'),
+        ('', null),
+        ('0812', null),
+        ('+0812345678', null),
+        ('0812345678901234567', null),
+        ('08123abc456', null),
+      ]) {
+        expect(PromotionAction.normalizeWhatsappNumber(input), expected,
+            reason: input);
+      }
+    });
+
+    test('tautan wa.me: pesan awal dikodekan dan terbaca kembali', () {
+      const message = 'Halo, saya tertarik promo 50% & ingin tanya?';
+      final link = PromotionAction.whatsappLink('6281234567890', message);
+      expect(link, startsWith('https://wa.me/6281234567890?text=Halo%2C'));
+      expect(link, isNot(contains(' ')));
+      expect(link, isNot(contains('&')));
+      expect(PromotionAction.whatsappNumber(link), '6281234567890');
+      expect(PromotionAction.whatsappMessage(link), message);
+      expect(PromotionAction.whatsappLink('6281234567890', '  '),
+          'https://wa.me/6281234567890');
+      expect(PromotionAction.formatWhatsappNumber('6281234567890'),
+          '+62 812-3456-7890');
+      expect(
+          PromotionAction.formatWhatsappNumber('14155550100'), '+14155550100');
+    });
+
+    test('jenis aksi & label tombol', () {
+      expect(
+          PromotionActionKind.of('/communities'), PromotionActionKind.appPage);
+      expect(PromotionActionKind.of('https://wa.me/6281234567890'),
+          PromotionActionKind.whatsapp);
+      expect(PromotionActionKind.of('https://WA.ME/6281234567890'),
+          PromotionActionKind.whatsapp);
+      expect(PromotionActionKind.of('https://anaklangit.manahpro.web.id'),
+          PromotionActionKind.web);
+      expect(PromotionActionKind.of('javascript:alert(1)'),
+          PromotionActionKind.none);
+      expect(PromotionActionKind.of(null), PromotionActionKind.none);
+
+      expect(const HomeBanner(id: '1', title: '').button, isNull);
+      expect(
+        const HomeBanner(id: '1', title: '', buttonLabel: 'Beli').button,
+        isNull,
+      );
+      expect(
+        const HomeBanner(
+                id: '1', title: '', linkUrl: '/profile', buttonLabel: '  ')
+            .button,
+        'Lihat Selengkapnya',
+      );
+      expect(
+        const HomeBanner(
+          id: '1',
+          title: '',
+          linkUrl: 'https://wa.me/6281234567890',
+          buttonLabel: ' Chat Admin ',
+        ).button,
+        'Chat Admin',
+      );
+    });
+
+    test('ukuran gambar: portrait terbesar dalam 80% tinggi & 90% lebar', () {
+      final phone = PromotionPopup.imageSize(
+        const Size(400, 889),
+        hasButton: true,
+        hasDots: true,
+      );
+      expect(phone.width, closeTo(360, 0.01));
+      expect(phone.height, closeTo(540, 0.01));
+
+      // Layar pendek: tinggi yang membatasi.
+      final short = PromotionPopup.imageSize(
+        const Size(400, 600),
+        hasButton: true,
+        hasDots: false,
+      );
+      expect(short.height, closeTo(600 * 0.8 - 66, 0.01));
+      expect(short.width / short.height, closeTo(2 / 3, 0.001));
+
+      final desktop = PromotionPopup.imageSize(
+        const Size(1920, 1080),
+        hasButton: false,
+        hasDots: false,
+      );
+      expect(desktop.width, closeTo(460, 0.01));
+      expect(desktop.height, closeTo(690, 0.01));
     });
   });
 

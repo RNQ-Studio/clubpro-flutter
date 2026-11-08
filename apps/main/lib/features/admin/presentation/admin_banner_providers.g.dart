@@ -8,15 +8,15 @@ part of 'admin_banner_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Kelola Banner. Setiap perubahan ikut menyegarkan slider Beranda.
+/// Paid Promotion. Setiap perubahan ikut menyegarkan popup Beranda.
 
 @ProviderFor(AdminBannersNotifier)
 final adminBannersProvider = AdminBannersNotifierProvider._();
 
-/// Kelola Banner. Setiap perubahan ikut menyegarkan slider Beranda.
+/// Paid Promotion. Setiap perubahan ikut menyegarkan popup Beranda.
 final class AdminBannersNotifierProvider
     extends $AsyncNotifierProvider<AdminBannersNotifier, AdminBannersState> {
-  /// Kelola Banner. Setiap perubahan ikut menyegarkan slider Beranda.
+  /// Paid Promotion. Setiap perubahan ikut menyegarkan popup Beranda.
   AdminBannersNotifierProvider._()
       : super(
           from: null,
@@ -37,9 +37,9 @@ final class AdminBannersNotifierProvider
 }
 
 String _$adminBannersNotifierHash() =>
-    r'0720eade3c749de309f1b0977517004c3fd346fb';
+    r'b6d539be09bb73d1a418f4048048f8198f046020';
 
-/// Kelola Banner. Setiap perubahan ikut menyegarkan slider Beranda.
+/// Paid Promotion. Setiap perubahan ikut menyegarkan popup Beranda.
 
 abstract class _$AdminBannersNotifier
     extends $AsyncNotifier<AdminBannersState> {
