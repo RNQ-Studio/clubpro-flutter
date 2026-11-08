@@ -156,12 +156,9 @@ tool/deploy_web.sh --build-only       # build saja
 firebase emulators:start --only hosting --project demo-clubpro   # uji lokal :5055
 ```
 
-- Login Google di web = pindah halaman ke Google lalu kembali ke `/auth/google`
-  (`GoogleWebSignIn`, OpenID Connect `response_type=id_token`), bukan tombol GSI/popup:
-  tombol GSI membuka tab baru, dan sesi yang masuk eksperimen FedCM Google bisa berhenti
-  di tab putih kosong di HP Android. `https://ceo-pro.web.app/auth/google` wajib terdaftar
-  di "Authorized redirect URIs" Web client (GCP project `clubpro-ceo`); bootstrap memanggil
-  `GoogleWebSignIn.capture()` sebelum router dibuat.
+- Login Google di web memakai tombol resmi GSI (`google_web_button*.dart`) dengan Web
+  client ID sebagai `clientId`; origin `https://ceo-pro.web.app` wajib terdaftar di
+  "Authorized JavaScript origins" client tersebut.
 - Drift di web butuh `web/sqlite3.wasm` & `web/drift_worker.js` (tiap app); versinya harus
   ikut paket `sqlite3`/`drift` di `pubspec.lock` (lihat `AppDatabase._openConnection`).
 

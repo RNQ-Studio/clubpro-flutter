@@ -7,18 +7,10 @@ import 'branding/club_brand.dart';
 import 'router/app_router.dart';
 
 class App extends StatelessWidget {
-  const App({
-    super.key,
-    required this.storage,
-    required this.database,
-    this.googleWebSignIn,
-  });
+  const App({super.key, required this.storage, required this.database});
 
   final StorageService storage;
   final AppDatabase database;
-
-  /// Web: sudah membaca kembalian halaman masuk Google (lihat bootstrap).
-  final GoogleWebSignIn? googleWebSignIn;
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +18,6 @@ class App extends StatelessWidget {
       overrides: [
         storageServiceProvider.overrideWithValue(storage),
         appDatabaseProvider.overrideWithValue(database),
-        if (googleWebSignIn case final googleWebSignIn?)
-          googleWebSignInProvider.overrideWithValue(googleWebSignIn),
       ],
       child: const _AppRouter(),
     );

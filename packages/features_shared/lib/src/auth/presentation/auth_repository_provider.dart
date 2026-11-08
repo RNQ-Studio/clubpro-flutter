@@ -3,7 +3,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/datasources/auth_local_data_source.dart';
 import '../data/google_sign_in_service.dart';
-import '../data/google_web_sign_in.dart';
 import '../data/datasources/auth_remote_data_source.dart';
 import '../data/repositories/auth_repository_impl.dart';
 import '../domain/repositories/auth_repository.dart';
@@ -38,12 +37,6 @@ GoogleSignInService googleSignInService(Ref ref) {
     serverClientId: AppConfig.instance.googleServerClientId,
   );
 }
-
-/// Web: login Google lewat pindah halaman; null di luar web. App web
-/// menimpanya dengan instance yang sudah [GoogleWebSignIn.capture] sebelum
-/// router dibuat.
-@Riverpod(keepAlive: true)
-GoogleWebSignIn? googleWebSignIn(Ref ref) => GoogleWebSignIn.forPlatform();
 
 @Riverpod(keepAlive: true)
 AuthRemoteDataSource _authRemoteDataSource(Ref ref) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:core/core.dart';
-import 'package:features_shared/features_shared.dart';
 
 import 'app.dart';
 // TODO: Uncomment after running `flutterfire configure`
@@ -30,12 +29,5 @@ Future<void> bootstrap() async {
   // Initialize offline database
   final database = AppDatabase();
 
-  // Web: kembalian dari halaman masuk Google dibaca sebelum router dibuat.
-  final googleWebSignIn = GoogleWebSignIn.forPlatform()?..capture();
-
-  runApp(App(
-    storage: storage,
-    database: database,
-    googleWebSignIn: googleWebSignIn,
-  ));
+  runApp(App(storage: storage, database: database));
 }

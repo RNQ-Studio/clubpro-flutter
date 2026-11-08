@@ -13,7 +13,6 @@ export 'src/auth/data/datasources/auth_remote_data_source.dart';
 export 'src/auth/data/repositories/auth_repository_impl.dart';
 export 'src/auth/data/biometric_auth_service.dart';
 export 'src/auth/data/google_sign_in_service.dart';
-export 'src/auth/data/google_web_sign_in.dart';
 
 // auth — presentation
 export 'src/auth/presentation/auth_guard.dart';
