@@ -123,6 +123,26 @@ void main() {
     expect(box.left + (box.width - 12) / 2, closeTo(195, 1));
   });
 
+  testWidgets('nama app terlihat penuh sejak frame pertama, tanpa animasi',
+      (tester) async {
+    // Bila frame tertahan (perangkat lambat, Chrome headless saat smoke),
+    // animasi masuk yang mulai dari transparan membuat nama tak terlihat.
+    _screen(tester, const Size(390, 844));
+    await tester.pumpWidget(_page());
+
+    for (final key in ['login-brand-name', 'login-brand-tagline']) {
+      final hidden = find.ancestor(
+        of: find.byKey(Key(key)),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              (w is Opacity && w.opacity < 1) ||
+              (w is FadeTransition && w.opacity.value < 1),
+        ),
+      );
+      expect(hidden, findsNothing, reason: key);
+    }
+  });
+
   testWidgets('selalu gelap hitam-emas walau tema app terang', (tester) async {
     _screen(tester, const Size(390, 844));
     await tester.pumpWidget(_page());

@@ -31,8 +31,9 @@ class ClubLoginPage extends StatelessWidget {
   }
 }
 
-/// Kepala halaman login: logo bercahaya, "CEO", dan kepanjangannya. Muncul
-/// perlahan saat halaman dibuka.
+/// Kepala halaman login: logo bercahaya, "CEO", dan kepanjangannya. Tanpa
+/// animasi masuk: bila frame tertahan (perangkat lambat, Chrome headless saat
+/// smoke), nama app tetap terlihat.
 class ClubLoginHero extends StatelessWidget {
   const ClubLoginHero({super.key});
 
@@ -50,83 +51,73 @@ class ClubLoginHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 700),
-      curve: Curves.easeOutCubic,
-      builder: (context, t, child) => Opacity(
-        opacity: t,
-        child:
-            Transform.translate(offset: Offset(0, (1 - t) * 16), child: child),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(logoSize * 0.22),
-              boxShadow: [
-                BoxShadow(
-                  color: ClubBrand.gold.withValues(alpha: 0.42),
-                  blurRadius: 72,
-                  spreadRadius: 6,
-                ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(logoSize * 0.22),
+            boxShadow: [
+              BoxShadow(
+                color: ClubBrand.gold.withValues(alpha: 0.42),
+                blurRadius: 72,
+                spreadRadius: 6,
+              ),
+            ],
+          ),
+          child: const ClubLogo(size: logoSize),
+        ),
+        const SizedBox(height: 36),
+        ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: _goldText.createShader,
+          // Jarak huruf juga ditambahkan sesudah huruf terakhir; diimbangi
+          // agar tetap di tengah.
+          child: const Padding(
+            padding: EdgeInsets.only(left: _nameSpacing),
+            child: Text(
+              ClubBrand.name,
+              key: Key('login-brand-name'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 60,
+                height: 1,
+                fontWeight: FontWeight.w800,
+                letterSpacing: _nameSpacing,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Container(
+          width: 40,
+          height: 2,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(1),
+            gradient: const LinearGradient(
+              colors: [
+                Color(0x00BE8815),
+                ClubBrand.gold,
+                Color(0x00BE8815),
               ],
             ),
-            child: const ClubLogo(size: logoSize),
           ),
-          const SizedBox(height: 36),
-          ShaderMask(
-            blendMode: BlendMode.srcIn,
-            shaderCallback: _goldText.createShader,
-            // Jarak huruf juga ditambahkan sesudah huruf terakhir; diimbangi
-            // agar tetap di tengah.
-            child: const Padding(
-              padding: EdgeInsets.only(left: _nameSpacing),
-              child: Text(
-                ClubBrand.name,
-                key: Key('login-brand-name'),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 60,
-                  height: 1,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: _nameSpacing,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          ClubBrand.tagline.toUpperCase(),
+          key: const Key('login-brand-tagline'),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12.5,
+            height: 1.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 2.4,
+            color: Colors.white.withValues(alpha: 0.78),
           ),
-          const SizedBox(height: 18),
-          Container(
-            width: 40,
-            height: 2,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(1),
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0x00BE8815),
-                  ClubBrand.gold,
-                  Color(0x00BE8815),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            ClubBrand.tagline.toUpperCase(),
-            key: const Key('login-brand-tagline'),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12.5,
-              height: 1.5,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 2.4,
-              color: Colors.white.withValues(alpha: 0.78),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
