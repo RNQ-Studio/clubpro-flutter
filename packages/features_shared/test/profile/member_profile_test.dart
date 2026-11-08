@@ -376,6 +376,18 @@ void main() {
       });
     });
 
+    testWidgets(
+        'NIK sempat dipilih lalu "sama dengan domisili" → tidak dikirim',
+        (tester) async {
+      final form = await pumpForm(tester, _user(domicile: _bandung));
+
+      await _choose(tester, 'field-nik-province', 'Jawa Timur');
+      await _choose(tester, 'field-nik-city-35', 'Kota Surabaya');
+      await _tap(tester, find.byKey(const Key('field-nik-same')));
+
+      expect(form.changes(), {'nik_same_as_domicile': true});
+    });
+
     testWidgets('berhenti "sama dengan domisili" → NIK bisa dipilih lagi',
         (tester) async {
       final form = await pumpForm(
