@@ -79,14 +79,20 @@ AdminUserDetail adminDetail({
       phone: '081234567890',
       emailVerifiedAt: emailVerified ? DateTime(2026, 10, 28, 9, 15) : null,
       gender: MemberGender.female,
-      birthPlace: 'Bandung',
-      birthDate: DateTime(2001, 4, 12),
-      address: 'Jl. Merdeka No. 10, Bandung',
-      bloodType: BloodType.o,
-      emergencyContactName: 'Ibu Sari',
-      emergencyContactPhone: '081298765432',
-      completion:
-          const ProfileCompletion(completed: 10, total: 10, missing: []),
+      domicile: const MemberRegion(
+        provinceCode: '32',
+        provinceName: 'Jawa Barat',
+        cityCode: '32.73',
+        cityName: 'Kota Bandung',
+      ),
+      nikRegion: const MemberRegion(
+        provinceCode: '32',
+        provinceName: 'Jawa Barat',
+        cityCode: '32.73',
+        cityName: 'Kota Bandung',
+      ),
+      nikSameAsDomicile: true,
+      completion: const ProfileCompletion(completed: 5, total: 5, missing: []),
       devices: devices ?? adminDevices,
     );
 

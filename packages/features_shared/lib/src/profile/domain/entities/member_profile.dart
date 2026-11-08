@@ -13,18 +13,53 @@ enum MemberGender {
       values.where((e) => e.apiValue == value).firstOrNull;
 }
 
-enum BloodType {
-  a('A'),
-  b('B'),
-  ab('AB'),
-  o('O');
+/// Provinsi + kabupaten/kota data diri (kode Kemendagri dan namanya dari
+/// server), mis. domisili atau wilayah sesuai NIK.
+class MemberRegion {
+  const MemberRegion({
+    required this.provinceCode,
+    required this.provinceName,
+    required this.cityCode,
+    required this.cityName,
+  });
 
-  const BloodType(this.apiValue);
-  final String apiValue;
-  String get label => apiValue;
+  final String provinceCode;
+  final String provinceName;
+  final String cityCode;
+  final String cityName;
 
-  static BloodType? fromApi(Object? value) =>
-      values.where((e) => e.apiValue == value).firstOrNull;
+  /// "Kota Bandung, Jawa Barat".
+  String get label => '$cityName, $provinceName';
+
+  /// Dari kolom API `{prefix}_province_code` dst.; null bila belum lengkap.
+  static MemberRegion? fromJson(Map<String, dynamic> json, String prefix) {
+    final values = [
+      for (final column in _columns) json['${prefix}_$column'],
+    ];
+    if (values.any((v) => v is! String || v.isEmpty)) return null;
+    final [provinceCode, provinceName, cityCode, cityName] =
+        values.cast<String>();
+    return MemberRegion(
+      provinceCode: provinceCode,
+      provinceName: provinceName,
+      cityCode: cityCode,
+      cityName: cityName,
+    );
+  }
+
+  Map<String, dynamic> toJson(String prefix) => {
+        '${prefix}_province_code': provinceCode,
+        '${prefix}_province_name': provinceName,
+        '${prefix}_city_code': cityCode,
+        '${prefix}_city_name': cityName,
+      };
+
+  static const _columns = [
+    'province_code',
+    'province_name',
+    'city_code',
+    'city_name',
+  ];
 }
 
 /// Satu isian data diri yang dihitung untuk kelengkapan profil.
@@ -37,15 +72,10 @@ class ProfileField {
   /// Urutan & label sama dengan `MemberProfileService::COMPLETION_FIELDS`.
   static const all = [
     ProfileField('name', 'Nama lengkap'),
-    ProfileField('avatar', 'Foto profil'),
     ProfileField('gender', 'Jenis kelamin'),
-    ProfileField('birth_place', 'Tempat lahir'),
-    ProfileField('birth_date', 'Tanggal lahir'),
-    ProfileField('phone', 'Nomor HP / WhatsApp'),
-    ProfileField('address', 'Alamat'),
-    ProfileField('blood_type', 'Golongan darah'),
-    ProfileField('emergency_contact_name', 'Nama kontak darurat'),
-    ProfileField('emergency_contact_phone', 'Nomor kontak darurat'),
+    ProfileField('phone', 'Nomor WhatsApp'),
+    ProfileField('domicile', 'Provinsi & kota domisili'),
+    ProfileField('nik_region', 'Provinsi & kota sesuai NIK'),
   ];
 }
 
@@ -88,8 +118,8 @@ class ProfileCompletion {
   bool get isComplete => missing.isEmpty;
 
   /// Daftar isian penghitungnya sama dengan [ProfileField.all]. Server lama
-  /// yang masih menghitung isian yang sudah dihapus (mis. data panahan) →
-  /// `false`, dan app menghitung sendiri.
+  /// yang masih menghitung isian yang sudah dihapus (mis. tanggal lahir,
+  /// kontak darurat) → `false`, dan app menghitung sendiri.
   bool get matchesAppFields =>
       total == ProfileField.all.length &&
       missing.every((f) => ProfileField.all.any((a) => a.key == f.key));

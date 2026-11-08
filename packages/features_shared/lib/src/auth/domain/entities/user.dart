@@ -11,12 +11,9 @@ class User {
     this.avatarUrl,
     this.roles = const [],
     this.gender,
-    this.birthPlace,
-    this.birthDate,
-    this.address,
-    this.bloodType,
-    this.emergencyContactName,
-    this.emergencyContactPhone,
+    this.domicile,
+    this.nikRegion,
+    this.nikSameAsDomicile = false,
     ProfileCompletion? completion,
   }) : _completion = completion;
 
@@ -29,13 +26,12 @@ class User {
 
   // Data diri anggota (semua opsional; dilengkapi bertahap).
   final MemberGender? gender;
-  final String? birthPlace;
-  final DateTime? birthDate;
-  final String? address;
+  final MemberRegion? domicile;
 
-  final BloodType? bloodType;
-  final String? emergencyContactName;
-  final String? emergencyContactPhone;
+  /// Wilayah sesuai NIK (KTP). Bila [nikSameAsDomicile], server menyalinnya
+  /// dari [domicile].
+  final MemberRegion? nikRegion;
+  final bool nikSameAsDomicile;
 
   final ProfileCompletion? _completion;
 
@@ -48,15 +44,10 @@ class User {
       _completion ??
       ProfileCompletion.fromFilled({
         if (name.trim().isNotEmpty) 'name',
-        if (_filled(avatarUrl)) 'avatar',
         if (gender != null) 'gender',
-        if (_filled(birthPlace)) 'birth_place',
-        if (birthDate != null) 'birth_date',
         if (_filled(phone)) 'phone',
-        if (_filled(address)) 'address',
-        if (bloodType != null) 'blood_type',
-        if (_filled(emergencyContactName)) 'emergency_contact_name',
-        if (_filled(emergencyContactPhone)) 'emergency_contact_phone',
+        if (domicile != null) 'domicile',
+        if (nikRegion != null) 'nik_region',
       });
 
   static bool _filled(String? value) =>

@@ -5,15 +5,49 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-const _complete = ProfileCompletion(completed: 10, total: 10, missing: []);
+const _complete = ProfileCompletion(completed: 5, total: 5, missing: []);
+
+const _bandung = MemberRegion(
+  provinceCode: '32',
+  provinceName: 'Jawa Barat',
+  cityCode: '32.73',
+  cityName: 'Kota Bandung',
+);
+const _surabaya = MemberRegion(
+  provinceCode: '35',
+  provinceName: 'Jawa Timur',
+  cityCode: '35.78',
+  cityName: 'Kota Surabaya',
+);
+
+const _regions = [
+  RegionProvince(code: '32', name: 'Jawa Barat', cities: [
+    RegionCity(code: '32.73', name: 'Kota Bandung'),
+    RegionCity(code: '32.05', name: 'Kabupaten Garut'),
+  ]),
+  RegionProvince(code: '35', name: 'Jawa Timur', cities: [
+    RegionCity(code: '35.78', name: 'Kota Surabaya'),
+  ]),
+];
+
+class _FakeRegions implements RegionRepository {
+  Exception? error;
+
+  @override
+  Future<List<RegionProvince>> getIndonesia() async {
+    final failure = error;
+    if (failure != null) throw failure;
+    return _regions;
+  }
+}
 
 User _user({
   String name = 'Rina Ayu',
   MemberGender? gender,
-  DateTime? birthDate,
   String? phone,
-  String? address,
-  BloodType? bloodType,
+  MemberRegion? domicile,
+  MemberRegion? nikRegion,
+  bool nikSameAsDomicile = false,
   ProfileCompletion? completion,
 }) =>
     User(
@@ -21,10 +55,10 @@ User _user({
       name: name,
       email: 'rina@gmail.com',
       gender: gender,
-      birthDate: birthDate,
       phone: phone,
-      address: address,
-      bloodType: bloodType,
+      domicile: domicile,
+      nikRegion: nikRegion,
+      nikSameAsDomicile: nikSameAsDomicile,
       completion: completion,
     );
 
@@ -40,10 +74,13 @@ class _ProfileAuthNotifier extends AuthNotifier {
   Future<void> updateProfile(Map<String, Object?> fields) async {
     saved.add(fields);
   }
+
+  @override
+  Future<void> logout() async => state = const AuthUnauthenticated();
 }
 
 Widget _host(Widget child, _ProfileAuthNotifier notifier,
-    {List<RouteBase> extraRoutes = const []}) {
+    {RegionRepository? regions}) {
   final router = GoRouter(
     initialLocation: '/screen',
     routes: [
@@ -51,11 +88,15 @@ Widget _host(Widget child, _ProfileAuthNotifier notifier,
       GoRoute(path: '/', builder: (_, __) => const Text('BERANDA')),
       GoRoute(
           path: AppRoutes.editProfile, builder: (_, __) => const Text('EDIT')),
-      ...extraRoutes,
+      GoRoute(
+          path: AppRoutes.settings, builder: (_, __) => const Text('SETTINGS')),
     ],
   );
   return ProviderScope(
-    overrides: [authProvider.overrideWith(() => notifier)],
+    overrides: [
+      authProvider.overrideWith(() => notifier),
+      regionRepositoryProvider.overrideWithValue(regions ?? _FakeRegions()),
+    ],
     child: MaterialApp.router(
       routerConfig: router,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -76,20 +117,81 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
   await tester.pump();
   await tester.tap(finder);
-  await tester.pump();
+  await tester.pumpAndSettle();
+}
+
+/// Pilih satu butir dropdown lewat UI, seperti pengguna.
+Future<void> _choose(WidgetTester tester, String fieldKey, String label) async {
+  await _tap(tester, find.byKey(Key(fieldKey)));
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
 }
 
 void main() {
   group('UserModel & ProfileCompletion', () {
-    test('membaca data diri dan profile_completion dari API', () {
+    test('membaca data diri, wilayah, dan profile_completion dari API', () {
       final user = UserModel.fromJson({
         'id': 7,
         'name': 'Rina',
         'email': 'rina@gmail.com',
         'gender': 'female',
-        'birth_place': 'Bandung',
+        'phone': '081234567890',
+        'domicile_province_code': '32',
+        'domicile_province_name': 'Jawa Barat',
+        'domicile_city_code': '32.73',
+        'domicile_city_name': 'Kota Bandung',
+        'nik_province_code': '32',
+        'nik_province_name': 'Jawa Barat',
+        'nik_city_code': '32.73',
+        'nik_city_name': 'Kota Bandung',
+        'nik_same_as_domicile': true,
+        'profile_completion': {
+          'is_complete': true,
+          'completed': 5,
+          'total': 5,
+          'percent': 100,
+          'missing': [],
+        },
+      });
+
+      expect(user.gender, MemberGender.female);
+      expect(user.domicile?.label, 'Kota Bandung, Jawa Barat');
+      expect(user.nikRegion?.cityCode, '32.73');
+      expect(user.nikSameAsDomicile, isTrue);
+      expect(user.completion.isComplete, isTrue);
+
+      // Cache lokal: bentuk JSON sama → hasil baca ulang identik.
+      final again = UserModel.fromJson(user.toJson());
+      expect(again.domicile?.label, 'Kota Bandung, Jawa Barat');
+      expect(again.nikRegion?.provinceCode, '32');
+      expect(again.nikSameAsDomicile, isTrue);
+      expect(again.completion.completed, 5);
+    });
+
+    test('wilayah belum lengkap (tanpa kota) dianggap belum diisi', () {
+      final user = UserModel.fromJson({
+        'id': 7,
+        'name': 'Rina',
+        'email': 'rina@gmail.com',
+        'domicile_province_code': '32',
+        'domicile_province_name': 'Jawa Barat',
+        'domicile_city_code': null,
+      });
+
+      expect(user.domicile, isNull);
+      expect(user.nikSameAsDomicile, isFalse);
+    });
+
+    test('server lama masih menghitung isian lama → dihitung lokal', () {
+      final user = UserModel.fromJson({
+        'id': 7,
+        'name': 'Rina',
+        'email': 'rina@gmail.com',
+        'gender': 'female',
+        'phone': '081234567890',
         'birth_date': '2001-04-12',
         'blood_type': 'AB',
+        'emergency_contact_name': 'Ibu',
         'profile_completion': {
           'is_complete': false,
           'completed': 7,
@@ -97,82 +199,49 @@ void main() {
           'percent': 70,
           'missing': [
             {'key': 'avatar', 'label': 'Foto profil'},
+            {'key': 'address', 'label': 'Alamat'},
           ],
         },
       });
 
-      expect(user.gender, MemberGender.female);
-      expect(user.birthDate, DateTime(2001, 4, 12));
-      expect(user.bloodType, BloodType.ab);
-      expect(user.completion.percent, 70);
-      expect(user.completion.missing.single.label, 'Foto profil');
-
-      // Cache lokal: bentuk JSON sama → hasil baca ulang identik.
-      final again = UserModel.fromJson(user.toJson());
-      expect(again.birthDate, user.birthDate);
-      expect(again.bloodType, BloodType.ab);
-      expect(again.completion.completed, 7);
-    });
-
-    test('server lama masih menghitung isian panahan → dihitung lokal', () {
-      final user = UserModel.fromJson({
-        'id': 7,
-        'name': 'Rina',
-        'email': 'rina@gmail.com',
-        'avatar_url': 'https://anaklangit.manahpro.web.id/storage/a.jpg',
-        'gender': 'female',
-        'birth_place': 'Bandung',
-        'birth_date': '2001-04-12',
-        'phone': '081234567890',
-        'address': 'Jl. Merdeka',
-        'blood_type': 'AB',
-        'emergency_contact_name': 'Ibu',
-        'emergency_contact_phone': '081200000000',
-        'archery_started_at': '2019-07-01',
-        'bow_type': 'recurve',
-        'profile_completion': {
-          'is_complete': false,
-          'completed': 10,
-          'total': 12,
-          'percent': 83,
-          'missing': [
-            {'key': 'archery_started_at', 'label': 'Mulai berlatih panahan'},
-            {'key': 'bow_type', 'label': 'Jenis busur'},
-          ],
-        },
-      });
-
-      expect(user.completion.isComplete, isTrue);
       expect(user.completion.total, ProfileField.all.length);
-      expect(user.toJson().keys, isNot(contains('bow_type')));
-      expect(UserModel.fromJson(user.toJson()).completion.isComplete, isTrue);
+      expect(user.completion.completed, 3); // nama, jenis kelamin, WhatsApp
+      expect(user.completion.missing.map((f) => f.key),
+          ['domicile', 'nik_region']);
+      expect(user.toJson().keys, isNot(contains('blood_type')));
+      expect(user.toJson().keys, isNot(contains('emergency_contact_name')));
     });
 
-    test('daftar isian kelengkapan tanpa data panahan', () {
-      final keys = ProfileField.all.map((f) => f.key);
-      expect(keys, isNot(contains('archery_started_at')));
-      expect(keys, isNot(contains('bow_type')));
-      expect(ProfileField.all, hasLength(10));
+    test('lima isian kelengkapan, tanpa foto, lahir, alamat, kesehatan', () {
+      expect(ProfileField.all.map((f) => f.key),
+          ['name', 'gender', 'phone', 'domicile', 'nik_region']);
+      expect(ProfileField.all.map((f) => f.label), [
+        'Nama lengkap',
+        'Jenis kelamin',
+        'Nomor WhatsApp',
+        'Provinsi & kota domisili',
+        'Provinsi & kota sesuai NIK',
+      ]);
     });
 
     test('tanpa profile_completion dari server → dihitung lokal', () {
       final partial = _user(gender: MemberGender.male, phone: '0812');
-      expect(partial.completion.completed, 3); // nama, jenis kelamin, HP
+      expect(partial.completion.completed, 3);
       expect(partial.completion.isComplete, isFalse);
-      expect(partial.completion.missing.map((f) => f.key), contains('avatar'));
-      expect(partial.completion.total, ProfileField.all.length);
-    });
 
-    test('tanggal Indonesia', () {
-      expect(AppDateUtils.longDateId(DateTime(2001, 4, 12)), '12 April 2001');
-      expect(AppDateUtils.monthYearId(DateTime(2019, 7)), 'Juli 2019');
-      expect(AppDateUtils.isoDate(DateTime(2019, 7, 1)), '2019-07-01');
+      final full = _user(
+        gender: MemberGender.male,
+        phone: '0812',
+        domicile: _bandung,
+        nikRegion: _bandung,
+      );
+      expect(full.completion.isComplete, isTrue);
     });
   });
 
   group('MemberProfileForm', () {
-    Future<MemberProfileFormState> pumpForm(
-        WidgetTester tester, User user) async {
+    Future<MemberProfileFormState> pumpForm(WidgetTester tester, User user,
+        {RegionRepository? regions}) async {
       _tallScreen(tester);
       final key = GlobalKey<MemberProfileFormState>();
       await tester.pumpWidget(_host(
@@ -182,37 +251,165 @@ void main() {
           ),
         ),
         _ProfileAuthNotifier(user),
+        regions: regions,
       ));
       await tester.pumpAndSettle();
       return key.currentState!;
     }
 
+    testWidgets('hanya isian yang diminta; tanpa foto, lahir, kesehatan',
+        (tester) async {
+      await pumpForm(tester, _user());
+
+      for (final label in [
+        'Nama lengkap',
+        'Jenis kelamin',
+        'Nomor WhatsApp',
+        'Domisili',
+        'Sesuai NIK (KTP)',
+        'Sama dengan domisili',
+      ]) {
+        expect(find.text(label), findsWidgets, reason: label);
+      }
+      expect(find.text('Provinsi'), findsNWidgets(2));
+      expect(find.text('Kota/Kabupaten'), findsNWidgets(2));
+      for (final gone in [
+        'Foto profil',
+        'Tempat lahir',
+        'Tanggal lahir',
+        'Alamat',
+        'Golongan darah',
+        'Nama kontak darurat',
+        'Nomor kontak darurat',
+        'Kesehatan & Kontak Darurat',
+      ]) {
+        expect(find.text(gone), findsNothing, reason: gone);
+      }
+      expect(find.byType(ProfileAvatarPicker), findsNothing);
+    });
+
     testWidgets('tanpa perubahan → tidak ada yang dikirim', (tester) async {
-      final form = await pumpForm(tester, _user(address: 'Jl. Merdeka'));
+      final form = await pumpForm(
+        tester,
+        _user(phone: '081234567890', domicile: _bandung, nikRegion: _surabaya),
+      );
       expect(form.changes(), isEmpty);
     });
 
-    testWidgets('hanya isian berubah; pengosongan → null; HP dinormalkan',
+    testWidgets('nama, jenis kelamin, WhatsApp: hanya yang berubah dikirim',
         (tester) async {
-      final form = await pumpForm(
-          tester, _user(address: 'Jl. Merdeka', bloodType: BloodType.o));
+      final form = await pumpForm(tester, _user(phone: '081111111111'));
 
       await tester.enterText(
           find.byKey(const Key('field-phone')), '0812-3456 7890');
-      await tester.enterText(
-          find.widgetWithText(TextFormField, 'Jl. Merdeka'), '');
       await _tap(tester, find.text('Perempuan'));
-      await _tap(tester, find.text('O')); // ketuk lagi = kosongkan
 
+      expect(form.changes(), {'phone': '081234567890', 'gender': 'female'});
+
+      await tester.enterText(find.byKey(const Key('field-phone')), '');
+      expect(form.changes()['phone'], isNull);
+      expect(form.changes().containsKey('phone'), isTrue);
+    });
+
+    testWidgets('domisili & NIK dipilih dari dropdown, dikirim berpasangan',
+        (tester) async {
+      final form = await pumpForm(tester, _user());
+
+      await _choose(tester, 'field-domicile-province', 'Jawa Barat');
+      await _choose(tester, 'field-domicile-city-32', 'Kabupaten Garut');
+      await _choose(tester, 'field-nik-province', 'Jawa Timur');
+      await _choose(tester, 'field-nik-city-35', 'Kota Surabaya');
+
+      expect(form.validate(), isTrue);
       expect(form.changes(), {
-        'phone': '081234567890',
-        'address': null,
-        'gender': 'female',
-        'blood_type': null,
+        'domicile_province_code': '32',
+        'domicile_city_code': '32.05',
+        'nik_province_code': '35',
+        'nik_city_code': '35.78',
       });
     });
 
-    testWidgets('nama wajib & nomor HP harus valid', (tester) async {
+    testWidgets(
+        'kota hanya dari provinsi terpilih; ganti provinsi = kota ulang',
+        (tester) async {
+      final form = await pumpForm(tester, _user(domicile: _bandung));
+
+      await _choose(tester, 'field-domicile-province', 'Jawa Timur');
+      await _tap(tester, find.byKey(const Key('field-domicile-city-35')));
+      expect(find.text('Kota Surabaya'), findsWidgets);
+      expect(find.text('Kabupaten Garut'), findsNothing);
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+
+      // Kota belum dipilih → tidak lolos validasi.
+      expect(form.validate(), isFalse);
+      await tester.pump();
+      expect(find.text('Pilih kota/kabupaten domisili'), findsOneWidget);
+    });
+
+    testWidgets('kota terkunci sebelum provinsi dipilih', (tester) async {
+      await pumpForm(tester, _user());
+
+      final city = tester.widget<DropdownMenu<RegionCity>>(find.descendant(
+        of: find.byKey(const Key('field-domicile-city-kosong')),
+        matching: find.byType(DropdownMenu<RegionCity>),
+      ));
+      expect(city.enabled, isFalse);
+      expect(find.text('Pilih provinsi terlebih dahulu'), findsWidgets);
+    });
+
+    testWidgets('"sama dengan domisili" menyembunyikan dropdown NIK',
+        (tester) async {
+      final form = await pumpForm(tester, _user(nikRegion: _surabaya));
+
+      await _choose(tester, 'field-domicile-province', 'Jawa Barat');
+      await _choose(tester, 'field-domicile-city-32', 'Kota Bandung');
+      await _tap(tester, find.byKey(const Key('field-nik-same')));
+
+      expect(find.byKey(const Key('field-nik-province')), findsNothing);
+      expect(find.text('Kota Bandung, Jawa Barat'), findsOneWidget);
+      // Wilayah NIK tidak dikirim: server menyalin domisili.
+      expect(form.changes(), {
+        'domicile_province_code': '32',
+        'domicile_city_code': '32.73',
+        'nik_same_as_domicile': true,
+      });
+    });
+
+    testWidgets('berhenti "sama dengan domisili" → NIK bisa dipilih lagi',
+        (tester) async {
+      final form = await pumpForm(
+        tester,
+        _user(domicile: _bandung, nikRegion: _bandung, nikSameAsDomicile: true),
+      );
+      expect(find.byKey(const Key('field-nik-province')), findsNothing);
+
+      await _tap(tester, find.byKey(const Key('field-nik-same')));
+      await _choose(tester, 'field-nik-province', 'Jawa Timur');
+      await _choose(tester, 'field-nik-city-35', 'Kota Surabaya');
+
+      expect(form.changes(), {
+        'nik_same_as_domicile': false,
+        'nik_province_code': '35',
+        'nik_city_code': '35.78',
+      });
+    });
+
+    testWidgets('daftar wilayah gagal dimuat → pesan & coba lagi',
+        (tester) async {
+      final regions = _FakeRegions()
+        ..error = const NetworkException('Tidak dapat terhubung ke server.');
+      await pumpForm(tester, _user(), regions: regions);
+
+      expect(find.byKey(const Key('field-domicile-error')), findsOneWidget);
+      expect(find.text('Tidak dapat terhubung ke server.'), findsWidgets);
+
+      regions.error = null;
+      await _tap(tester, find.text('Coba Lagi').first);
+      expect(find.byKey(const Key('field-domicile-province')), findsOneWidget);
+    });
+
+    testWidgets('nama wajib & nomor WhatsApp harus valid', (tester) async {
       final form = await pumpForm(tester, _user());
 
       await tester.enterText(find.byKey(const Key('field-name')), '  ');
@@ -224,57 +421,124 @@ void main() {
       expect(find.text('Nama tidak boleh kosong'), findsOneWidget);
       expect(find.text('Nomor tidak valid (8–15 angka)'), findsOneWidget);
     });
-
-    testWidgets('tidak ada lagi isian panahan', (tester) async {
-      await pumpForm(tester, _user());
-
-      expect(find.text('Panahan'), findsNothing);
-      expect(find.text('Jenis busur'), findsNothing);
-      expect(find.textContaining('panahan'), findsNothing);
-    });
   });
 
   group('ProfileScreen', () {
-    testWidgets('belum lengkap → petunjuk + daftar isian + tombol Lengkapi',
-        (tester) async {
+    Future<_ProfileAuthNotifier> pumpProfile(
+        WidgetTester tester, User user) async {
       _tallScreen(tester);
-      await tester.pumpWidget(
-          _host(const ProfileScreen(), _ProfileAuthNotifier(_user())));
+      final notifier = _ProfileAuthNotifier(user);
+      await tester.pumpWidget(_host(const ProfileScreen(), notifier));
       await tester.pumpAndSettle();
+      return notifier;
+    }
 
+    testWidgets('belum lengkap → status, petunjuk, dan tombol Lengkapi',
+        (tester) async {
+      await pumpProfile(tester, _user());
+
+      expect(find.byKey(const Key('profile-incomplete')), findsOneWidget);
+      expect(find.text('Belum lengkap'), findsOneWidget);
+      // Persentase cukup sekali, di kartu petunjuk.
+      expect(find.text('Profil 20% lengkap'), findsOneWidget);
       expect(find.byKey(const Key('profile-incomplete-hint')), findsOneWidget);
-      expect(find.textContaining('% lengkap'), findsOneWidget);
-      expect(find.text('Foto profil'), findsOneWidget);
-      expect(find.byKey(const Key('profile-complete-badge')), findsNothing);
-      expect(find.byKey(const Key('profile-verified-icon')), findsNothing);
-      expect(find.text('Belum diisi'), findsWidgets);
+      expect(find.byKey(const Key('profile-verified')), findsNothing);
+      expect(find.text('Belum diisi'), findsNWidgets(4));
 
       await _tap(tester, find.text('Lengkapi Profil'));
-      await tester.pumpAndSettle();
       expect(find.text('EDIT'), findsOneWidget);
     });
 
-    testWidgets('lengkap → penanda apresiasi & ikon terverifikasi',
+    testWidgets('lengkap → penanda terverifikasi, data diri tampil',
         (tester) async {
-      _tallScreen(tester);
-      await tester.pumpWidget(_host(
-        const ProfileScreen(),
-        _ProfileAuthNotifier(_user(
+      await pumpProfile(
+        tester,
+        _user(
           gender: MemberGender.female,
-          birthDate: DateTime(2001, 4, 12),
+          phone: '081234567890',
+          domicile: _bandung,
+          nikRegion: _surabaya,
           completion: _complete,
-        )),
-      ));
+        ),
+      );
+
+      expect(find.byKey(const Key('profile-verified')), findsOneWidget);
+      expect(find.text('Profil lengkap'), findsOneWidget);
+      expect(find.text('Lengkapi Profil'), findsNothing);
+      expect(find.text('Perempuan'), findsOneWidget);
+      expect(find.text('081234567890'), findsOneWidget);
+      expect(find.text('Kota Bandung, Jawa Barat'), findsOneWidget);
+      expect(find.text('Kota Surabaya, Jawa Timur'), findsOneWidget);
+      expect(find.text('Belum diisi'), findsNothing);
+    });
+
+    testWidgets('wilayah NIK sama dengan domisili ditandai', (tester) async {
+      await pumpProfile(
+        tester,
+        _user(domicile: _bandung, nikRegion: _bandung, nikSameAsDomicile: true),
+      );
+
+      expect(find.text('Kota Bandung, Jawa Barat · sama dengan domisili'),
+          findsOneWidget);
+    });
+
+    testWidgets('tanpa kesehatan & kontak darurat', (tester) async {
+      await pumpProfile(tester, _user(completion: _complete));
+
+      for (final gone in [
+        'Kesehatan & Kontak Darurat',
+        'Golongan darah',
+        'Kontak darurat',
+        'Tempat, tanggal lahir',
+        'Alamat',
+      ]) {
+        expect(find.text(gone), findsNothing, reason: gone);
+      }
+    });
+
+    testWidgets('Ubah membuka form data diri', (tester) async {
+      await pumpProfile(tester, _user(completion: _complete));
+
+      await _tap(tester, find.byKey(const Key('profile-edit')));
+      expect(find.text('EDIT'), findsOneWidget);
+    });
+
+    testWidgets('Pengaturan membuka halaman pengaturan', (tester) async {
+      await pumpProfile(tester, _user(completion: _complete));
+
+      expect(find.text('Tema, bahasa, dan login biometrik'), findsOneWidget);
+      await _tap(tester, find.byKey(const Key('profile-settings')));
+      expect(find.text('SETTINGS'), findsOneWidget);
+    });
+
+    testWidgets('Keluar minta konfirmasi; Batal tidak keluar', (tester) async {
+      final notifier = await pumpProfile(tester, _user(completion: _complete));
+
+      await _tap(tester, find.byKey(const Key('logout')));
+      expect(find.text('Keluar dari akun?'), findsOneWidget);
+      await tester.tap(find.text('Batal'));
+      await tester.pumpAndSettle();
+      expect(notifier.state, isA<AuthAuthenticated>());
+
+      await _tap(tester, find.byKey(const Key('logout')));
+      await tester.tap(find.byKey(const Key('logout-confirm')));
+      // Sesudah keluar layar menunggu router (indikator berputar terus).
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(notifier.state, isA<AuthUnauthenticated>());
+    });
+
+    testWidgets('layar lebar: isi tidak melebar', (tester) async {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(_host(const ProfileScreen(),
+          _ProfileAuthNotifier(_user(completion: _complete))));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('profile-complete-badge')), findsOneWidget);
-      expect(find.text('Profil Lengkap'), findsOneWidget);
-      expect(find.byKey(const Key('profile-verified-icon')), findsOneWidget);
-      expect(find.text('Lengkapi Profil'), findsNothing);
-      expect(find.textContaining('12 April 2001'), findsOneWidget);
-      expect(find.text('Perempuan'), findsOneWidget);
-      expect(find.text('Panahan'), findsNothing);
-      expect(find.text('Jenis busur'), findsNothing);
+      expect(tester.getSize(find.byKey(const Key('logout'))).width,
+          lessThanOrEqualTo(ProfileScreen.maxWidth));
+      expect(tester.takeException(), isNull);
     });
   });
 

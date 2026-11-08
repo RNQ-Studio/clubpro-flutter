@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../auth/presentation/auth_state.dart';
 import 'member_profile_form.dart';
+import 'profile_screen.dart';
 import 'save_member_profile.dart';
 import 'widgets/profile_completion_card.dart';
 
@@ -53,7 +56,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+        padding:
+            EdgeInsets.fromLTRB(_gutter(context), 8, _gutter(context), 120),
         children: [
           Text(
             'Halo, ${user.name.split(' ').first}!',
@@ -82,6 +86,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 }
 
+/// Jarak tepi; di layar lebar isi tetap selebar [ProfileScreen.maxWidth].
+double _gutter(BuildContext context) => math.max(
+    20, (MediaQuery.sizeOf(context).width - ProfileScreen.maxWidth) / 2);
+
 class _SaveBar extends StatelessWidget {
   const _SaveBar({required this.saving, required this.onSave});
 
@@ -92,7 +100,7 @@ class _SaveBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+        padding: EdgeInsets.fromLTRB(_gutter(context), 8, _gutter(context), 12),
         child: FilledButton(
           key: const Key('save-profile'),
           onPressed: saving ? null : onSave,

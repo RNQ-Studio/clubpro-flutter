@@ -1,5 +1,3 @@
-import 'package:core/core.dart';
-
 import '../../../profile/domain/entities/member_profile.dart';
 import '../../domain/entities/user.dart';
 
@@ -12,12 +10,9 @@ class UserModel extends User {
     super.avatarUrl,
     super.roles,
     super.gender,
-    super.birthPlace,
-    super.birthDate,
-    super.address,
-    super.bloodType,
-    super.emergencyContactName,
-    super.emergencyContactPhone,
+    super.domicile,
+    super.nikRegion,
+    super.nikSameAsDomicile,
     this.serverCompletion,
     this.token,
     this.refreshToken,
@@ -42,12 +37,9 @@ class UserModel extends User {
                 .toList() ??
             const [],
         gender: MemberGender.fromApi(json['gender']),
-        birthPlace: json['birth_place'] as String?,
-        birthDate: _date(json['birth_date']),
-        address: json['address'] as String?,
-        bloodType: BloodType.fromApi(json['blood_type']),
-        emergencyContactName: json['emergency_contact_name'] as String?,
-        emergencyContactPhone: json['emergency_contact_phone'] as String?,
+        domicile: MemberRegion.fromJson(json, 'domicile'),
+        nikRegion: MemberRegion.fromJson(json, 'nik'),
+        nikSameAsDomicile: json['nik_same_as_domicile'] == true,
         serverCompletion: _matchingCompletion(json['profile_completion']),
         token: json['token'] as String?,
       );
@@ -61,14 +53,9 @@ class UserModel extends User {
         if (avatarUrl != null) 'avatar_url': avatarUrl,
         'roles': roles,
         if (gender != null) 'gender': gender!.apiValue,
-        if (birthPlace != null) 'birth_place': birthPlace,
-        if (birthDate != null) 'birth_date': AppDateUtils.isoDate(birthDate!),
-        if (address != null) 'address': address,
-        if (bloodType != null) 'blood_type': bloodType!.apiValue,
-        if (emergencyContactName != null)
-          'emergency_contact_name': emergencyContactName,
-        if (emergencyContactPhone != null)
-          'emergency_contact_phone': emergencyContactPhone,
+        ...?domicile?.toJson('domicile'),
+        ...?nikRegion?.toJson('nik'),
+        'nik_same_as_domicile': nikSameAsDomicile,
         if (serverCompletion != null)
           'profile_completion': serverCompletion!.toJson(),
         if (token != null) 'token': token,
@@ -83,12 +70,9 @@ class UserModel extends User {
         avatarUrl: avatarUrl,
         roles: roles,
         gender: gender,
-        birthPlace: birthPlace,
-        birthDate: birthDate,
-        address: address,
-        bloodType: bloodType,
-        emergencyContactName: emergencyContactName,
-        emergencyContactPhone: emergencyContactPhone,
+        domicile: domicile,
+        nikRegion: nikRegion,
+        nikSameAsDomicile: nikSameAsDomicile,
         serverCompletion: serverCompletion,
         token: token ?? this.token,
         refreshToken: refreshToken ?? this.refreshToken,
@@ -101,7 +85,4 @@ class UserModel extends User {
     final completion = ProfileCompletion.fromJson(json);
     return completion.matchesAppFields ? completion : null;
   }
-
-  static DateTime? _date(Object? value) =>
-      value is String && value.isNotEmpty ? DateTime.tryParse(value) : null;
 }

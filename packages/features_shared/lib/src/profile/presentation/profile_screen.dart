@@ -6,13 +6,16 @@ import 'package:go_router/go_router.dart';
 import '../../auth/domain/entities/user.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../auth/presentation/auth_state.dart';
+import '../domain/entities/member_profile.dart';
 import 'widgets/profile_avatar_picker.dart';
 import 'widgets/profile_completion_card.dart';
 
-/// Profil anggota: data diri, petunjuk kelengkapan / penanda profil lengkap,
-/// pengaturan, dan keluar.
+/// Profil anggota: kartu identitas, data diri, pengaturan, dan keluar.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
+  /// Lebar isi terbesar di layar lebar.
+  static const maxWidth = 560.0;
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
@@ -27,6 +30,11 @@ class ProfileScreen extends ConsumerWidget {
             child: const Text('Batal'),
           ),
           FilledButton(
+            key: const Key('logout-confirm'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Keluar'),
           ),
@@ -44,111 +52,74 @@ class ProfileScreen extends ConsumerWidget {
     }
     final user = authState.user;
     final completion = user.completion;
-    final theme = Theme.of(context);
     void edit() => context.push(AppRoutes.editProfile);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil'),
-        actions: [
-          IconButton(
-            tooltip: 'Ubah data diri',
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: edit,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Profil')),
       body: RefreshIndicator(
         onRefresh: () => ref.read(authProvider.notifier).checkCurrentUser(),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
-            const Center(child: ProfileAvatarPicker(radius: 52)),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: Text(
-                    user.name,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                if (completion.isComplete) ...[
-                  const SizedBox(width: 6),
-                  const Tooltip(
-                    message: 'Profil lengkap',
-                    child: Icon(Icons.verified_rounded,
-                        key: Key('profile-verified-icon'),
-                        color: Color(0xFF178A5B),
-                        size: 22),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              user.email,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ProfileCompletionCard(
-              completion: completion,
-              onComplete: completion.isComplete ? null : edit,
-            ),
-            _DetailsSection(
-              title: 'Data Pribadi',
-              icon: Icons.badge_outlined,
-              rows: [
-                ('Jenis kelamin', user.gender?.label),
-                ('Tempat, tanggal lahir', _birth(user)),
-                ('Nomor HP / WhatsApp', user.phone),
-                ('Alamat', user.address),
-              ],
-            ),
-            _DetailsSection(
-              title: 'Kesehatan & Kontak Darurat',
-              icon: Icons.health_and_safety_outlined,
-              rows: [
-                ('Golongan darah', user.bloodType?.label),
-                ('Kontak darurat', _emergency(user)),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Card(
-              elevation: 0,
-              color: theme.colorScheme.surfaceContainerLow,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+            _Centered(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.settings_outlined),
-                    title: const Text('Pengaturan'),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => context.push(AppRoutes.settings),
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  ListTile(
-                    key: const Key('logout'),
-                    leading: Icon(Icons.logout_rounded,
-                        color: theme.colorScheme.error),
-                    title: Text(
-                      'Keluar',
-                      style: TextStyle(
-                        color: theme.colorScheme.error,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  _IdentityCard(user: user),
+                  if (!completion.isComplete) ...[
+                    const SizedBox(height: 16),
+                    ProfileCompletionCard(
+                      completion: completion,
+                      onComplete: edit,
                     ),
-                    onTap: () => _confirmLogout(context, ref),
+                  ],
+                  _SectionHeader(
+                    'Data Diri',
+                    action: TextButton.icon(
+                      key: const Key('profile-edit'),
+                      onPressed: edit,
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      label: const Text('Ubah'),
+                    ),
                   ),
+                  _Panel(
+                    children: [
+                      _InfoRow(
+                        icon: Icons.wc_rounded,
+                        label: 'Jenis kelamin',
+                        value: user.gender?.label,
+                      ),
+                      _InfoRow(
+                        icon: Icons.chat_outlined,
+                        label: 'Nomor WhatsApp',
+                        value: user.phone,
+                      ),
+                      _InfoRow(
+                        icon: Icons.home_outlined,
+                        label: 'Domisili',
+                        value: user.domicile?.label,
+                      ),
+                      _InfoRow(
+                        icon: Icons.credit_card_outlined,
+                        label: 'Sesuai NIK (KTP)',
+                        value: _nikLabel(user),
+                      ),
+                    ],
+                  ),
+                  const _SectionHeader('Akun'),
+                  _Panel(
+                    children: [
+                      _MenuRow(
+                        key: const Key('profile-settings'),
+                        icon: Icons.settings_outlined,
+                        title: 'Pengaturan',
+                        subtitle: 'Tema, bahasa, dan login biometrik',
+                        onTap: () => context.push(AppRoutes.settings),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _LogoutButton(onPressed: () => _confirmLogout(context, ref)),
                 ],
               ),
             ),
@@ -158,99 +129,337 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  static String? _birth(User user) {
-    final date = user.birthDate == null
-        ? null
-        : AppDateUtils.longDateId(user.birthDate!);
-    final parts = [user.birthPlace, date]
-        .whereType<String>()
-        .where((s) => s.trim().isNotEmpty)
-        .toList();
-    return parts.isEmpty ? null : parts.join(', ');
-  }
-
-  static String? _emergency(User user) {
-    final parts = [user.emergencyContactName, user.emergencyContactPhone]
-        .whereType<String>()
-        .where((s) => s.trim().isNotEmpty)
-        .toList();
-    return parts.isEmpty ? null : parts.join(' · ');
+  static String? _nikLabel(User user) {
+    if (user.nikSameAsDomicile && user.nikRegion != null) {
+      return '${user.nikRegion!.label} · sama dengan domisili';
+    }
+    return user.nikRegion?.label;
   }
 }
 
-class _DetailsSection extends StatelessWidget {
-  const _DetailsSection({
-    required this.title,
-    required this.icon,
-    required this.rows,
-  });
+class _Centered extends StatelessWidget {
+  const _Centered({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: ProfileScreen.maxWidth),
+          child: child,
+        ),
+      );
+}
+
+/// Foto (bisa diganti), nama, email, dan status kelengkapan profil.
+class _IdentityCard extends StatelessWidget {
+  const _IdentityCard({required this.user});
+
+  final User user;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final completion = user.completion;
+    return _Panel(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+          child: Row(
+            children: [
+              const ProfileAvatarPicker(radius: 34),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.name,
+                      key: const Key('profile-name'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      user.email,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _CompletionChip(completion: completion),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompletionChip extends StatelessWidget {
+  const _CompletionChip({required this.completion});
+
+  final ProfileCompletion completion;
+
+  static const _complete = Color(0xFF178A5B);
+  static const _pending = Color(0xFFC98A00);
+
+  @override
+  Widget build(BuildContext context) {
+    final done = completion.isComplete;
+    final color = done ? _complete : _pending;
+    return Container(
+      key: Key(done ? 'profile-verified' : 'profile-incomplete'),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            done ? Icons.verified_rounded : Icons.pending_outlined,
+            size: 16,
+            color: color,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              done ? 'Profil lengkap' : 'Belum lengkap',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title, {this.action});
 
   final String title;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 24, 0, 8),
+      child: SizedBox(
+        height: 36,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            if (action case final action?) action,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Garis tepi & pemisah tipis, sama dengan kartu lain di app.
+Color _hairline(BuildContext context) =>
+    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12);
+
+/// Kartu berisi baris-baris yang dipisah garis tipis.
+class _Panel extends StatelessWidget {
+  const _Panel({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: _hairline(context)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (final (i, child) in children.indexed) ...[
+            if (i > 0)
+              Divider(height: 1, indent: 64, color: _hairline(context)),
+            child,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _IconBox extends StatelessWidget {
+  const _IconBox(this.icon);
+
   final IconData icon;
-  final List<(String, String?)> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = Theme.of(context).colorScheme.primary;
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(icon, size: 20, color: tint),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? value;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final empty = value == null || value!.trim().isEmpty;
     return Padding(
-      padding: const EdgeInsets.only(top: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 20, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+          _IconBox(icon),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: theme.textTheme.bodySmall?.copyWith(color: muted)),
+                const SizedBox(height: 2),
+                Text(
+                  empty ? 'Belum diisi' : value!,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: empty ? FontWeight.w400 : FontWeight.w600,
+                    color: empty
+                        ? muted.withValues(alpha: 0.8)
+                        : theme.colorScheme.onSurface,
+                    fontStyle: empty ? FontStyle.italic : null,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Card(
-            elevation: 0,
-            margin: EdgeInsets.zero,
-            color: theme.colorScheme.surfaceContainerLow,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                children: [
-                  for (final (label, value) in rows)
-                    ListTile(
-                      dense: true,
-                      title: Text(
-                        label,
-                        style:
-                            theme.textTheme.bodySmall?.copyWith(color: muted),
-                      ),
-                      subtitle: Text(
-                        (value == null || value.trim().isEmpty)
-                            ? 'Belum diisi'
-                            : value,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: (value == null || value.trim().isEmpty)
-                              ? muted.withValues(alpha: 0.7)
-                              : theme.colorScheme.onSurface,
-                          fontStyle: (value == null || value.trim().isEmpty)
-                              ? FontStyle.italic
-                              : null,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(
+          children: [
+            _IconBox(icon),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                color: theme.colorScheme.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  const _LogoutButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final error = theme.colorScheme.error;
+    return SizedBox(
+      height: 52,
+      child: OutlinedButton.icon(
+        key: const Key('logout'),
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: error,
+          side: BorderSide(color: error.withValues(alpha: 0.5)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          textStyle: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+        icon: const Icon(Icons.logout_rounded),
+        label: const Text('Keluar dari Akun'),
       ),
     );
   }

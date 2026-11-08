@@ -81,12 +81,9 @@ class AdminUserDetail extends AdminUser {
     this.emailVerifiedAt,
     this.phoneVerifiedAt,
     this.gender,
-    this.birthPlace,
-    this.birthDate,
-    this.address,
-    this.bloodType,
-    this.emergencyContactName,
-    this.emergencyContactPhone,
+    this.domicile,
+    this.nikRegion,
+    this.nikSameAsDomicile = false,
     this.completion,
     this.devices = const [],
   });
@@ -96,12 +93,9 @@ class AdminUserDetail extends AdminUser {
   final DateTime? emailVerifiedAt;
   final DateTime? phoneVerifiedAt;
   final MemberGender? gender;
-  final String? birthPlace;
-  final DateTime? birthDate;
-  final String? address;
-  final BloodType? bloodType;
-  final String? emergencyContactName;
-  final String? emergencyContactPhone;
+  final MemberRegion? domicile;
+  final MemberRegion? nikRegion;
+  final bool nikSameAsDomicile;
   final ProfileCompletion? completion;
   final List<AdminDevice> devices;
 }

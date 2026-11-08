@@ -427,21 +427,11 @@ class _ProfileSection extends StatelessWidget {
 
   final AdminUserDetail user;
 
-  String? get _birth {
-    final date = user.birthDate;
-    final parts = [
-      if (user.birthPlace != null) user.birthPlace!,
-      if (date != null) AppDateUtils.longDateId(date),
-    ];
-    return parts.isEmpty ? null : parts.join(', ');
-  }
-
-  String? get _emergencyContact {
-    final parts = [
-      if (user.emergencyContactName != null) user.emergencyContactName!,
-      if (user.emergencyContactPhone != null) user.emergencyContactPhone!,
-    ];
-    return parts.isEmpty ? null : parts.join(' · ');
+  String? get _nikRegion {
+    final region = user.nikRegion?.label;
+    return region != null && user.nikSameAsDomicile
+        ? '$region · sama dengan domisili'
+        : region;
   }
 
   @override
@@ -451,12 +441,10 @@ class _ProfileSection extends StatelessWidget {
       title: 'Data Diri',
       icon: Icons.badge_outlined,
       children: [
-        AdminInfoRow('Nomor HP', user.phone),
+        AdminInfoRow('Nomor WhatsApp', user.phone),
         AdminInfoRow('Jenis kelamin', user.gender?.label),
-        AdminInfoRow('Tempat, tanggal lahir', _birth),
-        AdminInfoRow('Alamat', user.address),
-        AdminInfoRow('Golongan darah', user.bloodType?.label),
-        AdminInfoRow('Kontak darurat', _emergencyContact),
+        AdminInfoRow('Domisili', user.domicile?.label),
+        AdminInfoRow('Sesuai NIK (KTP)', _nikRegion),
         if (completion != null)
           AdminInfoRow(
             'Kelengkapan profil',

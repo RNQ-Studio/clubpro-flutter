@@ -63,28 +63,47 @@ class _FixedAuthNotifier extends AuthNotifier {
   Future<void> checkCurrentUser() async {}
 }
 
+const _bandung = MemberRegion(
+  provinceCode: '32',
+  provinceName: 'Jawa Barat',
+  cityCode: '32.73',
+  cityName: 'Kota Bandung',
+);
+
 const _partial = User(
   id: '1',
   name: 'Rina Ayu Lestari',
   email: 'rina.ayu@gmail.com',
   gender: MemberGender.female,
-  bloodType: BloodType.o,
   phone: '081234567890',
 );
 
-final _complete = User(
+const _complete = User(
   id: '1',
   name: 'Rina Ayu Lestari',
   email: 'rina.ayu@gmail.com',
   gender: MemberGender.female,
-  birthPlace: 'Bandung',
-  birthDate: DateTime(2001, 4, 12),
   phone: '081234567890',
-  address: 'Jl. Merdeka No. 10, Bandung',
-  bloodType: BloodType.o,
-  emergencyContactName: 'Ibu Sari',
-  emergencyContactPhone: '081298765432',
-  completion: const ProfileCompletion(completed: 10, total: 10, missing: []),
+  domicile: _bandung,
+  nikRegion: MemberRegion(
+    provinceCode: '35',
+    provinceName: 'Jawa Timur',
+    cityCode: '35.78',
+    cityName: 'Kota Surabaya',
+  ),
+  completion: ProfileCompletion(completed: 5, total: 5, missing: []),
+);
+
+const _sameNik = User(
+  id: '1',
+  name: 'Rina Ayu Lestari',
+  email: 'rina.ayu@gmail.com',
+  gender: MemberGender.female,
+  phone: '081234567890',
+  domicile: _bandung,
+  nikRegion: _bandung,
+  nikSameAsDomicile: true,
+  completion: ProfileCompletion(completed: 5, total: 5, missing: []),
 );
 
 class _ShownRefresher implements AppRefresher {
@@ -175,6 +194,7 @@ void main() {
   Widget material(Widget home, AuthState auth) => ProviderScope(
         overrides: [
           authProvider.overrideWith(() => _FixedAuthNotifier(auth)),
+          regionRepositoryProvider.overrideWithValue(FakeCommunityRepository()),
         ],
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
@@ -807,6 +827,42 @@ void main() {
   testWidgets('08-profil-lengkap', (tester) async {
     await shoot(tester, '08-profil-lengkap',
         shell(_complete, location: AppRoutes.profile));
+  });
+
+  testWidgets('04b-setup-nik-sama', (tester) async {
+    await shoot(
+      tester,
+      '04b-setup-nik-sama',
+      material(const ProfileSetupScreen(), const AuthAuthenticated(_sameNik)),
+      size: const Size(360, 1100),
+    );
+  });
+
+  testWidgets('04c-setup-desktop', (tester) async {
+    await shoot(
+      tester,
+      '04c-setup-desktop',
+      material(const ProfileSetupScreen(), const AuthAuthenticated(_complete)),
+      size: const Size(1280, 900),
+    );
+  });
+
+  testWidgets('07b-profil-belum-lengkap-penuh', (tester) async {
+    await shoot(tester, '07b-profil-belum-lengkap-penuh',
+        shell(_partial, location: AppRoutes.profile),
+        size: const Size(360, 1000));
+  });
+
+  testWidgets('08b-profil-lengkap-penuh', (tester) async {
+    await shoot(tester, '08b-profil-lengkap-penuh',
+        shell(_complete, location: AppRoutes.profile),
+        size: const Size(360, 900));
+  });
+
+  testWidgets('08c-profil-nik-sama-desktop', (tester) async {
+    await shoot(tester, '08c-profil-nik-sama-desktop',
+        shell(_sameNik, location: AppRoutes.profile),
+        size: const Size(1280, 800));
   });
 
   testWidgets('09-beranda-super-admin', (tester) async {

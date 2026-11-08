@@ -1,90 +1,77 @@
-import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/domain/entities/user.dart';
+import '../../region/domain/entities/region.dart';
+import '../../region/presentation/region_providers.dart';
 import '../domain/entities/member_profile.dart';
-import 'widgets/profile_avatar_picker.dart';
 
-/// Form data diri anggota. Semua isian boleh kosong (kecuali nama); hanya
-/// isian yang berubah yang dikirim lewat [MemberProfileFormState.changes].
-class MemberProfileForm extends StatefulWidget {
+/// Form data diri anggota: nama, jenis kelamin, nomor WhatsApp, domisili, dan
+/// wilayah sesuai NIK. Semua isian boleh kosong (kecuali nama); hanya isian
+/// yang berubah yang dikirim lewat [MemberProfileFormState.changes].
+class MemberProfileForm extends ConsumerStatefulWidget {
   const MemberProfileForm({super.key, required this.user});
 
   final User user;
 
   @override
-  State<MemberProfileForm> createState() => MemberProfileFormState();
+  ConsumerState<MemberProfileForm> createState() => MemberProfileFormState();
 }
 
-class MemberProfileFormState extends State<MemberProfileForm> {
+class MemberProfileFormState extends ConsumerState<MemberProfileForm> {
   final _formKey = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.user.name);
-  late final _birthPlace = TextEditingController(text: widget.user.birthPlace);
   late final _phone = TextEditingController(text: widget.user.phone);
-  late final _address = TextEditingController(text: widget.user.address);
-  late final _emergencyName =
-      TextEditingController(text: widget.user.emergencyContactName);
-  late final _emergencyPhone =
-      TextEditingController(text: widget.user.emergencyContactPhone);
 
   late MemberGender? _gender = widget.user.gender;
-  late DateTime? _birthDate = widget.user.birthDate;
-  late BloodType? _bloodType = widget.user.bloodType;
+  late var _domicile = _RegionChoice.of(widget.user.domicile);
+  late var _nik = _RegionChoice.of(widget.user.nikRegion);
+  late bool _nikSame = widget.user.nikSameAsDomicile;
 
   @override
   void dispose() {
-    for (final c in [
-      _name,
-      _birthPlace,
-      _phone,
-      _address,
-      _emergencyName,
-      _emergencyPhone,
-    ]) {
-      c.dispose();
-    }
+    _name.dispose();
+    _phone.dispose();
     super.dispose();
   }
 
   bool validate() => _formKey.currentState?.validate() ?? false;
 
-  /// Kunci API → nilai baru; `null` = isian dikosongkan.
+  /// Kunci API → nilai baru; `null` = isian dikosongkan. Provinsi & kota
+  /// selalu dikirim berpasangan.
   Map<String, Object?> changes() {
     final user = widget.user;
     final changes = <String, Object?>{};
 
-    void text(String key, TextEditingController c, String? original,
-        {String Function(String)? normalize}) {
-      var value = c.text.trim();
-      if (normalize != null) value = normalize(value);
-      final before = (original ?? '').trim();
-      if (value != before) changes[key] = value.isEmpty ? null : value;
+    final name = _name.text.trim();
+    if (name != user.name.trim()) changes['name'] = name;
+
+    final phone = _digitsOnly(_phone.text.trim());
+    if (phone != (user.phone ?? '').trim()) {
+      changes['phone'] = phone.isEmpty ? null : phone;
     }
 
-    void pick(String key, Object? value, Object? original) {
-      if (value != original) changes[key] = value;
+    if (_gender != user.gender) changes['gender'] = _gender?.apiValue;
+
+    void region(String prefix, _RegionChoice choice, MemberRegion? before) {
+      if (choice == _RegionChoice.of(before)) return;
+      changes['${prefix}_province_code'] = choice.provinceCode;
+      changes['${prefix}_city_code'] = choice.cityCode;
     }
 
-    text('name', _name, user.name);
-    text('birth_place', _birthPlace, user.birthPlace);
-    text('phone', _phone, user.phone, normalize: _digitsOnly);
-    text('address', _address, user.address);
-    text('emergency_contact_name', _emergencyName, user.emergencyContactName);
-    text('emergency_contact_phone', _emergencyPhone, user.emergencyContactPhone,
-        normalize: _digitsOnly);
-    pick('gender', _gender?.apiValue, user.gender?.apiValue);
-    pick('birth_date', _iso(_birthDate), _iso(user.birthDate));
-    pick('blood_type', _bloodType?.apiValue, user.bloodType?.apiValue);
+    region('domicile', _domicile, user.domicile);
+    if (_nikSame != user.nikSameAsDomicile) {
+      changes['nik_same_as_domicile'] = _nikSame;
+    }
+    // Sama dengan domisili: server menyalin domisili ke wilayah NIK.
+    if (!_nikSame) region('nik', _nik, user.nikRegion);
 
     return changes;
   }
 
   static String _digitsOnly(String value) =>
       value.replaceAll(RegExp(r'[\s\-.()]'), '');
-
-  static String? _iso(DateTime? date) =>
-      date == null ? null : AppDateUtils.isoDate(date);
 
   static String? _phoneValidator(String? value) {
     final digits = _digitsOnly(value ?? '');
@@ -94,19 +81,6 @@ class MemberProfileFormState extends State<MemberProfileForm> {
         : 'Nomor tidak valid (8–15 angka)';
   }
 
-  Future<void> _pickBirthDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _birthDate ?? DateTime(now.year - 17),
-      firstDate: DateTime(1930),
-      lastDate: now,
-      initialDatePickerMode: DatePickerMode.year,
-      helpText: 'Tanggal lahir',
-    );
-    if (picked != null) setState(() => _birthDate = picked);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -114,20 +88,15 @@ class MemberProfileFormState extends State<MemberProfileForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(child: ProfileAvatarPicker()),
-          const SizedBox(height: 4),
-          Center(
-            child: Text(
-              'Foto profil',
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-          ),
           const _SectionTitle('Data Pribadi', Icons.badge_outlined),
           TextFormField(
             key: const Key('field-name'),
             controller: _name,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Nama lengkap'),
+            decoration: const InputDecoration(
+              labelText: 'Nama lengkap',
+              prefixIcon: Icon(Icons.person_outline_rounded),
+            ),
             validator: (v) =>
                 (v ?? '').trim().isEmpty ? 'Nama tidak boleh kosong' : null,
           ),
@@ -147,23 +116,6 @@ class MemberProfileFormState extends State<MemberProfileForm> {
           ),
           const SizedBox(height: 16),
           TextFormField(
-            controller: _birthPlace,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Tempat lahir'),
-          ),
-          const SizedBox(height: 16),
-          _DateField(
-            key: const Key('field-birth-date'),
-            label: 'Tanggal lahir',
-            value: _birthDate == null
-                ? null
-                : AppDateUtils.longDateId(_birthDate!),
-            icon: Icons.cake_outlined,
-            onTap: _pickBirthDate,
-            onClear: () => setState(() => _birthDate = null),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
             key: const Key('field-phone'),
             controller: _phone,
             keyboardType: TextInputType.phone,
@@ -171,52 +123,203 @@ class MemberProfileFormState extends State<MemberProfileForm> {
               FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s\-]')),
             ],
             decoration: const InputDecoration(
-              labelText: 'Nomor HP / WhatsApp',
+              labelText: 'Nomor WhatsApp',
               hintText: '08xxxxxxxxxx',
+              prefixIcon: Icon(Icons.chat_outlined),
             ),
             validator: _phoneValidator,
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _address,
-            minLines: 2,
-            maxLines: 4,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Alamat',
-              alignLabelWithHint: true,
+          const _SectionTitle('Domisili', Icons.home_outlined),
+          _RegionFields(
+            prefix: 'domicile',
+            label: 'domisili',
+            value: _domicile,
+            onChanged: (v) => setState(() => _domicile = v),
+          ),
+          const _SectionTitle('Sesuai NIK (KTP)', Icons.credit_card_outlined),
+          _SameAsDomicile(
+            value: _nikSame,
+            domicile: _domicile,
+            onChanged: (v) => setState(() => _nikSame = v),
+          ),
+          if (!_nikSame) ...[
+            const SizedBox(height: 14),
+            _RegionFields(
+              prefix: 'nik',
+              label: 'sesuai NIK',
+              value: _nik,
+              onChanged: (v) => setState(() => _nik = v),
             ),
-          ),
-          const _SectionTitle(
-              'Kesehatan & Kontak Darurat', Icons.health_and_safety_outlined),
-          const _FieldLabel('Golongan darah'),
-          _Choices<BloodType>(
-            values: BloodType.values,
-            selected: _bloodType,
-            label: (b) => b.label,
-            onChanged: (v) => setState(() => _bloodType = v),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _emergencyName,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Nama kontak darurat',
-              hintText: 'Mis. orang tua / pasangan',
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _emergencyPhone,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s\-]')),
-            ],
-            decoration:
-                const InputDecoration(labelText: 'Nomor kontak darurat'),
-            validator: _phoneValidator,
-          ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// Pilihan provinsi + kota (kode), boleh kosong.
+class _RegionChoice {
+  const _RegionChoice(this.provinceCode, this.cityCode);
+
+  factory _RegionChoice.of(MemberRegion? region) =>
+      _RegionChoice(region?.provinceCode, region?.cityCode);
+
+  final String? provinceCode;
+  final String? cityCode;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _RegionChoice &&
+      other.provinceCode == provinceCode &&
+      other.cityCode == cityCode;
+
+  @override
+  int get hashCode => Object.hash(provinceCode, cityCode);
+}
+
+/// Dropdown Provinsi lalu Kota/Kabupaten (bisa dicari dengan mengetik); kota
+/// mengikuti provinsi terpilih.
+class _RegionFields extends ConsumerWidget {
+  const _RegionFields({
+    required this.prefix,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String prefix;
+  final String label;
+  final _RegionChoice value;
+  final ValueChanged<_RegionChoice> onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final menuStyle = MenuStyle(
+      backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+      elevation: const WidgetStatePropertyAll(6),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+
+    return ref.watch(indonesiaRegionsProvider).when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => Row(
+            key: Key('field-$prefix-error'),
+            children: [
+              Expanded(
+                  child: Text(e.toString(), style: theme.textTheme.bodySmall)),
+              TextButton(
+                onPressed: () => ref.invalidate(indonesiaRegionsProvider),
+                child: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
+          data: (provinces) {
+            final province = provinces.byCode(value.provinceCode);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DropdownMenuFormField<RegionProvince>(
+                  key: Key('field-$prefix-province'),
+                  expandedInsets: EdgeInsets.zero,
+                  menuHeight: 320,
+                  menuStyle: menuStyle,
+                  enableFilter: true,
+                  requestFocusOnTap: true,
+                  label: const Text('Provinsi'),
+                  hintText: 'Pilih atau ketik provinsi',
+                  leadingIcon: const Icon(Icons.map_outlined),
+                  initialSelection: province,
+                  onSelected: (selected) {
+                    if (selected == null || selected == province) return;
+                    // Kota lama bukan bagian dari provinsi baru.
+                    onChanged(_RegionChoice(selected.code, null));
+                  },
+                  dropdownMenuEntries: [
+                    for (final item in provinces)
+                      DropdownMenuEntry(value: item, label: item.name),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                DropdownMenuFormField<RegionCity>(
+                  // Kunci per provinsi: pilihan & teks kota lama ikut hilang.
+                  key: Key('field-$prefix-city-${province?.code ?? 'kosong'}'),
+                  enabled: province != null,
+                  expandedInsets: EdgeInsets.zero,
+                  menuHeight: 320,
+                  menuStyle: menuStyle,
+                  enableFilter: true,
+                  requestFocusOnTap: true,
+                  label: const Text('Kota/Kabupaten'),
+                  hintText: province == null
+                      ? 'Pilih provinsi terlebih dahulu'
+                      : 'Pilih atau ketik kota/kabupaten',
+                  leadingIcon: const Icon(Icons.location_city_rounded),
+                  initialSelection: province?.city(value.cityCode),
+                  validator: (_) => province != null && value.cityCode == null
+                      ? 'Pilih kota/kabupaten $label'
+                      : null,
+                  onSelected: (selected) {
+                    if (selected == null) return;
+                    onChanged(_RegionChoice(value.provinceCode, selected.code));
+                  },
+                  dropdownMenuEntries: [
+                    for (final item in province?.cities ?? const <RegionCity>[])
+                      DropdownMenuEntry(value: item, label: item.name),
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+  }
+}
+
+/// "Sama dengan domisili": wilayah NIK mengikuti domisili.
+class _SameAsDomicile extends ConsumerWidget {
+  const _SameAsDomicile({
+    required this.value,
+    required this.domicile,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final _RegionChoice domicile;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final provinces = ref.watch(indonesiaRegionsProvider).asData?.value;
+    final province = provinces?.byCode(domicile.provinceCode);
+    final city = province?.city(domicile.cityCode);
+    final subtitle = !value
+        ? 'Pilih bila wilayah di KTP sama dengan domisili'
+        : city == null
+            ? 'Ikut domisili — pilih domisili di atas'
+            : '${city.name}, ${province!.name}';
+
+    return Material(
+      color: theme.colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: CheckboxListTile(
+        key: const Key('field-nik-same'),
+        value: value,
+        onChanged: (v) => onChanged(v ?? false),
+        controlAffinity: ListTileControlAffinity.leading,
+        title: const Text('Sama dengan domisili'),
+        subtitle: Text(subtitle),
       ),
     );
   }
@@ -266,75 +369,4 @@ class _FieldLabel extends StatelessWidget {
               ),
         ),
       );
-}
-
-class _DateField extends StatelessWidget {
-  const _DateField({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.onTap,
-    required this.onClear,
-  });
-
-  final String label;
-  final String? value;
-  final IconData icon;
-  final VoidCallback onTap;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: InputDecorator(
-        isEmpty: value == null,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon),
-          suffixIcon: value == null
-              ? const Icon(Icons.arrow_drop_down_rounded)
-              : IconButton(
-                  tooltip: 'Kosongkan',
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: onClear,
-                ),
-        ),
-        child: value == null ? null : Text(value!),
-      ),
-    );
-  }
-}
-
-class _Choices<T> extends StatelessWidget {
-  const _Choices({
-    required this.values,
-    required this.selected,
-    required this.label,
-    required this.onChanged,
-  });
-
-  final List<T> values;
-  final T? selected;
-  final String Function(T) label;
-  final ValueChanged<T?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final value in values)
-          ChoiceChip(
-            label: Text(label(value)),
-            selected: value == selected,
-            // Ketuk lagi pilihan yang aktif untuk mengosongkan.
-            onSelected: (on) => onChanged(on ? value : null),
-          ),
-      ],
-    );
-  }
 }

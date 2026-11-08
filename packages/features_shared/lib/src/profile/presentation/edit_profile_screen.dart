@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../auth/presentation/auth_state.dart';
 import 'member_profile_form.dart';
+import 'profile_screen.dart';
 import 'save_member_profile.dart';
 
 /// Ubah data diri anggota dari halaman Profil.
@@ -51,7 +54,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+        // Di layar lebar isi tetap selebar [ProfileScreen.maxWidth].
+        padding: EdgeInsets.symmetric(
+          horizontal: math.max(
+            20,
+            (MediaQuery.sizeOf(context).width - ProfileScreen.maxWidth) / 2,
+          ),
+        ).copyWith(top: 8, bottom: 40),
         children: [
           MemberProfileForm(key: _formKey, user: authState.user),
         ],

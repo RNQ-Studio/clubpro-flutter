@@ -85,7 +85,12 @@ void main() {
       expect(user.usesGoogle, isFalse);
       expect(user.emailVerifiedAt, isNotNull);
       expect(user.phoneVerifiedAt, isNull);
-      expect(user.completion?.total, 10);
+      expect(user.gender, MemberGender.female);
+      expect(user.domicile?.label, 'Kota Bandung, Jawa Barat');
+      expect(user.nikRegion?.cityCode, '32.73');
+      expect(user.nikSameAsDomicile, isTrue);
+      expect(user.completion?.total, 5);
+      expect(user.completion?.missing.single.key, 'phone');
       expect(user.devices, hasLength(1));
       expect(user.devices.first.userAgent, contains('Android 13'));
     });

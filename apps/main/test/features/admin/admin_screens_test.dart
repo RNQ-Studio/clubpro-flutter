@@ -322,13 +322,21 @@ void main() {
         'Jakarta, Indonesia',
         '081234567890',
         'Perempuan',
-        'Bandung, 12 April 2001',
-        'Jl. Merdeka No. 10, Bandung',
-        'Ibu Sari · 081298765432',
-        '10 dari 10 isian',
+        'Nomor WhatsApp',
+        'Kota Bandung, Jawa Barat',
+        'Kota Bandung, Jawa Barat · sama dengan domisili',
+        '5 dari 5 isian',
         'IP Geolocation by DB-IP',
       ]) {
         expect(find.text(text), findsOneWidget, reason: text);
+      }
+      for (final gone in [
+        'Tempat, tanggal lahir',
+        'Alamat',
+        'Golongan darah',
+        'Kontak darurat',
+      ]) {
+        expect(find.text(gone), findsNothing, reason: gone);
       }
     });
 
