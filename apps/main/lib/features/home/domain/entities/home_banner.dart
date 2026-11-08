@@ -60,11 +60,11 @@ class HomePromotions {
   final int intervalHours;
 
   /// Popup layak tampil bila belum pernah, atau sudah lewat [intervalHours]
-  /// sejak terakhir tampil. Jam perangkat mundur → dianggap belum lewat.
+  /// sejak terakhir tampil. Jam perangkat mundur → selisihnya negatif, belum
+  /// lewat.
   bool isDue(DateTime? lastShown, DateTime now) {
     if (banners.isEmpty) return false;
     if (lastShown == null) return true;
-    return !now.difference(lastShown).isNegative &&
-        now.difference(lastShown) >= Duration(hours: intervalHours);
+    return now.difference(lastShown) >= Duration(hours: intervalHours);
   }
 }

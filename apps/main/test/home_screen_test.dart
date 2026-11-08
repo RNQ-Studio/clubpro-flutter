@@ -1105,6 +1105,27 @@ void main() {
       expect(popup(), findsOneWidget);
     });
 
+    testWidgets('tarik untuk menyegarkan sesudah jedanya lewat: tampil lagi',
+        (tester) async {
+      _phoneScreen(tester);
+      final store = FakePromotionPopupStore(
+        {'1': DateTime.now().subtract(const Duration(hours: 1))},
+      );
+      await tester.pumpWidget(_app(
+        communities: _member(),
+        promotions: const [plain],
+        popupStore: store,
+      ));
+      await tester.pumpAndSettle();
+      expect(popup(), findsNothing);
+
+      store.shown['1'] = DateTime.now().subtract(const Duration(hours: 25));
+      await tester.fling(
+          find.byType(ListView).first, const Offset(0, 400), 1000);
+      await tester.pumpAndSettle();
+      expect(popup(), findsOneWidget);
+    });
+
     testWidgets('tombol WhatsApp membuka chat lalu popup tertutup',
         (tester) async {
       _phoneScreen(tester);
