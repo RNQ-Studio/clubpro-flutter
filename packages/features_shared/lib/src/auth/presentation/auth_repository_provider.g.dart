@@ -188,6 +188,59 @@ final class GoogleSignInServiceProvider extends $FunctionalProvider<
 String _$googleSignInServiceHash() =>
     r'7c5e1b61240a2acb5a2d5cfd32741be2171deec2';
 
+/// Web: login Google lewat pindah halaman; null di luar web. App web
+/// menimpanya dengan instance yang sudah [GoogleWebSignIn.capture] sebelum
+/// router dibuat.
+
+@ProviderFor(googleWebSignIn)
+final googleWebSignInProvider = GoogleWebSignInProvider._();
+
+/// Web: login Google lewat pindah halaman; null di luar web. App web
+/// menimpanya dengan instance yang sudah [GoogleWebSignIn.capture] sebelum
+/// router dibuat.
+
+final class GoogleWebSignInProvider extends $FunctionalProvider<
+    GoogleWebSignIn?,
+    GoogleWebSignIn?,
+    GoogleWebSignIn?> with $Provider<GoogleWebSignIn?> {
+  /// Web: login Google lewat pindah halaman; null di luar web. App web
+  /// menimpanya dengan instance yang sudah [GoogleWebSignIn.capture] sebelum
+  /// router dibuat.
+  GoogleWebSignInProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'googleWebSignInProvider',
+          isAutoDispose: false,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$googleWebSignInHash();
+
+  @$internal
+  @override
+  $ProviderElement<GoogleWebSignIn?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  GoogleWebSignIn? create(Ref ref) {
+    return googleWebSignIn(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GoogleWebSignIn? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GoogleWebSignIn?>(value),
+    );
+  }
+}
+
+String _$googleWebSignInHash() => r'5572c1ccbd52472b0c9ebc4ad3dfb72fae23e145';
+
 @ProviderFor(_authRemoteDataSource)
 final _authRemoteDataSourceProvider = _AuthRemoteDataSourceProvider._();
 

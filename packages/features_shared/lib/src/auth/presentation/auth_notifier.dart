@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/biometric_auth_service.dart';
 import '../data/google_sign_in_service.dart';
+import '../data/google_web_sign_in.dart';
 import '../domain/entities/user.dart';
 import '../domain/usecases/get_current_user_use_case.dart';
 import '../domain/usecases/login_use_case.dart';
@@ -30,12 +31,26 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   /// Call this once during app bootstrap to restore a cached session.
+  ///
+  /// Web: bila app dimuat dari kembalian halaman masuk Google, ID token-nya
+  /// ditukar ke backend. Kembalian yang gagal hanya ditampilkan bila belum ada
+  /// sesi (tombol back ke halaman Google tidak membuang sesi yang aktif).
   Future<void> checkCurrentUser() async {
+    final redirect = ref.read(googleWebSignInProvider)?.takeOutcome();
+    if (redirect case GoogleRedirectToken(:final idToken)) {
+      return loginWithGoogleIdToken(idToken);
+    }
+
     state = const AuthLoading();
     try {
       final user = await _getCurrentUser();
-      state =
-          user != null ? AuthAuthenticated(user) : const AuthUnauthenticated();
+      if (user != null) {
+        state = AuthAuthenticated(user);
+      } else if (redirect case GoogleRedirectFailure(:final error)) {
+        googleSignInFailed(error);
+      } else {
+        state = const AuthUnauthenticated();
+      }
     } catch (e) {
       state = AuthError(e.toString());
     }
@@ -56,11 +71,25 @@ class AuthNotifier extends _$AuthNotifier {
   Future<void> loginWithGoogle() =>
       _runGoogleLogin(() => ref.read(authRepositoryProvider).loginWithGoogle());
 
-  /// Web: masuk dengan ID token dari tombol Google resmi.
+  /// Web: pindah ke halaman masuk Google (lihat [GoogleWebSignIn]). True bila
+  /// halaman sedang ditinggalkan; gagal → [AuthError].
+  bool startGoogleWebSignIn() {
+    try {
+      final web = ref.read(googleWebSignInProvider);
+      if (web == null) throw UnsupportedError('Hanya untuk web.');
+      web.start();
+      return true;
+    } catch (e) {
+      state = AuthError(e.toString());
+      return false;
+    }
+  }
+
+  /// Web: masuk dengan ID token dari halaman masuk Google.
   Future<void> loginWithGoogleIdToken(String idToken) => _runGoogleLogin(
       () => ref.read(authRepositoryProvider).loginWithGoogleIdToken(idToken));
 
-  /// Web: tombol Google gagal sebelum ada ID token.
+  /// Web: masuk Google batal atau gagal sebelum ada ID token.
   void googleSignInFailed(Object error) {
     state = error is GoogleSignInCancelled
         ? const AuthUnauthenticated()

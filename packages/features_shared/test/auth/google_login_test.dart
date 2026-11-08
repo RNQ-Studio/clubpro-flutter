@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'fake_google_web_browser.dart';
 import 'mock_auth_repository.dart';
 
 const _user = User(id: '7', name: 'Rina', email: 'rina@gmail.com');
@@ -152,6 +153,162 @@ void main() {
 
       expect(container.read(authProvider), isA<AuthUnauthenticated>());
       verify(() => repo.clearSession()).called(1);
+    });
+  });
+
+  group('AuthNotifier: masuk Google dengan pindah halaman (web)', () {
+    late MockAuthRepository repo;
+    late FakeGoogleWebBrowser browser;
+    late GoogleWebSignIn web;
+    late ProviderContainer container;
+
+    setUp(() {
+      repo = MockAuthRepository();
+      browser = FakeGoogleWebBrowser();
+      web = GoogleWebSignIn(clientId: 'web-client', browser: browser);
+      container = ProviderContainer(overrides: [
+        authRepositoryProvider.overrideWithValue(repo),
+        googleWebSignInProvider.overrideWithValue(web),
+      ]);
+    });
+    tearDown(() => container.dispose());
+
+    AuthNotifier notifier() => container.read(authProvider.notifier);
+
+    /// App dimuat ulang di alamat kembalian dari Google.
+    void reloadFromGoogle(String Function(Map<String, String> request) hash) {
+      final request = browser.navigated.last.queryParameters;
+      browser.location =
+          Uri.parse('https://ceo-pro.web.app/auth/google#${hash(request)}');
+      web.capture();
+    }
+
+    test('mulai → pindah ke halaman Google; status tidak berubah', () {
+      expect(notifier().startGoogleWebSignIn(), isTrue);
+
+      expect(browser.navigated.single.host, 'accounts.google.com');
+      expect(container.read(authProvider), isA<AuthInitial>());
+    });
+
+    test('kembali dengan token → ditukar ke backend, bukan memulihkan sesi',
+        () async {
+      when(() => repo.loginWithGoogleIdToken(any()))
+          .thenAnswer((_) async => _user);
+      notifier().startGoogleWebSignIn();
+      late String token;
+      reloadFromGoogle((request) {
+        token = fakeIdToken({'nonce': request['nonce']});
+        return 'state=${request['state']}&id_token=$token';
+      });
+
+      await notifier().checkCurrentUser();
+
+      expect(
+        container.read(authProvider),
+        isA<AuthAuthenticated>().having((s) => s.user, 'user', _user),
+      );
+      verify(() => repo.loginWithGoogleIdToken(token)).called(1);
+      verifyNever(() => repo.getCurrentUser());
+    });
+
+    test('dibatalkan di halaman Google → belum login tanpa pesan', () async {
+      when(() => repo.getCurrentUser()).thenAnswer((_) async => null);
+      notifier().startGoogleWebSignIn();
+      reloadFromGoogle((r) => 'error=access_denied&state=${r['state']}');
+
+      await notifier().checkCurrentUser();
+
+      expect(container.read(authProvider), isA<AuthUnauthenticated>());
+      verifyNever(() => repo.loginWithGoogleIdToken(any()));
+    });
+
+    test('kembalian tidak sah → AuthError, token tidak dikirim', () async {
+      when(() => repo.getCurrentUser()).thenAnswer((_) async => null);
+      notifier().startGoogleWebSignIn();
+      reloadFromGoogle(
+          (r) => 'state=lain&id_token=${fakeIdToken({'nonce': r['nonce']})}');
+
+      await notifier().checkCurrentUser();
+
+      expect(
+        container.read(authProvider),
+        isA<AuthError>()
+            .having((s) => s.message, 'message', contains('kedaluwarsa')),
+      );
+      verifyNever(() => repo.loginWithGoogleIdToken(any()));
+    });
+
+    test('backend menolak token → AuthError dengan pesan backend', () async {
+      when(() => repo.loginWithGoogleIdToken(any())).thenThrow(
+          const ServerException('Login Google belum diaktifkan di server.'));
+      notifier().startGoogleWebSignIn();
+      reloadFromGoogle((r) =>
+          'state=${r['state']}&id_token=${fakeIdToken({'nonce': r['nonce']})}');
+
+      await notifier().checkCurrentUser();
+
+      expect(
+        container.read(authProvider),
+        isA<AuthError>().having((s) => s.message, 'message',
+            'Login Google belum diaktifkan di server.'),
+      );
+    });
+
+    test(
+        'kembalian gagal tapi sesi masih ada (back ke halaman Google) → '
+        'tetap masuk', () async {
+      when(() => repo.getCurrentUser()).thenAnswer((_) async => _user);
+      notifier().startGoogleWebSignIn();
+      reloadFromGoogle((r) =>
+          'state=${r['state']}&id_token=${fakeIdToken({'nonce': r['nonce']})}');
+      // Kembalian kedua dari riwayat: sesi tertunda sudah terpakai.
+      web.takeOutcome();
+      reloadFromGoogle((r) =>
+          'state=${r['state']}&id_token=${fakeIdToken({'nonce': r['nonce']})}');
+
+      await notifier().checkCurrentUser();
+
+      expect(
+        container.read(authProvider),
+        isA<AuthAuthenticated>().having((s) => s.user, 'user', _user),
+      );
+      verifyNever(() => repo.loginWithGoogleIdToken(any()));
+    });
+
+    test('dibuka biasa (bukan kembalian) → memulihkan sesi tersimpan',
+        () async {
+      when(() => repo.getCurrentUser()).thenAnswer((_) async => _user);
+      web.capture();
+
+      await notifier().checkCurrentUser();
+
+      expect(container.read(authProvider), isA<AuthAuthenticated>());
+      verify(() => repo.getCurrentUser()).called(1);
+    });
+
+    test('hasil kembalian hanya diproses sekali', () async {
+      when(() => repo.loginWithGoogleIdToken(any()))
+          .thenAnswer((_) async => _user);
+      when(() => repo.getCurrentUser()).thenAnswer((_) async => null);
+      notifier().startGoogleWebSignIn();
+      reloadFromGoogle((r) =>
+          'state=${r['state']}&id_token=${fakeIdToken({'nonce': r['nonce']})}');
+
+      await notifier().checkCurrentUser();
+      await notifier().checkCurrentUser();
+
+      verify(() => repo.loginWithGoogleIdToken(any())).called(1);
+      verify(() => repo.getCurrentUser()).called(1);
+    });
+
+    test('di luar web → tidak bisa pindah halaman, AuthError', () {
+      final native = ProviderContainer(
+          overrides: [authRepositoryProvider.overrideWithValue(repo)]);
+      addTearDown(native.dispose);
+
+      expect(
+          native.read(authProvider.notifier).startGoogleWebSignIn(), isFalse);
+      expect(native.read(authProvider), isA<AuthError>());
     });
   });
 
@@ -332,6 +489,69 @@ void main() {
 
       expect(find.text('Akun Anda dinonaktifkan.'), findsOneWidget);
       await tester.tap(find.byKey(const Key('google-sign-in-button')));
+      expect(notifier.googleCalls, 1);
+    });
+  });
+
+  group('GoogleLoginScreen di web: tombol pindah ke halaman Google', () {
+    late FakeGoogleWebBrowser browser;
+    late _FixedAuthNotifier notifier;
+
+    Widget screen({String? clientId = 'web-client'}) => ProviderScope(
+          overrides: [
+            authProvider.overrideWith(() => notifier),
+            googleWebSignInProvider.overrideWithValue(
+              GoogleWebSignIn(clientId: clientId, browser: browser),
+            ),
+          ],
+          child: const MaterialApp(home: GoogleLoginScreen(title: 'CEO')),
+        );
+
+    Finder button() => find.byKey(const Key('google-sign-in-button'));
+
+    setUp(() {
+      browser = FakeGoogleWebBrowser();
+      notifier = _FixedAuthNotifier(const AuthUnauthenticated());
+    });
+
+    testWidgets('tap → halaman pindah ke Google, tanpa popup; tombol menunggu',
+        (tester) async {
+      await tester.pumpWidget(screen());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Masuk dengan Google'), findsOneWidget);
+      await tester.tap(button());
+      await tester.pump();
+
+      expect(browser.navigated.single.host, 'accounts.google.com');
+      expect(notifier.googleCalls, 0);
+      expect(tester.widget<OutlinedButton>(button()).onPressed, isNull);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
+
+    testWidgets('kembali dari Google dengan tombol back → tombol aktif lagi',
+        (tester) async {
+      await tester.pumpWidget(screen());
+      await tester.pumpAndSettle();
+      await tester.tap(button());
+      await tester.pump();
+
+      browser.restoredController.add(null);
+      await tester.pump();
+
+      expect(tester.widget<OutlinedButton>(button()).onPressed, isNotNull);
+      expect(find.text('Masuk dengan Google'), findsOneWidget);
+    });
+
+    testWidgets('Web client ID kosong → jalur bawaan yang memberi pesan',
+        (tester) async {
+      await tester.pumpWidget(screen(clientId: null));
+      await tester.pumpAndSettle();
+
+      await tester.tap(button());
+      await tester.pump();
+
+      expect(browser.navigated, isEmpty);
       expect(notifier.googleCalls, 1);
     });
   });

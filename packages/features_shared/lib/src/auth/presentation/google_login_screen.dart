@@ -1,20 +1,20 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../data/google_web_sign_in.dart';
 import 'auth_provider.dart';
 import 'auth_state.dart';
-import 'google_web_button.dart';
 
 /// Halaman login yang hanya menyediakan "Masuk dengan Google".
 ///
-/// Di web (bila Web client ID terpasang) tombolnya adalah tombol Google resmi,
-/// karena `google_sign_in` tidak bisa membuka pemilih akun dari tombol app.
+/// Di web (bila Web client ID terpasang) tombolnya memindahkan halaman ke
+/// Google lalu kembali (lihat [GoogleWebSignIn]); di HP/desktop native membuka
+/// pemilih akun bawaan.
 ///
 /// Branding (judul, keterangan, logo) disediakan app; [header], [background],
 /// dan [footer] menggantikan tampilan bawaannya. Setelah berhasil,
@@ -63,18 +63,22 @@ class GoogleLoginScreen extends ConsumerStatefulWidget {
 
 class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
   String _version = '';
-  StreamSubscription<String>? _webIdTokens;
+  bool _webRedirect = false;
+
+  /// Halaman sedang pindah ke Google.
+  bool _leaving = false;
+  StreamSubscription<void>? _restored;
 
   @override
   void initState() {
     super.initState();
-    final google = kIsWeb ? ref.read(googleSignInServiceProvider) : null;
-    if (google != null && google.isConfigured) {
-      final auth = ref.read(authProvider.notifier);
-      _webIdTokens = google.webIdTokens.listen(
-        auth.loginWithGoogleIdToken,
-        onError: auth.googleSignInFailed,
-      );
+    final web = ref.read(googleWebSignInProvider);
+    if (web != null && web.isConfigured) {
+      _webRedirect = true;
+      // Kembali dari Google dengan tombol back: halaman dipulihkan apa adanya.
+      _restored = web.restored.listen((_) {
+        if (mounted) setState(() => _leaving = false);
+      });
     }
     PackageInfo.fromPlatform().then((info) {
       if (mounted) {
@@ -85,8 +89,17 @@ class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
 
   @override
   void dispose() {
-    _webIdTokens?.cancel();
+    _restored?.cancel();
     super.dispose();
+  }
+
+  void _signIn() {
+    final auth = ref.read(authProvider.notifier);
+    if (_webRedirect) {
+      setState(() => _leaving = auth.startGoogleWebSignIn());
+    } else {
+      auth.loginWithGoogle();
+    }
   }
 
   @override
@@ -153,17 +166,10 @@ class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
                     _ErrorBanner(message: authState.message),
                     const SizedBox(height: 16),
                   ],
-                  if (_webIdTokens != null && !isLoading)
-                    SizedBox(
-                      height: 56,
-                      child: Center(child: googleWebButton()),
-                    )
-                  else
-                    _GoogleButton(
-                      isLoading: isLoading,
-                      onPressed: () =>
-                          ref.read(authProvider.notifier).loginWithGoogle(),
-                    ),
+                  _GoogleButton(
+                    isLoading: isLoading || _leaving,
+                    onPressed: _signIn,
+                  ),
                   if (hint != null) ...[
                     const SizedBox(height: 14),
                     Text(
