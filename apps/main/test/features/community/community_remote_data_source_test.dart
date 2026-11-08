@@ -95,17 +95,6 @@ void main() {
           containsAll(['Panahan', 'Fashion', 'Sepak Bola', 'Lainnya']));
       expect(types.last.value, CommunityTypeOption.other);
     });
-
-    test('wilayah Indonesia lengkap', () async {
-      final regions =
-          await _source(200, _fixture('regions')).source.fetchRegions();
-
-      expect(regions, hasLength(38));
-      expect(regions.expand((p) => p.cities), hasLength(514));
-      final jabar = regions.firstWhere((p) => p.name == 'Jawa Barat');
-      expect(jabar.cities.map((c) => c.name), contains('Kota Bandung'));
-      expect(regions.map((p) => p.name), contains('Papua Pegunungan'));
-    });
   });
 
   test('pencarian dan saringan menjadi parameter server', () async {

@@ -5,6 +5,7 @@ import 'package:app_main/features/community/presentation/screens/communities_scr
 import 'package:app_main/features/community/presentation/screens/community_detail_screen.dart';
 import 'package:app_main/features/community/presentation/screens/community_form_screen.dart';
 import 'package:core/core.dart';
+import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,6 +42,7 @@ Widget _app(
   return ProviderScope(
     overrides: [
       communityRepositoryProvider.overrideWithValue(repository),
+      regionRepositoryProvider.overrideWithValue(repository),
       communityImagePickerProvider
           .overrideWithValue(picker ?? FakeCommunityImagePicker()),
     ],

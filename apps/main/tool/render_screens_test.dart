@@ -227,6 +227,7 @@ void main() {
           FakePromotionPopupStore(popup ? null : {'1': DateTime.now()}),
         ),
         communityRepositoryProvider.overrideWithValue(community),
+        regionRepositoryProvider.overrideWithValue(community),
         activeCommunityStoreProvider
             .overrideWithValue(FakeActiveCommunityStore(saved)),
         duesRepositoryProvider.overrideWithValue(
@@ -506,6 +507,7 @@ void main() {
           () => _FixedAuthNotifier(AuthAuthenticated(_complete)),
         ),
         communityRepositoryProvider.overrideWithValue(repository),
+        regionRepositoryProvider.overrideWithValue(repository),
         communityImagePickerProvider
             .overrideWithValue(FakeCommunityImagePicker()),
       ],

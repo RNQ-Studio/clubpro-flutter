@@ -75,3 +75,13 @@ export 'src/onboarding/data/onboarding_repository_impl.dart';
 export 'src/onboarding/presentation/onboarding_notifier.dart';
 export 'src/onboarding/presentation/splash_screen.dart';
 export 'src/onboarding/presentation/onboarding_screen.dart';
+
+// region — domain
+export 'src/region/domain/entities/region.dart';
+export 'src/region/domain/repositories/region_repository.dart';
+
+// region — data
+export 'src/region/data/region_repository_impl.dart';
+
+// region — presentation
+export 'src/region/presentation/region_providers.dart';

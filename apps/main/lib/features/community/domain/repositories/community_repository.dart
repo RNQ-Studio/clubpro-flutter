@@ -16,8 +16,6 @@ abstract interface class CommunityRepository {
 
   Future<List<CommunityTypeOption>> getTypes();
 
-  Future<List<RegionProvince>> getRegions();
-
   /// Unggah satu foto, mengembalikan id asetnya.
   Future<String> uploadImage(CommunityImage image, {required String category});
 

@@ -302,22 +302,3 @@ class CommunityTypeOption {
   final String value;
   final String label;
 }
-
-class RegionCity {
-  const RegionCity({required this.code, required this.name});
-
-  final String code;
-  final String name;
-}
-
-class RegionProvince {
-  const RegionProvince({
-    required this.code,
-    required this.name,
-    required this.cities,
-  });
-
-  final String code;
-  final String name;
-  final List<RegionCity> cities;
-}

@@ -23,12 +23,6 @@ CommunityImagePicker communityImagePicker(Ref ref) =>
 Future<List<CommunityTypeOption>> communityTypes(Ref ref) =>
     ref.watch(communityRepositoryProvider).getTypes();
 
-/// Provinsi beserta kabupaten/kotanya; satu respons, sehingga pilihan kota
-/// langsung tersedia begitu provinsi dipilih.
-@Riverpod(keepAlive: true)
-Future<List<RegionProvince>> indonesiaRegions(Ref ref) =>
-    ref.watch(communityRepositoryProvider).getRegions();
-
 /// Pengajuan milik pengguna yang login.
 @riverpod
 Future<List<Community>> myCommunities(Ref ref) =>

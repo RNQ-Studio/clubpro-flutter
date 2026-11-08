@@ -60,14 +60,6 @@ class CommunityRemoteDataSource {
         ];
       });
 
-  Future<List<RegionProvince>> fetchRegions() => _guard(() async {
-        final response = await _dio.get('v1/regions/indonesia');
-        return [
-          for (final item in _data(response) as List<dynamic>)
-            regionProvinceFromJson(item as Map<String, dynamic>),
-        ];
-      });
-
   /// Dikirim sebagai byte: path `XFile` di web hanya URL blob.
   Future<String> uploadImage(
     CommunityImage image, {

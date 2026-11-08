@@ -140,52 +140,6 @@ final class CommunityTypesProvider extends $FunctionalProvider<
 
 String _$communityTypesHash() => r'649da1f1aefe0ca73ff0ce373e7307dcb084a877';
 
-/// Provinsi beserta kabupaten/kotanya; satu respons, sehingga pilihan kota
-/// langsung tersedia begitu provinsi dipilih.
-
-@ProviderFor(indonesiaRegions)
-final indonesiaRegionsProvider = IndonesiaRegionsProvider._();
-
-/// Provinsi beserta kabupaten/kotanya; satu respons, sehingga pilihan kota
-/// langsung tersedia begitu provinsi dipilih.
-
-final class IndonesiaRegionsProvider extends $FunctionalProvider<
-        AsyncValue<List<RegionProvince>>,
-        List<RegionProvince>,
-        FutureOr<List<RegionProvince>>>
-    with
-        $FutureModifier<List<RegionProvince>>,
-        $FutureProvider<List<RegionProvince>> {
-  /// Provinsi beserta kabupaten/kotanya; satu respons, sehingga pilihan kota
-  /// langsung tersedia begitu provinsi dipilih.
-  IndonesiaRegionsProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'indonesiaRegionsProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
-
-  @override
-  String debugGetCreateSourceHash() => _$indonesiaRegionsHash();
-
-  @$internal
-  @override
-  $FutureProviderElement<List<RegionProvince>> $createElement(
-          $ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<List<RegionProvince>> create(Ref ref) {
-    return indonesiaRegions(ref);
-  }
-}
-
-String _$indonesiaRegionsHash() => r'f6f09ec687e03b134bc1d7b7e4ef0d826149cba9';
-
 /// Pengajuan milik pengguna yang login.
 
 @ProviderFor(myCommunities)

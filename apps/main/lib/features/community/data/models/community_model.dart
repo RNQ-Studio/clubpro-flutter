@@ -118,19 +118,6 @@ CommunityTypeOption communityTypeFromJson(Map<String, dynamic> json) =>
       label: json['label'] as String,
     );
 
-RegionProvince regionProvinceFromJson(Map<String, dynamic> json) =>
-    RegionProvince(
-      code: json['code'] as String,
-      name: json['name'] as String,
-      cities: [
-        for (final city in json['cities'] as List<dynamic>)
-          RegionCity(
-            code: (city as Map<String, dynamic>)['code'] as String,
-            name: city['name'] as String,
-          ),
-      ],
-    );
-
 /// `GET v1/communities`: `data` + `meta.pagination`.
 CommunitiesPage communitiesPageFromJson(Map<String, dynamic> json) {
   final meta = json['meta'] as Map<String, dynamic>;

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:app_main/features/community/data/community_image_picker.dart';
+import 'package:features_shared/features_shared.dart';
 import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:app_main/features/community/domain/entities/community_draft.dart';
 import 'package:app_main/features/community/domain/repositories/active_community_store.dart';
@@ -191,7 +192,7 @@ class FakeActiveCommunityStore implements ActiveCommunityStore {
   }
 }
 
-class FakeCommunityRepository implements CommunityRepository {
+class FakeCommunityRepository implements CommunityRepository, RegionRepository {
   FakeCommunityRepository({
     this.pages = const [],
     this.mine = const [],
@@ -290,7 +291,7 @@ class FakeCommunityRepository implements CommunityRepository {
   Future<List<CommunityTypeOption>> getTypes() async => testTypes;
 
   @override
-  Future<List<RegionProvince>> getRegions() async {
+  Future<List<RegionProvince>> getIndonesia() async {
     final failure = regionsError;
     if (failure != null) throw failure;
     return testRegions;

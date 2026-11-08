@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:features_shared/features_shared.dart';
 
 import '../domain/entities/community.dart';
 import '../domain/entities/community_draft.dart';

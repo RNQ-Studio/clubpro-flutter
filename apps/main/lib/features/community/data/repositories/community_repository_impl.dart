@@ -34,9 +34,6 @@ class CommunityRepositoryImpl implements CommunityRepository {
   Future<List<CommunityTypeOption>> getTypes() => _remote.fetchTypes();
 
   @override
-  Future<List<RegionProvince>> getRegions() => _remote.fetchRegions();
-
-  @override
   Future<String> uploadImage(
     CommunityImage image, {
     required String category,
