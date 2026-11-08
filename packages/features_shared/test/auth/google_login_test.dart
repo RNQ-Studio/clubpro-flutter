@@ -335,4 +335,62 @@ void main() {
       expect(notifier.googleCalls, 1);
     });
   });
+
+  group('GoogleLoginScreen: tampilan dari app', () {
+    Widget screen(GoogleLoginScreen child) => ProviderScope(
+          overrides: [
+            authProvider.overrideWith(
+              () => _FixedAuthNotifier(const AuthUnauthenticated()),
+            ),
+          ],
+          child: MaterialApp(home: child),
+        );
+
+    testWidgets('bawaan: judul, keterangan, dan petunjuk akun baru',
+        (tester) async {
+      await tester.pumpWidget(screen(const GoogleLoginScreen(
+        title: 'CEO',
+        subtitle: 'Keterangan',
+      )));
+      await tester.pumpAndSettle();
+
+      expect(find.text('CEO'), findsOneWidget);
+      expect(find.text('Keterangan'), findsOneWidget);
+      expect(find.text(GoogleLoginScreen.defaultSignupHint), findsOneWidget);
+    });
+
+    testWidgets('header, latar, dan kaki menggantikan bawaan; tanpa petunjuk',
+        (tester) async {
+      await tester.pumpWidget(screen(const GoogleLoginScreen(
+        title: 'CEO',
+        subtitle: 'Keterangan',
+        header: Text('KEPALA'),
+        background: ColoredBox(key: Key('latar'), color: Colors.black),
+        footer: Text('KAKI'),
+        signupHint: null,
+      )));
+      await tester.pumpAndSettle();
+
+      expect(find.text('KEPALA'), findsOneWidget);
+      expect(find.text('CEO'), findsNothing);
+      expect(find.text('Keterangan'), findsNothing);
+      expect(find.text('KAKI'), findsOneWidget);
+      expect(find.text(GoogleLoginScreen.defaultSignupHint), findsNothing);
+      expect(find.textContaining('Versi'), findsNothing);
+      // Latar selebar layar, di belakang isi.
+      expect(tester.getSize(find.byKey(const Key('latar'))),
+          tester.view.physicalSize / tester.view.devicePixelRatio);
+      // Isi tidak melebar di layar lebar.
+      expect(
+        tester.getSize(find.byKey(const Key('google-sign-in-button'))).width,
+        lessThanOrEqualTo(GoogleLoginScreen.maxWidth),
+      );
+      expect(
+        tester.getTopLeft(find.text('KAKI')).dy,
+        greaterThan(tester
+            .getTopLeft(find.byKey(const Key('google-sign-in-button')))
+            .dy),
+      );
+    });
+  });
 }

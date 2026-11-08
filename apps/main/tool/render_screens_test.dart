@@ -7,8 +7,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:app_main/branding/club_brand.dart';
-import 'package:app_main/branding/club_logo.dart';
+import 'package:app_main/branding/club_login.dart';
 import 'package:app_main/features/admin/domain/entities/admin_banner.dart';
 import 'package:app_main/features/admin/presentation/admin_providers.dart';
 import 'package:app_main/features/admin/presentation/screens/admin_banner_form_screen.dart';
@@ -738,42 +737,43 @@ void main() {
     ),
   ];
 
-  testWidgets('01-onboarding', (tester) async {
-    await shoot(
-      tester,
-      '01-onboarding',
-      material(const OnboardingScreen(pages: ClubBrand.onboardingPages),
-          const AuthUnauthenticated()),
-    );
-  });
-
-  testWidgets('02-onboarding-iuran', (tester) async {
-    await shoot(
-      tester,
-      '02-onboarding-iuran',
-      material(const OnboardingScreen(pages: ClubBrand.onboardingPages),
-          const AuthUnauthenticated()),
-      before: () async {
-        for (var i = 0; i < 3; i++) {
-          await tester.tap(find.text('Selanjutnya'));
-          await tester.pumpAndSettle();
-        }
-      },
-    );
-  });
-
-  testWidgets('03-login', (tester) async {
-    await shoot(
-      tester,
-      '03-login',
-      material(
-        const GoogleLoginScreen(
-          title: ClubBrand.name,
-          subtitle: ClubBrand.loginSubtitle,
-          logo: ClubLogo(size: 112),
+  Widget login({AuthState auth = const AuthUnauthenticated()}) => ProviderScope(
+        overrides: [
+          authProvider.overrideWith(() => _FixedAuthNotifier(auth)),
+          appRefresherProvider.overrideWithValue(_ShownRefresher()),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('id'),
+          home: const ClubLoginPage(),
         ),
-        const AuthUnauthenticated(),
+      );
+
+  for (final (name, size) in [
+    ('03-login', const Size(360, 780)),
+    ('03b-login-desktop', const Size(1280, 800)),
+    ('03c-login-500', const Size(500, 900)),
+    ('03d-login-pendek', const Size(360, 600)),
+  ]) {
+    testWidgets(name, (tester) async {
+      await shoot(tester, name, login(),
+          size: size, before: () => tester.pumpAndSettle());
+    });
+  }
+
+  testWidgets('03e-login-galat', (tester) async {
+    await shoot(
+      tester,
+      '03e-login-galat',
+      login(
+        auth: const AuthError(
+          'Login Google dibatalkan atau gagal. Silakan coba lagi.',
+        ),
       ),
+      before: () => tester.pumpAndSettle(),
     );
   });
 

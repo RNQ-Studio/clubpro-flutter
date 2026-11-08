@@ -12,7 +12,7 @@ import 'onboarding_notifier.dart';
 /// Premium splash screen with animated fade-in branding.
 ///
 /// After 2 seconds navigates to:
-/// - `/onboarding` — if the user has not completed onboarding yet.
+/// - `/onboarding` — if [showOnboarding] and the user has not completed it yet.
 /// - `/login`      — if [requireLogin] and the user has not logged in.
 /// - `/`           — otherwise.
 class SplashScreen extends ConsumerStatefulWidget {
@@ -22,6 +22,7 @@ class SplashScreen extends ConsumerStatefulWidget {
     this.tagline = 'Build something great',
     this.logo,
     this.requireLogin = false,
+    this.showOnboarding = true,
   });
 
   /// Nama yang ditampilkan; null = nama app dari platform.
@@ -33,6 +34,9 @@ class SplashScreen extends ConsumerStatefulWidget {
 
   /// `true` = pengguna yang belum login diarahkan ke `/login`, bukan `/`.
   final bool requireLogin;
+
+  /// `false` = onboarding dilewati sama sekali.
+  final bool showOnboarding;
 
   @override
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
@@ -86,11 +90,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted) return;
 
     // Tunggu status onboarding benar-benar terbaca (bukan nilai sementara).
-    bool hasOnboarded;
-    try {
-      hasOnboarded = await ref.read(onboardingProvider.future);
-    } catch (_) {
-      hasOnboarded = false;
+    var hasOnboarded = true;
+    if (widget.showOnboarding) {
+      try {
+        hasOnboarded = await ref.read(onboardingProvider.future);
+      } catch (_) {
+        hasOnboarded = false;
+      }
     }
     if (!mounted) return;
 

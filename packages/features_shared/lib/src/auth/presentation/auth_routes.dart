@@ -9,10 +9,13 @@ const authLoginPath = '/login';
 
 /// Rute publik (splash, onboarding, login). App bisa mengganti tiap layar
 /// lewat builder, mis. untuk branding atau alur wajib-login.
+/// [withOnboarding] `false` = `/onboarding` dialihkan ke halaman login (pasang
+/// juga `SplashScreen.showOnboarding: false`).
 List<GoRoute> buildAuthRoutes({
   Widget Function()? splash,
   Widget Function()? onboarding,
   Widget Function()? login,
+  bool withOnboarding = true,
 }) =>
     [
       GoRoute(
@@ -21,6 +24,7 @@ List<GoRoute> buildAuthRoutes({
       ),
       GoRoute(
         path: '/onboarding',
+        redirect: withOnboarding ? null : (_, __) => authLoginPath,
         builder: (context, state) =>
             onboarding?.call() ?? const OnboardingScreen(),
       ),

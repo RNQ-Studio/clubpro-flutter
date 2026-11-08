@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +16,8 @@ import 'google_web_button.dart';
 /// Di web (bila Web client ID terpasang) tombolnya adalah tombol Google resmi,
 /// karena `google_sign_in` tidak bisa membuka pemilih akun dari tombol app.
 ///
-/// Branding (judul, keterangan, logo) disediakan app. Setelah berhasil,
+/// Branding (judul, keterangan, logo) disediakan app; [header], [background],
+/// dan [footer] menggantikan tampilan bawaannya. Setelah berhasil,
 /// [onLoggedIn] menentukan tujuan; bawaannya `/`.
 class GoogleLoginScreen extends ConsumerStatefulWidget {
   const GoogleLoginScreen({
@@ -23,12 +25,35 @@ class GoogleLoginScreen extends ConsumerStatefulWidget {
     required this.title,
     this.subtitle,
     this.logo,
+    this.header,
+    this.background,
+    this.footer,
+    this.signupHint = defaultSignupHint,
     this.onLoggedIn,
   });
+
+  /// Lebar isi terbesar; latar tetap selebar layar.
+  static const maxWidth = 440.0;
+
+  static const defaultSignupHint = 'Belum punya akun? Akun anggota dibuat '
+      'otomatis saat pertama kali masuk dengan Google.';
 
   final String title;
   final String? subtitle;
   final Widget? logo;
+
+  /// Pengganti logo, judul, dan keterangan.
+  final Widget? header;
+
+  /// Digambar di belakang seluruh isi, selebar layar.
+  final Widget? background;
+
+  /// Di bawah tombol masuk, menggantikan baris versi bawaan.
+  final Widget? footer;
+
+  /// Null = tanpa petunjuk di bawah tombol.
+  final String? signupHint;
+
   final void Function(BuildContext context, AuthAuthenticated state)?
       onLoggedIn;
 
@@ -82,17 +107,24 @@ class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
       }
     });
 
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Column(
-                  children: [
-                    const Spacer(flex: 2),
+    final hint = widget.signupHint;
+    final content = SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          // Layar lebar: isi tetap selebar ponsel di tengah.
+          padding: EdgeInsets.symmetric(
+            horizontal: math.max(
+                28, (constraints.maxWidth - GoogleLoginScreen.maxWidth) / 2),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                children: [
+                  const Spacer(flex: 2),
+                  if (widget.header case final header?)
+                    header
+                  else ...[
                     if (widget.logo != null) ...[
                       widget.logo!,
                       const SizedBox(height: 28),
@@ -115,48 +147,63 @@ class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
                         ),
                       ),
                     ],
-                    const Spacer(flex: 3),
-                    if (authState is AuthError) ...[
-                      _ErrorBanner(message: authState.message),
-                      const SizedBox(height: 16),
-                    ],
-                    if (_webIdTokens != null && !isLoading)
-                      SizedBox(
-                        height: 56,
-                        child: Center(child: googleWebButton()),
-                      )
-                    else
-                      _GoogleButton(
-                        isLoading: isLoading,
-                        onPressed: () =>
-                            ref.read(authProvider.notifier).loginWithGoogle(),
-                      ),
+                  ],
+                  const Spacer(flex: 3),
+                  if (authState is AuthError) ...[
+                    _ErrorBanner(message: authState.message),
+                    const SizedBox(height: 16),
+                  ],
+                  if (_webIdTokens != null && !isLoading)
+                    SizedBox(
+                      height: 56,
+                      child: Center(child: googleWebButton()),
+                    )
+                  else
+                    _GoogleButton(
+                      isLoading: isLoading,
+                      onPressed: () =>
+                          ref.read(authProvider.notifier).loginWithGoogle(),
+                    ),
+                  if (hint != null) ...[
                     const SizedBox(height: 14),
                     Text(
-                      'Belum punya akun? Akun anggota dibuat otomatis saat '
-                      'pertama kali masuk dengan Google.',
+                      hint,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    if (_version.isNotEmpty)
-                      Text(
-                        _version,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onSurface.withValues(alpha: 0.4),
-                        ),
-                      ),
-                    const SizedBox(height: 16),
                   ],
-                ),
+                  const SizedBox(height: 24),
+                  if (widget.footer case final footer?)
+                    footer
+                  else if (_version.isNotEmpty)
+                    Text(
+                      _version,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
           ),
         ),
       ),
+    );
+
+    final background = widget.background;
+    return Scaffold(
+      body: background == null
+          ? content
+          : Stack(
+              children: [
+                Positioned.fill(child: background),
+                content,
+              ],
+            ),
     );
   }
 }

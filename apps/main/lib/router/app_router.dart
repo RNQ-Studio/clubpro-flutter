@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../branding/club_brand.dart';
+import '../branding/club_login.dart';
 import '../branding/club_logo.dart';
 import '../features/admin/presentation/screens/admin_banner_form_screen.dart';
 import '../features/admin/presentation/screens/admin_banners_screen.dart';
@@ -48,15 +49,11 @@ final appRouter = GoRouter(
         tagline: ClubBrand.tagline,
         logo: ClubLogo(size: 80),
         requireLogin: true,
+        // Halaman awal cukup nama app; tanpa slide penjelasan fitur.
+        showOnboarding: false,
       ),
-      onboarding: () => const OnboardingScreen(
-        pages: ClubBrand.onboardingPages,
-        completeLocation: '/login',
-      ),
-      login: () => GoogleLoginScreen(
-        title: ClubBrand.name,
-        subtitle: ClubBrand.loginSubtitle,
-        logo: const ClubLogo(size: 112),
+      withOnboarding: false,
+      login: () => ClubLoginPage(
         onLoggedIn: (context, state) =>
             context.go(afterLoginLocation(state.user)),
       ),
