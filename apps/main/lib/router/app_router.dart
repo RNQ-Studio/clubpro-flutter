@@ -25,6 +25,7 @@ import '../features/dues/presentation/screens/dues_payments_screen.dart';
 import '../features/dues/presentation/screens/dues_screen.dart';
 import '../features/dues/presentation/screens/dues_settings_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/member_card/presentation/screens/member_card_screen.dart';
 import '../features/quotes/presentation/screens/quote_form_screen.dart';
 import '../features/quotes/presentation/screens/quotes_screen.dart';
 import '../features/settings/presentation/settings_route.dart';
@@ -88,6 +89,11 @@ final appRouter = GoRouter(
                 initialTab: ClubTab.fromName(state.uri.queryParameters['tab']),
               ),
               routes: [
+                GoRoute(
+                  path: 'card',
+                  builder: (context, state) => MemberCardScreen(
+                      communityId: state.pathParameters['id']!),
+                ),
                 GoRoute(
                   path: 'dues',
                   builder: (context, state) =>

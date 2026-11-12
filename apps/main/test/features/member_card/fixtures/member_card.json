@@ -1,0 +1,31 @@
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "member_number": "PN-000002",
+        "name": "Rina Ayu Lestari",
+        "avatar_url": null,
+        "role": "admin",
+        "role_label": "Admin",
+        "joined_at": "2026-03-02T02:00:00+00:00",
+        "community": {
+            "id": 1,
+            "name": "Pemanah Nusantara",
+            "short_name": "PN",
+            "type": "panahan",
+            "type_label": "Panahan",
+            "status": "approved",
+            "logo_url": "https://storage.googleapis.com/bucket/production/user/2026/05/40c685ca-adb6-452c-a282-2b30944b0717.jpg",
+            "city_name": "Kota Bandung",
+            "province_name": "Jawa Barat",
+            "description": "Ea commodi occaecati nihil mollitia architecto eos aut consectetur. Consequatur saepe beatae et ut sint id aut. Ipsum id et quisquam expedita. Fuga sequi omnis...",
+            "created_at": "2026-11-08T03:00:00+00:00"
+        },
+        "validity": {
+            "status": "active",
+            "valid_until": "2026-12-10",
+            "paid_until": "2026-11",
+            "pending_payment": true
+        }
+    }
+}

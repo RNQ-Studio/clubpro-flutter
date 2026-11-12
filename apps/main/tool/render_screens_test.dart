@@ -35,6 +35,10 @@ import 'package:app_main/features/home/domain/app_refresher.dart';
 import 'package:app_main/features/home/domain/entities/home_banner.dart';
 import 'package:app_main/features/home/presentation/home_providers.dart';
 import 'package:app_main/features/home/presentation/home_screen.dart';
+import 'package:app_main/features/member_card/domain/entities/member_card.dart';
+import 'package:app_main/features/member_card/domain/repositories/member_card_repository.dart';
+import 'package:app_main/features/member_card/presentation/member_card_providers.dart';
+import 'package:app_main/features/member_card/presentation/screens/member_card_screen.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
@@ -62,6 +66,43 @@ class _FixedAuthNotifier extends AuthNotifier {
   @override
   Future<void> checkCurrentUser() async {}
 }
+
+class _ShotCards implements MemberCardRepository {
+  _ShotCards(this.card);
+
+  final MemberCard card;
+
+  @override
+  Future<MemberCard> getCard(String communityId) async => card;
+}
+
+MemberCard _shotCard(MemberCardStatus status,
+        {DateTime? validUntil, DateTime? paidUntil, bool pending = false}) =>
+    MemberCard(
+      memberNumber: 'PN-000042',
+      name: 'Rina Ayu Lestari',
+      roleLabel: 'Anggota',
+      avatarUrl: 'https://anaklangit.manahpro.web.id/storage/rina.jpg',
+      joinedAt: DateTime(2026, 3, 2),
+      community: Community(
+        id: '1',
+        name: 'Pemanah Nusantara',
+        shortName: 'PN',
+        type: 'panahan',
+        typeLabel: 'Panahan',
+        status: CommunityStatus.approved,
+        cityName: 'Kota Bandung',
+        provinceName: 'Jawa Barat',
+        description: 'Komunitas panahan tradisional.',
+        logoUrl: 'https://anaklangit.manahpro.web.id/storage/logo.jpg',
+      ),
+      validity: MemberCardValidity(
+        status: status,
+        validUntil: validUntil,
+        paidUntil: paidUntil,
+        pendingPayment: pending,
+      ),
+    );
 
 const _bandung = MemberRegion(
   provinceCode: '32',
@@ -863,6 +904,62 @@ void main() {
     await shoot(tester, '08c-profil-nik-sama-desktop',
         shell(_sameNik, location: AppRoutes.profile),
         size: const Size(1280, 800));
+  });
+
+  Widget cardApp(MemberCard card) => ProviderScope(
+        overrides: [
+          authProvider.overrideWith(
+              () => _FixedAuthNotifier(const AuthAuthenticated(_complete))),
+          memberCardRepositoryProvider.overrideWithValue(_ShotCards(card)),
+          communityRepositoryProvider.overrideWithValue(FakeCommunityRepository(
+            joined: [testCommunity('1')],
+          )),
+          activeCommunityStoreProvider
+              .overrideWithValue(FakeActiveCommunityStore()),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const MemberCardScreen(communityId: '1'),
+        ),
+      );
+
+  testWidgets('90-kartu-aktif', (tester) async {
+    await shoot(
+      tester,
+      '90-kartu-aktif',
+      cardApp(_shotCard(MemberCardStatus.active,
+          validUntil: DateTime(2026, 12, 10), paidUntil: DateTime(2026, 11))),
+      photos: true,
+    );
+  });
+
+  testWidgets('91-kartu-kedaluwarsa', (tester) async {
+    await shoot(
+      tester,
+      '91-kartu-kedaluwarsa',
+      cardApp(_shotCard(MemberCardStatus.expired,
+          validUntil: DateTime(2026, 5, 10), paidUntil: DateTime(2026, 4))),
+      photos: true,
+    );
+  });
+
+  testWidgets('92-kartu-belum-aktif-menunggu', (tester) async {
+    await shoot(
+      tester,
+      '92-kartu-belum-aktif-menunggu',
+      cardApp(_shotCard(MemberCardStatus.inactive, pending: true)),
+    );
+  });
+
+  testWidgets('93-kartu-tanpa-iuran-desktop', (tester) async {
+    await shoot(
+      tester,
+      '93-kartu-tanpa-iuran-desktop',
+      cardApp(_shotCard(MemberCardStatus.noDues)),
+      size: const Size(1280, 800),
+      photos: true,
+    );
   });
 
   testWidgets('09-beranda-super-admin', (tester) async {

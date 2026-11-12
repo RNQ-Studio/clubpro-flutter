@@ -19,6 +19,7 @@ abstract final class AppRoutes {
   static String member(String userId) => '/members/$userId';
 
   // Iuran komunitas
+  static String communityCard(String id) => '${community(id)}/card';
   static String communityDues(String id) => '${community(id)}/dues';
   static String communityDuesPay(String id) => '${communityDues(id)}/pay';
   static String communityDuesSettings(String id) =>

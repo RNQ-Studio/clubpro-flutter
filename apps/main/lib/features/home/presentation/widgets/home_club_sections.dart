@@ -42,13 +42,24 @@ class HomeClubMenu extends StatelessWidget {
   const HomeClubMenu({
     super.key,
     required this.onOpenTab,
+    required this.onOpenCard,
     this.pendingRequests = 0,
   });
 
   final ValueChanged<int> onOpenTab;
 
+  /// Kartu Anggota saya di komunitas ini.
+  final VoidCallback onOpenCard;
+
   /// Penanda di menu Anggota; hanya terisi untuk pengelola.
   final int pendingRequests;
+
+  /// Kartu Anggota tampil paling depan; bukan tab detail komunitas.
+  static const cardItem = (
+    'Kartu Anggota',
+    Icons.badge_rounded,
+    Color(0xFF5C3A02),
+  );
 
   static const items = [
     (ClubTab.info, 'Info', Icons.info_rounded, Color(0xFFBE8815)),
@@ -68,48 +79,74 @@ class HomeClubMenu extends StatelessWidget {
         .textTheme
         .labelMedium
         ?.copyWith(height: 1.2, letterSpacing: 0);
+    Widget item({
+      required Key key,
+      required String label,
+      required IconData icon,
+      required Color color,
+      required VoidCallback onTap,
+      Key? badgeKey,
+      int badge = 0,
+    }) =>
+        Expanded(
+          child: InkWell(
+            key: key,
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(
+                children: [
+                  Badge(
+                    key: badgeKey,
+                    isLabelVisible: badge > 0,
+                    label: Text('$badge'),
+                    child: Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(icon, color: color, size: 26),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: labelStyle,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+    final (cardLabel, cardIcon, cardColor) = cardItem;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        item(
+          key: const Key('home-club-menu-card'),
+          label: cardLabel,
+          icon: cardIcon,
+          color: cardColor,
+          onTap: onOpenCard,
+        ),
         for (final (tab, label, icon, color) in items)
-          Expanded(
-            child: InkWell(
-              key: Key('home-club-menu-$tab'),
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => onOpenTab(tab),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Column(
-                  children: [
-                    Badge(
-                      key: tab == ClubTab.members
-                          ? const Key('home-club-requests-badge')
-                          : null,
-                      isLabelVisible:
-                          tab == ClubTab.members && pendingRequests > 0,
-                      label: Text('$pendingRequests'),
-                      child: Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(icon, color: color, size: 28),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: labelStyle,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          item(
+            key: Key('home-club-menu-$tab'),
+            label: label,
+            icon: icon,
+            color: color,
+            onTap: () => onOpenTab(tab),
+            badgeKey: tab == ClubTab.members
+                ? const Key('home-club-requests-badge')
+                : null,
+            badge: tab == ClubTab.members ? pendingRequests : 0,
           ),
       ],
     );

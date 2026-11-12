@@ -128,6 +128,13 @@ Widget _app({
                 ),
                 routes: [
                   GoRoute(
+                    path: 'card',
+                    builder: (_, state) => Scaffold(
+                      appBar: AppBar(),
+                      body: Text('KARTU ${state.pathParameters['id']}'),
+                    ),
+                  ),
+                  GoRoute(
                     path: 'dues',
                     builder: (_, state) => Scaffold(
                       appBar: AppBar(),
@@ -303,6 +310,20 @@ void main() {
     }
     expect(HomeClubMenu.items.map((i) => i.$2),
         ['Info', 'Anggota', 'Kegiatan', 'Galeri']);
+    // Kartu Anggota paling depan.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('home-club-menu-card')),
+        matching: find.text('Kartu Anggota'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('home-club-menu-card'))).dx,
+      lessThan(tester
+          .getTopLeft(find.byKey(Key('home-club-menu-${ClubTab.info}')))
+          .dx),
+    );
     // Anggota biasa tidak melihat sisi pengelola, dan tidak bisa ganti
     // komunitas karena hanya ikut satu.
     expect(find.byKey(const Key('home-manager-panel')), findsNothing);
@@ -321,7 +342,6 @@ void main() {
 
       for (final label in [
         'Menu Utama',
-        'Kartu Anggota',
         'Absensi',
         'Iuran Bulanan',
         'Top-up Saldo',
@@ -356,6 +376,35 @@ void main() {
         expect(find.byType(HomeClubCard), findsOneWidget);
       });
     }
+
+    testWidgets('Kartu Anggota membuka kartu komunitas aktif lalu kembali',
+        (tester) async {
+      _phoneScreen(tester);
+      await tester.pumpWidget(_app(communities: _member()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('home-club-menu-card')));
+      await tester.pumpAndSettle();
+      expect(find.text('KARTU 1'), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeClubCard), findsOneWidget);
+    });
+
+    testWidgets('lima menu muat di ponsel kecil dengan teks besar',
+        (tester) async {
+      tester.view.physicalSize = const Size(320, 700) * 3;
+      tester.view.devicePixelRatio = 3;
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.pumpWidget(_app(communities: _member()));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const Key('home-club-menu-card')), findsOneWidget);
+    });
 
     testWidgets('kartu komunitas membuka halaman komunitasnya', (tester) async {
       _phoneScreen(tester);

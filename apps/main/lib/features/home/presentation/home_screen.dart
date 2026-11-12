@@ -172,6 +172,7 @@ class _ActiveClub extends ConsumerWidget {
         const HomeSectionTitle('Menu Komunitas'),
         HomeClubMenu(
           onOpenTab: openTab,
+          onOpenCard: () => context.push(AppRoutes.communityCard(community.id)),
           pendingRequests: manager?.pendingMembersCount ?? 0,
         ),
         if (manager != null) ...[
