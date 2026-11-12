@@ -14,13 +14,13 @@ class MemberCardView extends StatelessWidget {
   /// Rasio kartu ISO/IEC 7810 ID-1.
   static const aspectRatio = 85.6 / 53.98;
 
-  static const _validGradient = LinearGradient(
+  static const validGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [Color(0xFF15110A), Color(0xFF3A2606), Color(0xFFBE8815)],
     stops: [0, 0.58, 1],
   );
-  static const _invalidGradient = LinearGradient(
+  static const invalidGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [Color(0xFF1C1C1C), Color(0xFF383838), Color(0xFF6E6E6E)],
@@ -62,7 +62,7 @@ class MemberCardView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20 * scale),
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      gradient: valid ? _validGradient : _invalidGradient,
+                      gradient: valid ? validGradient : invalidGradient,
                     ),
                     child: Stack(
                       children: [

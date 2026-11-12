@@ -296,6 +296,37 @@ void main() {
       expect(find.byKey(const Key('member-card-dues')), findsNothing);
     });
 
+    for (final (status, gradient) in [
+      (MemberCardStatus.active, MemberCardView.validGradient),
+      (MemberCardStatus.noDues, MemberCardView.validGradient),
+      (MemberCardStatus.expired, MemberCardView.invalidGradient),
+      (MemberCardStatus.inactive, MemberCardView.invalidGradient),
+    ]) {
+      testWidgets(
+          'warna kartu ${status.apiValue}: '
+          '${gradient == MemberCardView.validGradient ? 'emas' : 'abu-abu'}',
+          (tester) async {
+        _screen(tester, const Size(390, 844));
+        await tester.pumpWidget(_app(_FakeCards({
+          '1': _card(
+            status: status,
+            validUntil: DateTime(2026, 12, 10),
+            paidUntil: DateTime(2026, 11),
+          ),
+        })));
+        await tester.pumpAndSettle();
+
+        final gradients = tester
+            .widgetList<DecoratedBox>(find.descendant(
+              of: find.byKey(const Key('member-card')),
+              matching: find.byType(DecoratedBox),
+            ))
+            .map((d) => (d.decoration as BoxDecoration).gradient)
+            .whereType<LinearGradient>();
+        expect(gradients, contains(gradient));
+      });
+    }
+
     testWidgets('gagal dimuat → pesan & coba lagi', (tester) async {
       _screen(tester, const Size(390, 844));
       final cards = _FakeCards({
