@@ -430,9 +430,9 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Masuk sebagai creator'), findsOneWidget);
+      expect(find.text('Masuk sebagai pendiri'), findsOneWidget);
       expect(find.text('Kelola Komunitas'), findsOneWidget);
-      expect(find.text('Anda Creator di komunitas ini'), findsOneWidget);
+      expect(find.text('Anda Pendiri di komunitas ini'), findsOneWidget);
       expect(find.text('2 menunggu persetujuan'), findsOneWidget);
       expect(find.text('Belum ada kegiatan terjadwal'), findsOneWidget);
       expect(find.text('Belum ada foto'), findsOneWidget);
@@ -683,7 +683,7 @@ void main() {
         expect(find.text(name), findsOneWidget, reason: name);
       }
       // Peran ditandai per komunitas.
-      expect(find.text('Creator'), findsOneWidget);
+      expect(find.text('Pendiri'), findsOneWidget);
       expect(find.text('Admin'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('home-club-option-2')));

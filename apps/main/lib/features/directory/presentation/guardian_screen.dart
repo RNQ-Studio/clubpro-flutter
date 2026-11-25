@@ -262,7 +262,13 @@ class _DependentScreenState extends ConsumerState<DependentScreen> {
     try {
       await ref.read(directoryRepositoryProvider).revoke(grant);
       ref.invalidate(guardianDependentsProvider);
-      if (mounted) context.pop();
+      if (mounted) {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/guardians');
+        }
+      }
     } catch (e) {
       if (mounted) setState(() => _message = e.toString());
     } finally {

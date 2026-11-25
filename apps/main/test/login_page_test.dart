@@ -47,6 +47,9 @@ const _allowedTexts = {
   'CEO',
   'COMMUNITY E-COMMERCE OPERATOR',
   'Masuk dengan Google',
+  'Masuk dengan PIN',
+  'Masuk dengan Password',
+  'Jelajahi sebagai Pengunjung',
   'v1.0.0+86',
   'Perbarui Aplikasi',
 };
@@ -87,7 +90,7 @@ void main() {
     );
   });
 
-  testWidgets('clean: hanya nama app, kepanjangannya, tombol masuk, dan versi',
+  testWidgets('nama app, metode masuk, akses pengunjung dan versi terlihat',
       (tester) async {
     _screen(tester, const Size(390, 844));
     await tester.pumpWidget(_page(refresher: _FakeRefresher()));

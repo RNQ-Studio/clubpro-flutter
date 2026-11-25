@@ -422,6 +422,29 @@ void main() {
     expect(pin.resets, 1);
     expect(find.text('PIN:/communities/7'), findsOneWidget);
   });
+  testWidgets('guardian can revoke own grant after direct deep-link reload',
+      (t) async {
+    size(t, 500);
+    final repo = FakeDirectory();
+    final router =
+        GoRouter(initialLocation: '/guardians/dependents/4', routes: [
+      GoRoute(
+          path: '/guardians', builder: (_, __) => const Text('DAFTAR WALI')),
+      GoRoute(
+          path: '/guardians/dependents/:id',
+          builder: (_, s) => DependentScreen(id: s.pathParameters['id']!))
+    ]);
+    await t.pumpWidget(app(const SizedBox(), repo: repo, router: router));
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.text('Lepaskan Hubungan Wali'));
+    await t.tap(find.text('Lepaskan Hubungan Wali'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Lepaskan'));
+    await t.pumpAndSettle();
+    expect(repo.revoked, 1);
+    expect(find.text('DAFTAR WALI'), findsOneWidget);
+    expect(t.takeException(), null);
+  });
   for (final width in [500.0, 1280.0])
     testWidgets('directory loading/error/empty accessible at $width',
         (t) async {

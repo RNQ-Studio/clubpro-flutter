@@ -190,7 +190,7 @@ class _MemberIdentityScreenState extends ConsumerState<MemberIdentityScreen> {
                                 DropdownButtonFormField<String>(
                                     initialValue: _gender ?? '',
                                     decoration: const InputDecoration(
-                                        labelText: 'Gender (opsional)'),
+                                        labelText: 'Gender'),
                                     items: const [
                                       DropdownMenuItem(
                                           value: '',
