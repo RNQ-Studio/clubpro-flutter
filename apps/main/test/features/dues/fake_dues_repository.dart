@@ -148,7 +148,8 @@ class FakeDuesRepository implements DuesRepository {
       );
 
   @override
-  Future<DuesPayment> approve(String communityId, String paymentId) async {
+  Future<DuesPayment> approve(String communityId, String paymentId,
+      {required int verifiedAmount, required String bankReference}) async {
     _record('approve:$paymentId');
     payments = [
       for (final p in payments)

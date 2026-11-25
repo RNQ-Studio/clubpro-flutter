@@ -73,6 +73,8 @@ class Community {
     this.myRole,
     this.myStatus,
     this.membersCount,
+    this.entitlementActive,
+    this.platformActive,
   });
 
   final String id;
@@ -95,6 +97,7 @@ class Community {
   /// Null bila server tidak mengirimnya (dianggap anggota aktif bila [myRole] ada).
   final CommunityMembershipStatus? myStatus;
   final int? membersCount;
+  final bool? entitlementActive, platformActive;
 
   String get location => '$cityName, $provinceName';
 
@@ -124,6 +127,8 @@ class CommunityDetail extends Community {
     super.createdAt,
     super.myRole,
     super.membersCount,
+    super.entitlementActive,
+    super.platformActive,
     required this.address,
     required this.contactName,
     required this.contactPhone,

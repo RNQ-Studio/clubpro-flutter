@@ -19,6 +19,8 @@ class CommunityModel extends Community {
     super.myRole,
     super.myStatus,
     super.membersCount,
+    super.entitlementActive,
+    super.platformActive,
   });
 
   factory CommunityModel.fromJson(Map<String, dynamic> json) => CommunityModel(
@@ -36,6 +38,8 @@ class CommunityModel extends Community {
         myRole: CommunityRole.fromApi(json['my_role']),
         myStatus: CommunityMembershipStatus.fromApi(json['my_status']),
         membersCount: json['members_count'] as int?,
+        entitlementActive: json['entitlement_active'] as bool?,
+        platformActive: json['platform_active'] as bool?,
       );
 }
 
@@ -54,6 +58,8 @@ class CommunityDetailModel extends CommunityDetail {
     super.createdAt,
     super.myRole,
     super.membersCount,
+    super.entitlementActive,
+    super.platformActive,
     required super.address,
     required super.contactName,
     required super.contactPhone,
@@ -85,6 +91,8 @@ class CommunityDetailModel extends CommunityDetail {
         createdAt: _time(json['created_at']),
         myRole: CommunityRole.fromApi(json['my_role']),
         membersCount: json['members_count'] as int?,
+        entitlementActive: json['entitlement_active'] as bool?,
+        platformActive: json['platform_active'] as bool?,
         address: json['address'] as String,
         contactName: json['contact_name'] as String,
         contactPhone: json['contact_phone'] as String,

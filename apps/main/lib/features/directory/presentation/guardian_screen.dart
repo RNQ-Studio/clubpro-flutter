@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -429,6 +430,14 @@ class _DependentScreenState extends ConsumerState<DependentScreen> {
                                               : () =>
                                                   _card(item['id'].toString()),
                                           child: const Text('Kartu'))),
+                                for (final item
+                                    in data['memberships'] as List? ?? [])
+                                  OutlinedButton.icon(
+                                      onPressed: () => context.push(
+                                          '${AppRoutes.communityBilling(item['community_id'].toString())}?member=${item['id']}'),
+                                      icon: const Icon(Icons.payments_outlined),
+                                      label: Text(
+                                          'Iuran ${item['community_name'] ?? 'anggota'}')),
                                 if (data['grant_id'] != null)
                                   OutlinedButton(
                                       onPressed: _busy

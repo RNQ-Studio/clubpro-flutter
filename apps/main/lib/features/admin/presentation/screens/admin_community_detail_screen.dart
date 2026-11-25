@@ -112,7 +112,13 @@ class _DetailViewState extends ConsumerState<_DetailView> {
     final community = detail.asData?.value;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Verifikasi Komunitas')),
+      appBar: AppBar(title: const Text('Verifikasi Komunitas'), actions: [
+        IconButton(
+            tooltip: 'Langganan & penerimaan',
+            icon: const Icon(Icons.payments_outlined),
+            onPressed: () => context.push(
+                '${AppRoutes.communityBilling(widget.communityId)}?scope=platform'))
+      ]),
       bottomNavigationBar: community == null
           ? null
           : _ReviewBar(

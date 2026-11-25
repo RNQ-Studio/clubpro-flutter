@@ -17,10 +17,16 @@ MemberCard memberCardFromJson(Map<String, dynamic> json) {
       validUntil: _date(validity['valid_until']),
       paidUntil: _date(
         validity['paid_until'] is String
-            ? '${validity['paid_until']}-01'
+            ? (validity['paid_until'].toString().length == 7
+                ? '${validity['paid_until']}-01'
+                : validity['paid_until'])
             : null,
       ),
       pendingPayment: validity['pending_payment'] == true,
+      entitlementState: (json['entitlement'] is Map
+          ? (json['entitlement'] as Map)['state']
+          : null) as String?,
+      platformActive: json['platform_active'] != false,
     ),
   );
 }

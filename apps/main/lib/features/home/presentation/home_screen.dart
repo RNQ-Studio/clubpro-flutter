@@ -13,6 +13,7 @@ import '../../community/presentation/widgets/club_hero.dart';
 import '../../community/presentation/widgets/community_start_view.dart';
 import '../../community/presentation/widgets/community_visuals.dart';
 import '../../dues/presentation/dues_providers.dart';
+import '../../finance/presentation/finance_widgets.dart';
 import 'home_providers.dart';
 import 'widgets/home_admin_panel_card.dart';
 import 'widgets/home_app_version.dart';
@@ -114,6 +115,16 @@ class HomeScreen extends ConsumerWidget {
                         onTap: () => context.go(AppRoutes.profile),
                       ),
                     const SizedBox(height: 10),
+                    const FinanceEntryCard(),
+                    ListTile(
+                        key: const Key('home-billing-notices'),
+                        leading:
+                            const Icon(Icons.notifications_active_outlined),
+                        title: const Text('Pengingat pembayaran'),
+                        subtitle:
+                            const Text('Masa aktif dan peninjauan anggota'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push(AppRoutes.billingNotices)),
                     ...clubSection,
                     if (user != null && user.isSuperAdmin) ...[
                       const SizedBox(height: 24),
@@ -148,6 +159,9 @@ class _ActiveClub extends ConsumerWidget {
     // Angka untuk pengelola baru ada di detail; ringkasan cukup untuk sisanya.
     final detail = ref.watch(communityDetailProvider(community.id)).value;
     final manager = detail != null && detail.canManage ? detail : null;
+    final restricted =
+        (detail?.entitlementActive ?? community.entitlementActive) == false ||
+            (detail?.platformActive ?? community.platformActive) == false;
 
     void openTab(int tab) => context.push(ClubTab.location(community.id, tab));
 
@@ -168,23 +182,37 @@ class _ActiveClub extends ConsumerWidget {
               : null,
         ),
         HomeDuesCard(communityId: community.id),
-        const SizedBox(height: 20),
-        const HomeSectionTitle('Menu Komunitas'),
-        HomeClubMenu(
-          onOpenTab: openTab,
-          onOpenCard: () => context.push(AppRoutes.communityCard(community.id)),
-          pendingRequests: manager?.pendingMembersCount ?? 0,
-        ),
-        if (manager != null) ...[
-          const SizedBox(height: 20),
-          HomeManagerPanel(community: manager, onOpenTab: openTab),
+        FinanceEntryCard(
+            communityId: community.id,
+            platform: community.myRole == CommunityRole.creator),
+        if (restricted) ...[
+          const FinanceMessage(
+              'Keanggotaan atau langganan komunitas tidak aktif. Lunasi kewajiban melalui menu pembayaran untuk membuka kegiatan.'),
+          OutlinedButton(
+              onPressed: () =>
+                  context.push(AppRoutes.communityCard(community.id)),
+              child: const Text('Lihat status KTA')),
         ],
-        const SizedBox(height: 20),
-        HomeUpcomingActivities(
-          communityId: community.id,
-          onSeeAll: () => openTab(ClubTab.activities),
-        ),
-        const SizedBox(height: 20),
+        if (!restricted) ...[
+          const SizedBox(height: 20),
+          const HomeSectionTitle('Menu Komunitas'),
+          HomeClubMenu(
+            onOpenTab: openTab,
+            onOpenCard: () =>
+                context.push(AppRoutes.communityCard(community.id)),
+            pendingRequests: manager?.pendingMembersCount ?? 0,
+          ),
+          if (manager != null) ...[
+            const SizedBox(height: 20),
+            HomeManagerPanel(community: manager, onOpenTab: openTab),
+          ],
+          const SizedBox(height: 20),
+          HomeUpcomingActivities(
+            communityId: community.id,
+            onSeeAll: () => openTab(ClubTab.activities),
+          ),
+          const SizedBox(height: 20),
+        ],
         HomeMoreCommunities(
           onFind: () => context.push(AppRoutes.communities),
           onCreate: () => context.push(AppRoutes.createCommunity),

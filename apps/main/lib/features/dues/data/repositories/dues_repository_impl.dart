@@ -41,8 +41,10 @@ class DuesRepositoryImpl implements DuesRepository {
       _remote.fetchPayments(communityId, page: page, status: status);
 
   @override
-  Future<DuesPayment> approve(String communityId, String paymentId) =>
-      _remote.approve(communityId, paymentId);
+  Future<DuesPayment> approve(String communityId, String paymentId,
+          {required int verifiedAmount, required String bankReference}) =>
+      _remote.approve(communityId, paymentId,
+          verifiedAmount: verifiedAmount, bankReference: bankReference);
 
   @override
   Future<DuesPayment> reject(

@@ -66,6 +66,14 @@ class _AdminPanelView extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Panel'),
+        actions: [
+          IconButton(
+              key: const Key('admin-platform-income'),
+              tooltip: 'Pendapatan iuran platform',
+              icon: const Icon(Icons.account_balance_outlined),
+              onPressed: () =>
+                  context.push('${AppRoutes.wallet}?scope=platform'))
+        ],
         // Dibuka lewat tautan langsung: tidak ada halaman sebelumnya.
         leading: context.canPop()
             ? null

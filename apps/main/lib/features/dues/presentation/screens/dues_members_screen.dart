@@ -351,11 +351,13 @@ class DuesMemberScreen extends ConsumerStatefulWidget {
     required this.communityId,
     required this.userId,
     this.initialYear,
+    this.readOnly = false,
   });
 
   final String communityId;
   final String userId;
   final int? initialYear;
+  final bool readOnly;
 
   @override
   ConsumerState<DuesMemberScreen> createState() => _DuesMemberScreenState();
@@ -453,7 +455,7 @@ class _DuesMemberScreenState extends ConsumerState<DuesMemberScreen> {
                                   : 'Belum lunas',
                         ),
                         value: value.member.calendar.entryFeePaid,
-                        onChanged: _busy
+                        onChanged: _busy || widget.readOnly
                             ? null
                             : (paid) => _toggleEntryFee(value.member, paid),
                       ),
@@ -476,8 +478,9 @@ class _DuesMemberScreenState extends ConsumerState<DuesMemberScreen> {
                       ],
                     ),
                     Text(
-                      'Ketuk bulan untuk menandai lunas atau belum lunas, '
-                      'mis. bila dibayar tunai.',
+                      widget.readOnly
+                          ? 'Kalender histori. Pembayaran baru dicatat melalui menu Keanggotaan & pembayaran.'
+                          : 'Ketuk bulan untuk menandai lunas atau belum lunas, mis. bila dibayar tunai.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -487,7 +490,9 @@ class _DuesMemberScreenState extends ConsumerState<DuesMemberScreen> {
                       absorbing: _busy,
                       child: DuesYearGrid(
                         months: value.member.calendar.months,
-                        onTap: (month) => _openMonth(value.member, month),
+                        onTap: widget.readOnly
+                            ? null
+                            : (month) => _openMonth(value.member, month),
                       ),
                     ),
                     const SizedBox(height: 10),

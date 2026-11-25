@@ -138,17 +138,19 @@ class _ValidityPanel extends StatelessWidget {
           Icons.verified_rounded,
           _green,
           'Kartu aktif',
-          'Iuran lunas hingga ${AppDateUtils.monthYearId(paidUntil!)}. '
-              'Kartu berlaku sampai ${AppDateUtils.longDateId(validUntil!)}; '
-              'bayar iuran bulan berikutnya untuk memperpanjang.',
+          validity.entitlementState == 'trial'
+              ? 'Kartu aktif selama masa gratis 7 hari. Lihat tanggal batas dan kewajiban di menu pembayaran.'
+              : validity.entitlementState == 'exempt'
+                  ? 'Peran Anda bebas iuran komunitas. Kewajiban lama, bila ada, tetap tercatat di menu pembayaran.'
+                  : '${paidUntil == null ? 'Keanggotaan aktif.' : 'Iuran lunas hingga ${AppDateUtils.monthYearId(paidUntil)}.'} '
+                      '${validUntil == null ? '' : 'Kartu berlaku sampai ${AppDateUtils.longDateId(validUntil)}; '}lihat pembayaran untuk memperpanjang.',
         ),
       MemberCardStatus.expired => (
           Icons.error_outline_rounded,
           _red,
           'Kartu tidak berlaku',
-          'Iuran lunas hingga ${AppDateUtils.monthYearId(paidUntil!)}; '
-              'masa berlaku berakhir ${AppDateUtils.longDateId(validUntil!)}. '
-              'Lunasi iuran untuk mengaktifkan kembali.',
+          '${paidUntil == null ? 'Keanggotaan tidak aktif.' : 'Iuran lunas hingga ${AppDateUtils.monthYearId(paidUntil)}; '} '
+              '${validUntil == null ? '' : 'masa berlaku berakhir ${AppDateUtils.longDateId(validUntil)}. '}Lunasi seluruh kewajiban untuk mengaktifkan kembali.',
         ),
       MemberCardStatus.inactive => (
           Icons.hourglass_empty_rounded,
@@ -205,6 +207,11 @@ class _ValidityPanel extends StatelessWidget {
               ),
             ],
           ),
+          if (!validity.platformActive) ...[
+            const SizedBox(height: 12),
+            const Text(
+                'Langganan komunitas tidak aktif. Status iuran anggota tetap ditampilkan, tetapi kegiatan komunitas menunggu pelunasan langganan oleh pendiri.'),
+          ],
           if (validity.pendingPayment) ...[
             const SizedBox(height: 12),
             Row(

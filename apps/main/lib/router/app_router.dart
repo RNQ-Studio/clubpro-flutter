@@ -23,10 +23,14 @@ import '../features/community/presentation/screens/community_start_screen.dart';
 import '../features/community/presentation/widgets/club_hero.dart';
 import '../features/community/presentation/screens/member_profile_screen.dart';
 import '../features/dues/presentation/screens/dues_members_screen.dart';
-import '../features/dues/presentation/screens/dues_pay_screen.dart';
 import '../features/dues/presentation/screens/dues_payments_screen.dart';
 import '../features/dues/presentation/screens/dues_screen.dart';
-import '../features/dues/presentation/screens/dues_settings_screen.dart';
+import '../features/finance/presentation/billing_screen.dart';
+import '../features/finance/presentation/billing_management_screen.dart';
+import '../features/finance/presentation/wallet_screen.dart';
+import '../features/finance/presentation/topup_screen.dart';
+import '../features/finance/presentation/receipt_screen.dart';
+import '../features/finance/presentation/billing_notices_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/member_card/presentation/screens/member_card_screen.dart';
 import '../features/quotes/presentation/screens/quote_form_screen.dart';
@@ -105,6 +109,37 @@ final appRouter = GoRouter(
         builder: (context, state) =>
             DependentScreen(id: state.pathParameters['id']!)),
 
+    GoRoute(
+        path: AppRoutes.notifications,
+        redirect: (context, state) => AppRoutes.billingNotices),
+    GoRoute(
+        path: AppRoutes.billingNotices,
+        builder: (context, state) => const BillingNoticesScreen()),
+    GoRoute(
+        path: AppRoutes.wallet,
+        builder: (context, state) => WalletScreen(
+            scope: state.uri.queryParameters['scope'] ?? 'identity',
+            communityId: state.uri.queryParameters['community']),
+        routes: [
+          GoRoute(
+              path: 'topup',
+              builder: (context, state) => TopupScreen(
+                  communityId: state.uri.queryParameters['community'],
+                  scope: state.uri.queryParameters['scope'],
+                  targetMemberId: state.uri.queryParameters['member'])),
+          GoRoute(
+              path: 'receipts',
+              builder: (context, state) => ReceiptScreen(
+                  communityId: state.uri.queryParameters['community'],
+                  manage: state.uri.queryParameters['manage'] == '1')),
+          GoRoute(
+              path: 'transactions/:transactionId',
+              builder: (context, state) => WalletTransactionScreen(
+                  id: state.pathParameters['transactionId']!,
+                  scope: state.uri.queryParameters['scope'] ?? 'identity',
+                  communityId: state.uri.queryParameters['community'])),
+        ]),
+
     // Anak `/`: tombol kembali tetap ada walau halaman dimuat ulang.
     GoRoute(
       path: '/',
@@ -129,11 +164,30 @@ final appRouter = GoRouter(
             ),
             GoRoute(
               path: ':id',
-              builder: (context, state) => CommunityDetailScreen(
-                communityId: state.pathParameters['id']!,
-                initialTab: ClubTab.fromName(state.uri.queryParameters['tab']),
-              ),
+              builder: (context, state) => BillingAccessGate(
+                  communityId: state.pathParameters['id']!,
+                  child: CommunityDetailScreen(
+                    communityId: state.pathParameters['id']!,
+                    initialTab:
+                        ClubTab.fromName(state.uri.queryParameters['tab']),
+                  )),
               routes: [
+                GoRoute(
+                    path: 'billing',
+                    builder: (context, state) => BillingScreen(
+                        communityId: state.pathParameters['id']!,
+                        scope: state.uri.queryParameters['scope'] ?? 'member',
+                        targetMemberId: state.uri.queryParameters['member']),
+                    routes: [
+                      GoRoute(
+                          path: 'settings',
+                          builder: (context, state) => BillingSettingsScreen(
+                              communityId: state.pathParameters['id']!)),
+                      GoRoute(
+                          path: 'inactive',
+                          builder: (context, state) => LifecycleScreen(
+                              communityId: state.pathParameters['id']!)),
+                    ]),
                 GoRoute(
                   path: 'card',
                   builder: (context, state) => MemberCardScreen(
@@ -142,17 +196,21 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'dues',
                   builder: (context, state) =>
-                      DuesScreen(communityId: state.pathParameters['id']!),
+                      BillingScreen(communityId: state.pathParameters['id']!),
                   routes: [
                     GoRoute(
+                        path: 'calendar',
+                        builder: (context, state) => DuesScreen(
+                            communityId: state.pathParameters['id']!)),
+                    GoRoute(
                       path: 'pay',
-                      builder: (context, state) => DuesPayScreen(
+                      builder: (context, state) => BillingScreen(
                         communityId: state.pathParameters['id']!,
                       ),
                     ),
                     GoRoute(
                       path: 'settings',
-                      builder: (context, state) => DuesSettingsScreen(
+                      builder: (context, state) => BillingSettingsScreen(
                         communityId: state.pathParameters['id']!,
                       ),
                     ),
@@ -173,6 +231,7 @@ final appRouter = GoRouter(
                           builder: (context, state) => DuesMemberScreen(
                             communityId: state.pathParameters['id']!,
                             userId: state.pathParameters['userId']!,
+                            readOnly: true,
                             initialYear: int.tryParse(
                               state.uri.queryParameters['year'] ?? '',
                             ),

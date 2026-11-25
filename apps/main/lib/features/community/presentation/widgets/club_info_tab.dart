@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -78,6 +79,14 @@ class ClubInfoTab extends ConsumerWidget {
                   '${ClubDates.full(next.startsAt.toLocal())}',
               tab: ClubTab.activities,
             ),
+            const SizedBox(height: 12),
+          ],
+          if (community.isMember || community.isJoinPending) ...[
+            OutlinedButton.icon(
+                onPressed: () =>
+                    context.push(AppRoutes.communityBilling(community.id)),
+                icon: const Icon(Icons.payments_outlined),
+                label: const Text('Masa aktif & pembayaran')),
             const SizedBox(height: 12),
           ],
           ClubSection(

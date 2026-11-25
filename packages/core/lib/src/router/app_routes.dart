@@ -18,6 +18,18 @@ abstract final class AppRoutes {
   static String community(String id) => '$communities/$id';
   static String member(String userId) => '/members/$userId';
 
+  // Saldo, penerimaan manual, dan siklus keanggotaan
+  static const String wallet = '/wallet';
+  static const String billingNotices = '/billing-notices';
+  static const String topup = '/wallet/topup';
+  static const String paymentReceipts = '/wallet/receipts';
+  static String walletTransaction(String id) => '$wallet/transactions/$id';
+  static String communityBilling(String id) => '${community(id)}/billing';
+  static String communityBillingSettings(String id) =>
+      '${communityBilling(id)}/settings';
+  static String communityLifecycle(String id) =>
+      '${communityBilling(id)}/inactive';
+
   // Iuran komunitas
   static String communityCard(String id) => '${community(id)}/card';
   static String communityDues(String id) => '${community(id)}/dues';

@@ -1,3 +1,5 @@
+import 'package:app_main/features/finance/presentation/finance_providers.dart';
+import '../finance/finance_screens_test.dart' show FakeFinance, billingFixture;
 import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:app_main/features/community/presentation/active_community_notifier.dart';
 import 'package:app_main/features/community/presentation/community_providers.dart';
@@ -29,6 +31,9 @@ class _FixedAuthNotifier extends AuthNotifier {
 const _me = User(id: 'u1', name: 'Rina Ayu Lestari', email: 'rina@gmail.com');
 
 List<Override> _overrides(FakeCommunityRepository repository) => [
+      financeRepositoryProvider.overrideWithValue(FakeFinance()
+        ..billingValue =
+            billingFixture(state: 'active', active: true, amount: 0)),
       authProvider.overrideWith(
         () => _FixedAuthNotifier(const AuthAuthenticated(_me)),
       ),

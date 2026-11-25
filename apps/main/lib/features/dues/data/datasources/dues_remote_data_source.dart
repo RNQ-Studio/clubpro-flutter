@@ -69,10 +69,14 @@ class DuesRemoteDataSource {
         );
       });
 
-  Future<DuesPayment> approve(String communityId, String paymentId) =>
+  Future<DuesPayment> approve(String communityId, String paymentId,
+          {required int verifiedAmount, required String bankReference}) =>
       _guard(() async {
         final response = await _dio
-            .post('${_base(communityId)}/payments/$paymentId/approve');
+            .post('${_base(communityId)}/payments/$paymentId/approve', data: {
+          'verified_amount': verifiedAmount,
+          'bank_reference': bankReference
+        });
         return duesPaymentFromJson(_data(response) as Map<String, dynamic>);
       });
 

@@ -30,9 +30,13 @@ class MemberCardValidity {
     this.validUntil,
     this.paidUntil,
     this.pendingPayment = false,
+    this.entitlementState,
+    this.platformActive = true,
   });
 
   final MemberCardStatus status;
+  final String? entitlementState;
+  final bool platformActive;
 
   /// Hari terakhir kartu berlaku (jatuh tempo bulan sesudah [paidUntil]).
   final DateTime? validUntil;

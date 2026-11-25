@@ -206,7 +206,8 @@ void main() {
 
   test('terima & tolak', () async {
     final approve = _source(200, _fixture('dues_payment_created'));
-    await approve.source.approve('1', '7');
+    await approve.source.approve('1', '7',
+        verifiedAmount: 50000, bankReference: 'legacy-fixture');
     expect(approve.adapter.request!.path,
         'v1/communities/1/dues/payments/7/approve');
 
@@ -278,7 +279,8 @@ void main() {
       final fake = _source(409, _fixture('dues_review_conflict'));
 
       await expectLater(
-        fake.source.approve('1', '7'),
+        fake.source.approve('1', '7',
+            verifiedAmount: 50000, bankReference: 'legacy-fixture'),
         throwsA(isA<ServerException>().having(
           (e) => e.message,
           'message',

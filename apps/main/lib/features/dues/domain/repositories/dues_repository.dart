@@ -19,7 +19,8 @@ abstract interface class DuesRepository {
     DuesPaymentStatus? status,
   });
 
-  Future<DuesPayment> approve(String communityId, String paymentId);
+  Future<DuesPayment> approve(String communityId, String paymentId,
+      {required int verifiedAmount, required String bankReference});
 
   Future<DuesPayment> reject(String communityId, String paymentId, String note);
 

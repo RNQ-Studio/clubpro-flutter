@@ -6,7 +6,7 @@ import '../../../community/presentation/widgets/community_visuals.dart';
 import '../../domain/entities/dues.dart';
 import '../dues_providers.dart';
 import '../widgets/dues_payment_card.dart';
-import '../widgets/dues_visuals.dart';
+import '../../../finance/presentation/finance_widgets.dart';
 
 /// Verifikasi bukti transfer oleh creator/admin: terima → bulannya lunas; tolak
 /// (wajib alasan) → bulannya kembali belum lunas.
@@ -180,19 +180,58 @@ class _ReviewActionsState extends ConsumerState<_ReviewActions> {
 
   Future<void> _approve() async {
     final payment = widget.payment;
-    final confirmed = await confirmClubAction(
-      context,
-      title: 'Terima pembayaran?',
-      message: 'Pastikan ${formatRupiah(payment.totalAmount)} dari '
-          '${payment.userName} sudah masuk ke rekening komunitas. Iuran '
-          '${DuesMonths.range(payment.months)} akan ditandai lunas.',
-      action: 'Terima',
-    );
-    if (!confirmed || !mounted) return;
+    final form = GlobalKey<FormState>();
+    final amount = TextEditingController(text: '${payment.totalAmount}');
+    final bank = TextEditingController();
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+                title: const Text('Terima pembayaran?'),
+                content: SingleChildScrollView(
+                    child: Form(
+                        key: form,
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          Text(
+                              'Periksa bukti ${payment.userName}. Penerimaan ini dialokasikan sekali ke iuran lama, bukan tambahan saldo.'),
+                          const SizedBox(height: 12),
+                          RupiahField(
+                              controller: amount, label: 'Nominal diterima'),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                              key: const Key('legacy-bank-reference'),
+                              controller: bank,
+                              maxLength: 150,
+                              decoration: const InputDecoration(
+                                  labelText: 'Referensi transfer bank'),
+                              validator: (v) => v == null || v.trim().isEmpty
+                                  ? 'Isi referensi transfer.'
+                                  : null),
+                        ]))),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Kembali')),
+                  FilledButton(
+                      key: const Key('club-confirm'),
+                      onPressed: () {
+                        if (form.currentState!.validate()) {
+                          Navigator.pop(context, true);
+                        }
+                      },
+                      child: const Text('Terima'))
+                ]));
+    final nominal = int.tryParse(amount.text) ?? 0;
+    final reference = bank.text.trim();
+    Future<void>.delayed(const Duration(milliseconds: 350), () {
+      amount.dispose();
+      bank.dispose();
+    });
+    if (confirmed != true || !mounted) return;
     await _run(
-      () => ref
-          .read(duesRepositoryProvider)
-          .approve(widget.communityId, payment.id),
+      () => ref.read(duesRepositoryProvider).approve(
+          widget.communityId, payment.id,
+          verifiedAmount: nominal, bankReference: reference),
       'Pembayaran ${payment.userName} diterima',
     );
   }

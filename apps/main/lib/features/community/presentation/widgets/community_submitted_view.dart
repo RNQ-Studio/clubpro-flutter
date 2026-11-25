@@ -64,6 +64,13 @@ class CommunitySubmittedView extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   const _Timeline(),
+                  const SizedBox(height: 16),
+                  const Text(
+                      'Langganan komunitas memiliki masa gratis 7 hari sekali. Lihat status, top up, dan pembayaran setelahnya melalui menu langganan.'),
+                  TextButton(
+                      onPressed: () => context.push(
+                          '${AppRoutes.communityBilling(community.id)}?scope=platform'),
+                      child: const Text('Lihat langganan & pembayaran')),
                   const SizedBox(height: 24),
                   FilledButton(
                     key: const Key('community-submitted-done'),

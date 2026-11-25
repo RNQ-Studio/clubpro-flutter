@@ -266,7 +266,7 @@ class _ClubMembershipActionState extends ConsumerState<ClubMembershipAction> {
 
   Future<void> _join() => _run(
         () => ref.read(communityRepositoryProvider).join(_community.id),
-        'Permintaan bergabung terkirim',
+        'Keanggotaan disiapkan. Lihat masa aktif & pembayaran.',
       );
 
   Future<void> _cancel() async {

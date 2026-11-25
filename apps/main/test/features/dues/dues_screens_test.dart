@@ -539,8 +539,9 @@ void main() {
 
       await tester.tap(find.byKey(Key('dues-approve-$id')));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Pastikan Rp100.000 dari Budi Santoso'),
-          findsOneWidget);
+      expect(find.textContaining('Periksa bukti Budi Santoso'), findsOneWidget);
+      await tester.enterText(
+          find.byKey(const Key('legacy-bank-reference')), 'legacy-ref-uji');
       await tester.tap(find.byKey(const Key('club-confirm')));
       await tester.pumpAndSettle();
 
@@ -590,6 +591,8 @@ void main() {
       await tester.tap(find.byKey(Key('dues-approve-$id')));
       await tester.pumpAndSettle();
       dues.payments = [];
+      await tester.enterText(
+          find.byKey(const Key('legacy-bank-reference')), 'legacy-ref-uji');
       await tester.tap(find.byKey(const Key('club-confirm')));
       await tester.pumpAndSettle();
 
