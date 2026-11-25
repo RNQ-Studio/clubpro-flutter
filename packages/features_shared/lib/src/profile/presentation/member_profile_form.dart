@@ -54,9 +54,10 @@ class MemberProfileFormState extends ConsumerState<MemberProfileForm> {
       changes['phone'] = phone.isEmpty ? null : phone;
     }
 
-    if (_birth.text.trim() != (user.birthDate ?? ''))
+    if (_birth.text.trim() != (user.birthDate ?? '')) {
       changes['birth_date'] =
           _birth.text.trim().isEmpty ? null : _birth.text.trim();
+    }
     if (_gender != user.gender) changes['gender'] = _gender?.apiValue;
 
     void region(String prefix, _RegionChoice choice, MemberRegion? before) {

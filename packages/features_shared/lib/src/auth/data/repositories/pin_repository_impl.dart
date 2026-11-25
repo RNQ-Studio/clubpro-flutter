@@ -20,14 +20,23 @@ class PinRepositoryImpl implements PinRepository {
         final errors = (body['errors'] as Map).values;
         if (errors.isNotEmpty &&
             errors.first is List &&
-            (errors.first as List).isNotEmpty)
+            (errors.first as List).isNotEmpty) {
           message = (errors.first as List).first.toString();
+        }
       }
-      if (e.response?.statusCode == 401)
+      if (e.response?.statusCode == 401) {
         throw const ServerException('Pengenal akun atau PIN tidak sesuai.');
-      throw ServerException(e.response?.statusCode == 429
-          ? 'Terlalu banyak percobaan. Coba lagi setelah 15 menit.'
-          : message ?? 'Tidak dapat terhubung. Silakan coba lagi.');
+      }
+      final translated = switch (e.response?.statusCode ?? 0) {
+        429 => 'Terlalu banyak percobaan. Coba lagi setelah 15 menit.',
+        403 => 'Akun ini tidak dapat digunakan. Hubungi pengelola.',
+        404 => 'Layanan PIN belum tersedia. Silakan coba lagi.',
+        >= 500 => 'Layanan PIN sedang mengalami kendala. Silakan coba lagi.',
+        422 when message == null || message == 'The given data was invalid.' =>
+          'Data tidak valid. Periksa isian Anda.',
+        _ => message ?? 'Tidak dapat terhubung. Silakan coba lagi.',
+      };
+      throw ServerException(translated);
     }
   }
 

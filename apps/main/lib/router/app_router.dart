@@ -68,8 +68,9 @@ final appRouter = GoRouter(
         builder: (context, state) => PinScreen(onLoggedIn: () {
               final auth =
                   ProviderScope.containerOf(context).read(authProvider);
-              if (auth is AuthAuthenticated)
+              if (auth is AuthAuthenticated) {
                 context.go(loginDestination(context, auth.user));
+              }
             })),
     GoRoute(
         path: '/login/recovery',
@@ -79,8 +80,9 @@ final appRouter = GoRouter(
         builder: (context, state) => LoginScreen(onLoginSuccess: () {
               final auth =
                   ProviderScope.containerOf(context).read(authProvider);
-              if (auth is AuthAuthenticated)
+              if (auth is AuthAuthenticated) {
                 context.go(loginDestination(context, auth.user));
+              }
             })),
     GoRoute(
         path: '/explore', builder: (context, state) => const DirectoryScreen()),
@@ -288,7 +290,9 @@ String? safeLoginReturn(String? value) {
       !value.startsWith('/') ||
       value.startsWith('//') ||
       value.startsWith('/login') ||
-      Uri.tryParse(value)?.hasScheme == true) return null;
+      Uri.tryParse(value)?.hasScheme == true) {
+    return null;
+  }
   return value;
 }
 
@@ -304,9 +308,10 @@ String? clubAuthRedirect(BuildContext context, GoRouterState state) {
       path.startsWith('/explore') ||
       path.startsWith('/login');
   if (auth is AuthAuthenticated) {
-    if (path == '/login' || path == '/login/pin' || path == '/login/password')
+    if (path == '/login' || path == '/login/pin' || path == '/login/password') {
       return safeLoginReturn(state.uri.queryParameters['from']) ??
           afterLoginLocation(auth.user);
+    }
     return null;
   }
   return public

@@ -79,8 +79,9 @@ String authMethodLocation(BuildContext context, String path) {
     if (from != null &&
         from.startsWith('/') &&
         !from.startsWith('//') &&
-        !from.startsWith('/login'))
+        !from.startsWith('/login')) {
       return '$path?from=${Uri.encodeComponent(from)}';
+    }
   } catch (_) {}
   return path;
 }

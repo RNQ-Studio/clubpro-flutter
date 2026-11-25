@@ -90,8 +90,11 @@ class _MemberIdentityScreenState extends ConsumerState<MemberIdentityScreen> {
   }
 
   Future<void> _save() async {
-    if (_busy || !_loadSucceeded || !(_form.currentState?.validate() ?? false))
+    if (_busy ||
+        !_loadSucceeded ||
+        !(_form.currentState?.validate() ?? false)) {
       return;
+    }
     setState(() {
       _busy = true;
       _message = null;
@@ -117,9 +120,10 @@ class _MemberIdentityScreenState extends ConsumerState<MemberIdentityScreen> {
       }
       ref.invalidate(communityDetailProvider(widget.communityId));
       ref.invalidate(communityMembersProvider(widget.communityId));
-      if (mounted)
+      if (mounted) {
         setState(() => _message =
             'Identitas anggota berhasil disimpan. Nomor keanggotaan dan riwayat tetap dipertahankan.');
+      }
     } catch (e) {
       if (mounted) setState(() => _message = e.toString());
     } finally {
@@ -138,9 +142,10 @@ class _MemberIdentityScreenState extends ConsumerState<MemberIdentityScreen> {
       await ref.read(directoryRepositoryProvider).invite(
           widget.communityId, _memberId!, _email.text.trim(),
           account: account);
-      if (mounted)
+      if (mounted) {
         setState(() => _message =
             'Undangan dikirim. Penautan baru berlaku setelah pemilik email terverifikasi mengklaim token.');
+      }
     } catch (e) {
       if (mounted) setState(() => _message = e.toString());
     } finally {
@@ -309,8 +314,9 @@ String? validateBirthDate(String? value) {
       date == null ||
       date.toIso8601String().substring(0, 10) != value ||
       date.isAfter(now) ||
-      date.isBefore(DateTime(now.year - 120, now.month, now.day)))
+      date.isBefore(DateTime(now.year - 120, now.month, now.day))) {
     return 'Gunakan tanggal YYYY-MM-DD yang valid, maksimal 120 tahun.';
+  }
   return null;
 }
 

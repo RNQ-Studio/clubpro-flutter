@@ -15,11 +15,22 @@ class DirectoryRepositoryImpl implements DirectoryRepository {
         final errors = (body['errors'] as Map).values;
         if (errors.isNotEmpty &&
             errors.first is List &&
-            (errors.first as List).isNotEmpty)
+            (errors.first as List).isNotEmpty) {
           message = (errors.first as List).first.toString();
+        }
       }
-      throw ServerException(
-          message ?? 'Tidak dapat terhubung. Silakan coba lagi.');
+      final status = e.response?.statusCode;
+      final translated = switch (status ?? 0) {
+        401 => 'Sesi berakhir. Silakan masuk kembali.',
+        403 => 'Anda tidak berhak mengakses data ini.',
+        404 => 'Data tidak ditemukan.',
+        429 => 'Terlalu banyak permintaan. Coba lagi beberapa saat lagi.',
+        >= 500 => 'Server sedang mengalami kendala. Silakan coba lagi.',
+        422 when message == null || message == 'The given data was invalid.' =>
+          'Data tidak valid. Periksa isian Anda.',
+        _ => message ?? 'Tidak dapat terhubung. Silakan coba lagi.',
+      };
+      throw ServerException(translated);
     }
   }
 

@@ -457,7 +457,7 @@ void main() {
     expect(find.text('DAFTAR WALI'), findsOneWidget);
     expect(t.takeException(), null);
   });
-  for (final width in [500.0, 1280.0])
+  for (final width in [500.0, 1280.0]) {
     testWidgets('directory loading/error/empty accessible at $width',
         (t) async {
       size(t, width);
@@ -504,4 +504,5 @@ void main() {
       expect(find.text('Komunitas Uji'), findsOneWidget);
       expect(t.takeException(), null);
     });
+  }
 }

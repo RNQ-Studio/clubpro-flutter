@@ -108,4 +108,24 @@ void main() {
         name: 'avatar.png',
         mimeType: 'image/png'));
   });
+  test('PIN generic server failures are translated to Indonesian', () async {
+    for (final status in [403, 503]) {
+      final dio = Dio();
+      dio.interceptors.add(InterceptorsWrapper(
+          onRequest: (o, h) => h.reject(DioException(
+              requestOptions: o,
+              response: Response(
+                  requestOptions: o,
+                  statusCode: status,
+                  data: {'message': 'Service unavailable.'})))));
+      final repo = PinRepositoryImpl(dio, AuthLocalDataSource(_Storage()));
+      final expected = status == 403
+          ? 'Akun ini tidak dapat digunakan. Hubungi pengelola.'
+          : 'Layanan PIN sedang mengalami kendala. Silakan coba lagi.';
+      await expectLater(
+          repo.recover('uji@anaklangit.manahpro.web.id'),
+          throwsA(isA<ServerException>()
+              .having((e) => e.toString(), 'message', contains(expected))));
+    }
+  });
 }

@@ -249,18 +249,22 @@ class _MemberTile extends ConsumerWidget {
             (member.role != CommunityRole.creator &&
                     member.role != CommunityRole.admin ||
                 role == CommunityRole.creator ||
-                (isSelf && member.role == CommunityRole.admin))))
+                (isSelf && member.role == CommunityRole.admin)))) {
       actions.add(_MemberAction.identity);
+    }
     if (role == null ||
         !role.canManageMembers ||
         member.role == CommunityRole.creator ||
         isSelf ||
-        (member.role == CommunityRole.admin && role != CommunityRole.creator))
+        (member.role == CommunityRole.admin && role != CommunityRole.creator)) {
       return actions;
-    if (role == CommunityRole.creator && member.role != CommunityRole.admin)
+    }
+    if (role == CommunityRole.creator && member.role != CommunityRole.admin) {
       actions.add(_MemberAction.promote);
-    if (member.role != CommunityRole.officer)
+    }
+    if (member.role != CommunityRole.officer) {
       actions.add(_MemberAction.officer);
+    }
     if (member.role != CommunityRole.coach) actions.add(_MemberAction.coach);
     if (member.role != CommunityRole.member) actions.add(_MemberAction.demote);
     actions.add(_MemberAction.remove);

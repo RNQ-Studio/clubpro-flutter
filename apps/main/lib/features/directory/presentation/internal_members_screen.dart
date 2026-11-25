@@ -30,9 +30,10 @@ class _InternalMembersScreenState extends ConsumerState<InternalMembersScreen> {
           .approveMember(widget.community.id, memberId);
       ref.invalidate(internalMemberResultsProvider);
       ref.invalidate(communityMembersProvider(widget.community.id));
-      if (mounted)
+      if (mounted) {
         setState(() => _message =
             'Anggota diaktifkan kembali. Nomor dan riwayat tetap sama.');
+      }
     } catch (e) {
       if (mounted) setState(() => _message = e.toString());
     } finally {

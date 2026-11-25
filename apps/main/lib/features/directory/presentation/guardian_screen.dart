@@ -27,9 +27,10 @@ class _GuardianScreenState extends ConsumerState<GuardianScreen> {
     setState(() => _busy = true);
     try {
       await ref.read(directoryRepositoryProvider).sendEmailVerification();
-      if (mounted)
+      if (mounted) {
         setState(() => _message =
             'Jika email belum terverifikasi, tautan verifikasi telah dikirim. Buka tautan tersebut lalu klaim undangan.');
+      }
     } catch (e) {
       if (mounted) setState(() => _message = e.toString());
     } finally {
@@ -51,8 +52,9 @@ class _GuardianScreenState extends ConsumerState<GuardianScreen> {
       _token.clear();
       ref.invalidate(guardianInvitationsProvider);
       ref.invalidate(guardianDependentsProvider);
-      if (mounted)
+      if (mounted) {
         setState(() => _message = 'Penautan terverifikasi berhasil.');
+      }
     } catch (e) {
       if (mounted) setState(() => _message = e.toString());
     } finally {
@@ -199,7 +201,7 @@ class _DependentScreenState extends ConsumerState<DependentScreen> {
         card['status'] = v['status'];
         card['valid_until'] = v['valid_until'];
       }
-      if (mounted)
+      if (mounted) {
         await showDialog<void>(
             context: context,
             builder: (context) => AlertDialog(
@@ -227,6 +229,7 @@ class _DependentScreenState extends ConsumerState<DependentScreen> {
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Tutup'))
                     ]));
+      }
     } catch (e) {
       if (mounted) setState(() => _message = e.toString());
     } finally {

@@ -53,8 +53,9 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
     ErrorInterceptorHandler handler,
   ) async {
     final path = err.requestOptions.path;
-    if (err.requestOptions.extra['skipTokenRefresh'] == true)
+    if (err.requestOptions.extra['skipTokenRefresh'] == true) {
       return handler.next(err);
+    }
     if (err.response?.statusCode != 401 ||
         _credentialEndpoints.any(path.contains)) {
       return handler.next(err);

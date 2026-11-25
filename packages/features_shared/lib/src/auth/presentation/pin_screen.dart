@@ -47,12 +47,13 @@ class _PinScreenState extends ConsumerState<PinScreen> {
       final auth = ref.read(authProvider);
       if (_recovery && !_sent) {
         await repo.recover(_identifier.text.trim());
-        if (mounted)
+        if (mounted) {
           setState(() {
             _sent = true;
             _message =
                 'Jika akun memenuhi syarat, kode telah dikirim ke email terverifikasi. Kode berlaku 10 menit.';
           });
+        }
       } else if (_recovery) {
         await repo.reset(_identifier.text.trim(), _code.text.trim(), _pin.text);
         await ref.read(authProvider.notifier).sessionExpired();
