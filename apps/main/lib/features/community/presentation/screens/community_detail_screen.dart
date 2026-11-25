@@ -1,3 +1,5 @@
+import 'package:core/core.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -80,6 +82,12 @@ class _ClubView extends ConsumerWidget {
                 foregroundColor: Colors.white,
                 surfaceTintColor: Colors.transparent,
                 actions: [
+                  if (community.myRole?.canManageMembers ?? false)
+                    IconButton(
+                        tooltip: 'Kelola pencairan',
+                        onPressed: () => context.push(
+                            '${AppRoutes.payouts}?manage=1&community=${community.id}'),
+                        icon: const Icon(Icons.payments_outlined)),
                   if (community.myRole?.canManage ?? false)
                     IconButton(
                         tooltip: "Kelola komunitas",

@@ -28,6 +28,11 @@ import '../features/dues/presentation/screens/dues_screen.dart';
 import '../features/finance/presentation/billing_screen.dart';
 import '../features/finance/presentation/billing_management_screen.dart';
 import '../features/finance/presentation/wallet_screen.dart';
+import '../features/money_movement/presentation/bank_account_screen.dart';
+import '../features/money_movement/presentation/payouts_screen.dart';
+import '../features/money_movement/presentation/payout_request_screen.dart';
+import '../features/money_movement/presentation/payout_detail_screen.dart';
+import '../features/money_movement/presentation/transfer_screen.dart';
 import '../features/finance/presentation/topup_screen.dart';
 import '../features/finance/presentation/receipt_screen.dart';
 import '../features/finance/presentation/billing_notices_screen.dart';
@@ -129,6 +134,46 @@ final appRouter = GoRouter(
             scope: state.uri.queryParameters['scope'] ?? 'identity',
             communityId: state.uri.queryParameters['community']),
         routes: [
+          GoRoute(
+              path: 'bank-account',
+              builder: (_, state) => const PrimaryBankScreen()),
+          GoRoute(
+              path: 'payouts',
+              builder: (_, state) => PayoutsScreen(
+                  communityId: state.uri.queryParameters['community'],
+                  manage: state.uri.queryParameters['manage'] == '1'),
+              routes: [
+                GoRoute(
+                    path: 'new',
+                    builder: (_, state) => PayoutRequestScreen(
+                        communityId: state.uri.queryParameters['community'])),
+                GoRoute(
+                    path: ':id',
+                    builder: (_, state) =>
+                        PayoutDetailScreen(id: state.pathParameters['id']!),
+                    routes: [
+                      GoRoute(
+                          path: 'parts/:partId/proof',
+                          builder: (_, state) => PayoutProofRouteScreen(
+                              id: state.pathParameters['id']!,
+                              partId: state.pathParameters['partId']!)),
+                      GoRoute(
+                          path: 'parts/:partId/fragments/:fragmentId',
+                          builder: (_, state) => PayoutProofRouteScreen(
+                              id: state.pathParameters['id']!,
+                              partId: state.pathParameters['partId']!,
+                              fragmentId: state.pathParameters['fragmentId']!)),
+                    ]),
+              ]),
+          GoRoute(
+              path: 'transfers',
+              builder: (_, state) => const TransferHistoryScreen(),
+              routes: [
+                GoRoute(
+                    path: 'new',
+                    builder: (_, state) => TransferScreen(
+                        communityId: state.uri.queryParameters['community'])),
+              ]),
           GoRoute(
               path: 'topup',
               builder: (context, state) => TopupScreen(

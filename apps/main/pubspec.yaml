@@ -24,6 +24,7 @@ dependencies:
   drift: ^2.33.0
   image_picker: ^1.1.2
   package_info_plus: ^10.1.0
+  share_plus: ^13.3.1
   url_launcher: ^6.3.3
   web: ^1.1.1
   cupertino_icons: ^2.0.0

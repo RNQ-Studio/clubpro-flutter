@@ -68,6 +68,10 @@ class _AdminPanelView extends ConsumerWidget {
         title: const Text('Admin Panel'),
         actions: [
           IconButton(
+              tooltip: 'Pencairan sumber platform',
+              icon: const Icon(Icons.payments_outlined),
+              onPressed: () => context.push('${AppRoutes.payouts}?manage=1')),
+          IconButton(
               key: const Key('admin-platform-income'),
               tooltip: 'Pendapatan iuran platform',
               icon: const Icon(Icons.account_balance_outlined),

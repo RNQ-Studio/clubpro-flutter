@@ -64,6 +64,18 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   icon: const Icon(Icons.add),
                   label: const Text('Top up')),
               OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutes.primaryBank),
+                  icon: const Icon(Icons.account_balance_outlined),
+                  label: const Text('Rekening utama')),
+              OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutes.payouts),
+                  icon: const Icon(Icons.payments_outlined),
+                  label: const Text('Pencairan')),
+              OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutes.transfers),
+                  icon: const Icon(Icons.swap_horiz),
+                  label: const Text('Transfer saldo')),
+              OutlinedButton.icon(
                   onPressed: () => context.push(AppRoutes.paymentReceipts),
                   icon: const Icon(Icons.receipt_long_outlined),
                   label: const Text('Riwayat pengajuan')),

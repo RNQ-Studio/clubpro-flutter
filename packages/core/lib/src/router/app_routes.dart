@@ -21,6 +21,16 @@ abstract final class AppRoutes {
 
   // Saldo, penerimaan manual, dan siklus keanggotaan
   static const String wallet = '/wallet';
+  static const String primaryBank = '/wallet/bank-account';
+  static const String payouts = '/wallet/payouts';
+  static const String newPayout = '/wallet/payouts/new';
+  static String payoutProof(String id, String partId) =>
+      '$payouts/$id/parts/$partId/proof';
+  static String payoutFragment(String id, String partId, String fragmentId) =>
+      '$payouts/$id/parts/$partId/fragments/$fragmentId';
+  static String payout(String id) => '$payouts/$id';
+  static const String transfers = '/wallet/transfers';
+  static const String newTransfer = '/wallet/transfers/new';
   static const String billingNotices = '/billing-notices';
   static const String topup = '/wallet/topup';
   static const String paymentReceipts = '/wallet/receipts';
