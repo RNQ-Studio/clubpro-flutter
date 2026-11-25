@@ -1,5 +1,5 @@
 /** Verify real browser auth redirects, using fresh isolated profiles and wall time.
- * node tool/check_protected_deeplinks.mjs [https://ceo-pro.web.app]
+ * node tool/check_protected_deeplinks.mjs [https://ceo-pro.web.app] [route ...]
  * Local Hosting emulator http://localhost:5055 is also supported.
  * Console/resource smoke remains a separate check in the release wrapper.
  */
@@ -14,6 +14,25 @@ assert(['https://ceo-pro.web.app', 'http://localhost:5055', 'http://127.0.0.1:50
 const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const routes = ['/wallet', '/billing-notices', '/communities/1/training', '/communities/1/training/report', '/wallet/bank-account', '/wallet/payouts', '/wallet/payouts/new', '/wallet/payouts/synthetic-id', '/wallet/payouts?manage=1&community=1', '/wallet/transfers', '/wallet/transfers/new', '/wallet/payouts/synthetic-id/parts/synthetic-part/proof', '/wallet/payouts/synthetic-id/parts/synthetic-part/fragments/synthetic-fragment', '/wallet/payouts?manage=1'];
+const selectedRoutes = process.argv.length > 3 ? process.argv.slice(3) : routes;
+assert(selectedRoutes.every(route => routes.includes(route)), 'Unexpected protected test route');
+
+function loginReturn(location) {
+  if (typeof location !== 'string') return null;
+  try {
+    const route = new URL(location.replace(/^#/, ''), origin.origin);
+    if (route.pathname !== '/login') return null;
+    const value = route.searchParams.get('from');
+    if (value?.startsWith('v1.')) {
+      const token = value.slice(3);
+      if (!/^[A-Za-z0-9_-]+$/.test(token)) return null;
+      return new TextDecoder('utf-8', {fatal: true}).decode(Buffer.from(token, 'base64url'));
+    }
+    return value;
+  } catch {
+    return null;
+  }
+}
 
 class DevTools {
   constructor(socket) {
@@ -21,8 +40,10 @@ class DevTools {
     this.sequence = 0;
     this.pending = new Map();
     this.requests = [];
+    this.loads = 0;
     socket.addEventListener('message', event => {
       const message = JSON.parse(event.data);
+      if (message.method === 'Page.loadEventFired') this.loads++;
       if (message.method === 'Network.requestWillBeSent') {
         const url = message.params.request.url;
         if (/\/api\/v1\/(bank-accounts(?:[/?]|$)|payouts(?:[/?]|$)|transfers(?:[/?]|$)|wallet(?:[/?]|$)|billing-notices(?:[/?]|$)|communities\/[^/]+\/training(?:[/?]|$))/.test(url)) this.requests.push(url);
@@ -49,8 +70,24 @@ class DevTools {
   }
 }
 
+async function loginSnapshot(devTools, deadline) {
+  let snapshot;
+  while (Date.now() < deadline) {
+    snapshot = await devTools.value(`({hash: location.hash, state_location: history.state?.state?.location ?? history.state?.location ?? null, route_writes: window.__clubproRouteWrites ?? 0, app_mounted: !!document.querySelector('flutter-view')})`);
+    if (snapshot.hash.startsWith('#/login?') && snapshot.state_location?.startsWith('/login?') && snapshot.route_writes > 0 && snapshot.app_mounted) {
+      // A fresh document must mount Flutter and publish history before inspecting
+      // its serialized state. The old hash alone survives a browser reload.
+      await delay(250);
+      snapshot = await devTools.value(`({hash: location.hash, state_location: history.state?.state?.location ?? history.state?.location ?? null, route_writes: window.__clubproRouteWrites ?? 0, app_mounted: !!document.querySelector('flutter-view')})`);
+      return {...snapshot, return_to: loginReturn(snapshot.hash), state_return_to: loginReturn(snapshot.state_location)};
+    }
+    await delay(100);
+  }
+  throw new Error(`Fresh login page did not settle: ${JSON.stringify(snapshot)}`);
+}
+
 let failures = 0;
-for (const route of routes) {
+for (const route of selectedRoutes) {
   const profile = await mkdtemp(join(tmpdir(), 'clubpro-auth-smoke-'));
   const process = spawn(chrome, ['--headless=new', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], {stdio: 'ignore'});
   let socket;
@@ -69,16 +106,19 @@ for (const route of routes) {
     const devTools = new DevTools(socket);
     await devTools.send('Network.enable');
     await devTools.send('Page.enable');
+    await devTools.send('Page.addScriptToEvaluateOnNewDocument', {source: `window.__clubproRouteWrites = 0; for (const name of ['pushState', 'replaceState']) { const original = history[name]; history[name] = function(...args) { window.__clubproRouteWrites++; return original.apply(this, args); }; }`});
     await devTools.send('Page.navigate', {url: `${origin.origin}/#${route}`});
-    let hash = '';
-    while (Date.now() < deadline) {
-      hash = await devTools.value('location.hash');
-      if (hash.startsWith('#/login?')) break;
-      await delay(200);
+    const initial = await loginSnapshot(devTools, Date.now() + 30000);
+    const priorLoads = devTools.loads;
+    await devTools.send('Page.reload', {ignoreCache: true});
+    const reloadDeadline = Date.now() + 30000;
+    while (devTools.loads <= priorLoads && Date.now() < reloadDeadline) {
+      await delay(100);
     }
-    const returnTo = new URLSearchParams(hash.split('?')[1] ?? '').get('from');
-    const passed = hash.startsWith('#/login?') && returnTo === route && devTools.requests.length === 0;
-    console.log(JSON.stringify({origin: origin.origin, route, hash, return_to: returnTo, private_requests: devTools.requests.length, result: passed ? 'PASS' : 'FAIL'}));
+    assert(devTools.loads > priorLoads, 'Browser reload did not finish loading a fresh document');
+    const afterReload = await loginSnapshot(devTools, reloadDeadline);
+    const passed = initial.return_to === route && initial.state_return_to === route && afterReload.return_to === route && afterReload.state_return_to === route && devTools.requests.length === 0;
+    console.log(JSON.stringify({origin: origin.origin, route, hash: initial.hash, return_to: initial.return_to, state_return_to: initial.state_return_to, after_reload: afterReload, private_requests: devTools.requests.length, result: passed ? 'PASS' : 'FAIL'}));
     if (!passed) failures++;
   } catch (error) {
     failures++;
