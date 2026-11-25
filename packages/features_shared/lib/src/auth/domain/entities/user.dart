@@ -8,6 +8,7 @@ class User {
     required this.name,
     required this.email,
     this.pinEnabled = false,
+    this.pinGoogleReauthenticated = false,
     this.birthDate,
     this.phone,
     this.avatarUrl,
@@ -20,6 +21,7 @@ class User {
   }) : _completion = completion;
 
   final bool pinEnabled;
+  final bool pinGoogleReauthenticated;
   final String? birthDate;
   final String id;
   final String name;

@@ -34,8 +34,18 @@ class FixedAuth extends AuthNotifier {
 }
 
 class FakePin implements PinRepository {
+  bool emailAvailable = true, failOptions = false;
+  Completer<bool>? optionsPending;
+  @override
+  Future<bool> emailRecoveryAvailable() async {
+    if (optionsPending != null) return optionsPending!.future;
+    if (failOptions) throw Exception('Layanan belum tersedia.');
+    return emailAvailable;
+  }
+
   int logins = 0, saves = 0, recovers = 0, resets = 0;
   bool fail = false, empty = false;
+  String? lastVerification, lastCurrentPin, lastCurrentPassword;
   Completer<void>? pending;
   @override
   Future<User> login(String id, String pin) async {
@@ -47,9 +57,14 @@ class FakePin implements PinRepository {
 
   @override
   Future<void> save(String pin,
-      {String? currentPin, String? currentPassword}) async {
+      {String? currentPin,
+      String? currentPassword,
+      String? verificationMethod,
+      bool useRecentGoogleAuth = false}) async {
     saves++;
-    expect(currentPin, '123456');
+    lastVerification = verificationMethod;
+    lastCurrentPin = currentPin;
+    lastCurrentPassword = currentPassword;
   }
 
   @override
@@ -64,6 +79,8 @@ class FakePin implements PinRepository {
 }
 
 class FakeDirectory implements DirectoryRepository {
+  bool inApp = false, mixedInvites = false, accountInvite = false;
+  int consentClaims = 0;
   bool fail = false, empty = false;
   Completer<void>? pending;
   String query = '';
@@ -126,13 +143,35 @@ class FakeDirectory implements DirectoryRepository {
 
   @override
   Future<List<Map<String, dynamic>>> invitations() async => [
-        {'id': 9, 'member_name': 'Anak Uji', 'kind': 'guardian'}
+        if (!inApp || mixedInvites)
+          {
+            'id': 9,
+            'member_name': 'Anak Uji',
+            'kind': 'guardian',
+            'delivery_method': 'email',
+            'invited_by_name': 'Pendiri Uji',
+            'community_name': 'Komunitas Uji'
+          },
+        if (inApp)
+          {
+            'id': 10,
+            'member_name': 'Anak Uji',
+            'kind': accountInvite ? 'account' : 'guardian',
+            'delivery_method': 'in_app',
+            'invited_by_name': 'Pendiri Uji',
+            'community_name': 'Komunitas Uji'
+          },
       ];
   @override
   Future<void> sendEmailVerification() async {}
   @override
-  Future<void> claim(String id, String token) async {
+  Future<void> claim(String id, String token, {bool accept = false}) async {
     claimed++;
+    if (accept) {
+      consentClaims++;
+      expect(token, '');
+      return;
+    }
     if (token != 'token-test') throw Exception('Token tidak valid');
   }
 
@@ -278,12 +317,15 @@ void main() {
     await t.tap(find.text('Simpan PIN'));
     await t.pumpAndSettle();
     expect(pin.saves, 1);
+    expect(pin.lastVerification, 'pin');
+    expect(pin.lastCurrentPin, '123456');
     expect(find.text('PIN berhasil disimpan.'), findsOneWidget);
   });
   testWidgets('recovery sends generic code and reveals reset form', (t) async {
     final pin = FakePin();
     await t.pumpWidget(app(const PinScreen(mode: PinMode.recovery),
         pin: pin, auth: const AuthUnauthenticated()));
+    await t.pumpAndSettle();
     await t.enterText(
         find.byType(TextFormField).first, 'wali@anaklangit.manahpro.web.id');
     await t.tap(find.text('Kirim kode'));
@@ -315,7 +357,7 @@ void main() {
     await t.tap(find.text('Undang Wali'));
     await t.pumpAndSettle();
     expect(repo.invited, 1);
-    expect(find.textContaining('Penautan baru berlaku'), findsOneWidget);
+    expect(find.textContaining('Undangan dibuat.'), findsOneWidget);
   });
   testWidgets(
       'guardian claim requires token and dependent edit/revoke real actions',
@@ -324,7 +366,7 @@ void main() {
     final repo = FakeDirectory();
     await t.pumpWidget(app(const GuardianScreen(), repo: repo));
     await t.pumpAndSettle();
-    await t.tap(find.textContaining('Undangan 9'));
+    await t.tap(find.byKey(const Key('guardian-invitation-9')));
     await t.enterText(find.byType(TextField).last, 'token-test');
     await t.tap(find.text('Klaim Undangan'));
     await t.pumpAndSettle();
@@ -455,6 +497,136 @@ void main() {
     await t.pumpAndSettle();
     expect(repo.revoked, 1);
     expect(find.text('DAFTAR WALI'), findsOneWidget);
+    expect(t.takeException(), null);
+  });
+
+  testWidgets('existing PIN can be recovered with account password', (t) async {
+    size(t, 500);
+    final pin = FakePin();
+    await t.pumpWidget(app(const PinScreen(mode: PinMode.manage), pin: pin));
+    await t.tap(find.byType(DropdownButtonFormField<String>));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Password akun').last);
+    await t.pumpAndSettle();
+    await t.enterText(
+        find.byType(TextFormField).at(0), 'account-password-test');
+    await t.enterText(find.byType(TextFormField).at(1), '654321');
+    await t.enterText(find.byType(TextFormField).at(2), '654321');
+    await t.ensureVisible(find.text('Simpan PIN'));
+    await t.tap(find.text('Simpan PIN'));
+    await t.pumpAndSettle();
+    expect(pin.saves, 1);
+    expect(pin.lastVerification, 'password');
+    expect(pin.lastCurrentPassword, 'account-password-test');
+    expect(pin.lastCurrentPin, null);
+  });
+  testWidgets('fresh Google proof sets PIN without asking old PIN or password',
+      (t) async {
+    size(t, 500);
+    final pin = FakePin();
+    await t.pumpWidget(app(const PinScreen(mode: PinMode.manage),
+        pin: pin,
+        auth: const AuthAuthenticated(User(
+            id: '1',
+            name: 'Google Uji',
+            email: 'google@anaklangit.manahpro.web.id',
+            pinEnabled: true,
+            pinGoogleReauthenticated: true))));
+    expect(find.text('Google baru diverifikasi'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNWidgets(2));
+    await t.enterText(find.byType(TextFormField).at(0), '654321');
+    await t.enterText(find.byType(TextFormField).at(1), '654321');
+    await t.tap(find.text('Simpan PIN'));
+    await t.pumpAndSettle();
+    expect(pin.saves, 1);
+    expect(pin.lastVerification, 'google');
+    expect(pin.lastCurrentPin, null);
+    expect(pin.lastCurrentPassword, null);
+  });
+  testWidgets('authenticated PIN recovery explicitly reopens account login',
+      (t) async {
+    size(t, 500);
+    final router = GoRouter(
+        initialLocation: '/login/recovery',
+        redirect: clubAuthRedirect,
+        routes: [
+          GoRoute(
+              path: '/login/recovery',
+              builder: (_, __) => const PinScreen(mode: PinMode.recovery)),
+          GoRoute(
+              path: '/login',
+              builder: (_, s) => Text(
+                  'ACCOUNT LOGIN:${s.uri.queryParameters['from']}:${s.uri.queryParameters['reauth']}')),
+          GoRoute(
+              path: '/account/pin',
+              builder: (_, __) => const Text('MANAGE PIN'))
+        ]);
+    await t.pumpWidget(app(const SizedBox(), router: router));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Pulihkan melalui akun'));
+    await t.pumpAndSettle();
+    expect(find.text('ACCOUNT LOGIN:/account/pin:1'), findsOneWidget);
+  });
+  for (final account in [false, true]) {
+    testWidgets(
+        'in-app ${account ? 'account' : 'guardian'} invitation requires explicit consent',
+        (t) async {
+      size(t, 500);
+      final repo = FakeDirectory()
+        ..inApp = true
+        ..accountInvite = account;
+      await t.pumpWidget(app(const GuardianScreen(), repo: repo));
+      await t.pumpAndSettle();
+      expect(find.byType(TextField), findsNothing);
+      await t.tap(find.text('Setujui'));
+      await t.pumpAndSettle();
+      expect(
+          find.textContaining('Pendiri Uji di Komunitas Uji'), findsOneWidget);
+      if (account) {
+        expect(find.textContaining('Hubungan wali lama'), findsOneWidget);
+      }
+      await t.tap(find.text('Batal'));
+      await t.pumpAndSettle();
+      expect(repo.claimed, 0);
+      await t.tap(find.text('Setujui'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Setujui undangan'));
+      await t.pumpAndSettle();
+      expect(repo.claimed, 1);
+      expect(repo.consentClaims, 1);
+      expect(
+          find.textContaining(account
+              ? 'Akun terhubung.'
+              : 'Hubungan wali terverifikasi berhasil'),
+          findsOneWidget);
+      expect(t.takeException(), null);
+    });
+  }
+
+  testWidgets(
+      'unavailable or failed email options keep account recovery available',
+      (t) async {
+    size(t, 500);
+    final pin = FakePin()..optionsPending = Completer<bool>();
+    await t.pumpWidget(app(const PinScreen(mode: PinMode.recovery), pin: pin));
+    await t.pump();
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(t.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+        isNotNull);
+    pin.optionsPending!.completeError(Exception('Layanan belum tersedia.'));
+    await t.pumpAndSettle();
+    expect(find.text('Coba Muat Pilihan Lagi'), findsOneWidget);
+    expect(find.text('Pulihkan melalui akun'), findsOneWidget);
+    expect(find.text('Kirim kode'), findsNothing);
+    pin.optionsPending = null;
+    pin.emailAvailable = false;
+    await t.tap(find.text('Coba Muat Pilihan Lagi'));
+    await t.pumpAndSettle();
+    expect(
+        find.textContaining('Pemulihan email belum tersedia.'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.text('Kirim kode'), findsNothing);
+    expect(pin.recovers, 0);
     expect(t.takeException(), null);
   });
   for (final width in [500.0, 1280.0]) {

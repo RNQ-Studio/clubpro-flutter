@@ -25,9 +25,20 @@ class _PinScreenState extends ConsumerState<PinScreen> {
   final _current = TextEditingController();
   final _code = TextEditingController();
   bool _busy = false, _sent = false;
-  String? _message;
+  String? _message, _verification;
   bool get _recovery => widget.mode == PinMode.recovery;
   bool get _manage => widget.mode == PinMode.manage;
+  List<String> _methods(AuthState auth) => [
+        if (auth is AuthAuthenticated && auth.user.pinGoogleReauthenticated)
+          'google',
+        if (auth is AuthAuthenticated && auth.user.pinEnabled) 'pin',
+        'password'
+      ];
+  String _method(AuthState auth) => _methods(auth).contains(_verification)
+      ? _verification!
+      : _methods(auth).first;
+  void _reauthenticate() =>
+      context.go('/login?from=${Uri.encodeComponent('/account/pin')}&reauth=1');
   @override
   void dispose() {
     for (final c in [_identifier, _pin, _confirm, _current, _code]) {
@@ -63,10 +74,11 @@ class _PinScreenState extends ConsumerState<PinScreen> {
               content: Text('PIN diperbarui. Silakan masuk kembali.')));
         }
       } else if (_manage) {
-        final enabled = auth is AuthAuthenticated && auth.user.pinEnabled;
+        final method = _method(auth);
         await repo.save(_pin.text,
-            currentPin: enabled ? _current.text : null,
-            currentPassword: enabled ? null : _current.text);
+            verificationMethod: method,
+            currentPin: method == 'pin' ? _current.text : null,
+            currentPassword: method == 'password' ? _current.text : null);
         await ref.read(authProvider.notifier).checkCurrentUser();
         _pin.clear();
         _confirm.clear();
@@ -111,6 +123,10 @@ class _PinScreenState extends ConsumerState<PinScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final enabled = auth is AuthAuthenticated && auth.user.pinEnabled;
+    final verification = _method(auth);
+    final recoveryOptions =
+        _recovery ? ref.watch(pinEmailRecoveryAvailableProvider) : null;
+    final emailRecoveryAvailable = recoveryOptions?.asData?.value ?? false;
     final title = _recovery
         ? 'Pulihkan PIN'
         : _manage
@@ -140,7 +156,8 @@ class _PinScreenState extends ConsumerState<PinScreen> {
                               const Text(
                                   'PIN 6 angka digunakan bersama email atau nomor telepon terverifikasi. Semua peran memakai alur yang sama.'),
                               const SizedBox(height: 20),
-                              if (!_manage) ...[
+                              if (!_manage &&
+                                  (!_recovery || emailRecoveryAvailable)) ...[
                                 TextFormField(
                                     controller: _identifier,
                                     keyboardType: TextInputType.emailAddress,
@@ -153,25 +170,80 @@ class _PinScreenState extends ConsumerState<PinScreen> {
                                             : null),
                                 const SizedBox(height: 16)
                               ],
-                              if (_manage) ...[
-                                TextFormField(
-                                    controller: _current,
-                                    obscureText: true,
-                                    decoration: InputDecoration(
-                                        labelText: enabled
-                                            ? 'PIN saat ini'
-                                            : 'Password akun saat ini'),
-                                    validator: (v) => (v?.isEmpty ?? true)
-                                        ? 'Isi verifikasi akun.'
-                                        : null),
-                                const SizedBox(height: 16),
-                                if (!enabled)
-                                  const Padding(
-                                      padding: EdgeInsets.only(bottom: 16),
-                                      child: Text(
-                                          'Akun Google tanpa password: gunakan Pulihkan PIN untuk verifikasi melalui email.'))
+                              if (_recovery) ...[
+                                const Text(
+                                    'Pulihkan dengan masuk kembali ke akun Google atau password Anda, lalu buat PIN baru. Pemulihan email juga tersedia bila pengiriman email aktif.'),
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                    onPressed: _busy ? null : _reauthenticate,
+                                    icon: const Icon(
+                                        Icons.account_circle_outlined),
+                                    label: const Text('Pulihkan melalui akun')),
+                                if (recoveryOptions?.isLoading ?? false)
+                                  const LinearProgressIndicator(),
+                                if (recoveryOptions?.hasError ?? false) ...[
+                                  const Text(
+                                      'Pilihan pemulihan email belum dapat dimuat. Pemulihan melalui akun tetap tersedia.'),
+                                  TextButton(
+                                      onPressed: () => ref.invalidate(
+                                          pinEmailRecoveryAvailableProvider),
+                                      child:
+                                          const Text('Coba Muat Pilihan Lagi'))
+                                ],
+                                if (recoveryOptions?.asData?.value == false)
+                                  const Text(
+                                      'Pemulihan email belum tersedia. Gunakan akun Google atau password yang terhubung.'),
+                                const Divider(height: 28),
                               ],
-                              if (_recovery && _sent) ...[
+                              if (_manage) ...[
+                                DropdownButtonFormField<String>(
+                                    key: ValueKey(
+                                        'pin-verification-$verification'),
+                                    initialValue: verification,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Verifikasi akun'),
+                                    items: [
+                                      for (final method in _methods(auth))
+                                        DropdownMenuItem(
+                                            value: method,
+                                            child: Text(switch (method) {
+                                              'google' =>
+                                                'Google baru diverifikasi',
+                                              'pin' => 'PIN saat ini',
+                                              _ => 'Password akun'
+                                            }))
+                                    ],
+                                    onChanged: _busy
+                                        ? null
+                                        : (v) => setState(() {
+                                              _verification = v;
+                                              _current.clear();
+                                            })),
+                                const SizedBox(height: 16),
+                                if (verification != 'google')
+                                  TextFormField(
+                                      controller: _current,
+                                      obscureText: true,
+                                      decoration: InputDecoration(
+                                          labelText: verification == 'pin'
+                                              ? 'PIN saat ini'
+                                              : 'Password akun saat ini'),
+                                      validator: (v) => (v?.isEmpty ?? true)
+                                          ? 'Isi verifikasi akun.'
+                                          : null)
+                                else
+                                  const Text(
+                                      'Verifikasi Google baru terdeteksi. Simpan PIN sekarang; jika verifikasi kedaluwarsa, masuk ulang.'),
+                                const SizedBox(height: 12),
+                                TextButton(
+                                    onPressed: _busy ? null : _reauthenticate,
+                                    child: const Text(
+                                        'Verifikasi ulang melalui Google / password')),
+                                const SizedBox(height: 16),
+                              ],
+                              if (_recovery &&
+                                  _sent &&
+                                  emailRecoveryAvailable) ...[
                                 TextFormField(
                                     controller: _code,
                                     keyboardType: TextInputType.number,
@@ -182,7 +254,8 @@ class _PinScreenState extends ConsumerState<PinScreen> {
                                         : null),
                                 const SizedBox(height: 16)
                               ],
-                              if (!_recovery || _sent) ...[
+                              if (!_recovery ||
+                                  (_sent && emailRecoveryAvailable)) ...[
                                 _pinField(_pin,
                                     _manage || _recovery ? 'PIN baru' : 'PIN'),
                                 const SizedBox(height: 16),
@@ -201,28 +274,28 @@ class _PinScreenState extends ConsumerState<PinScreen> {
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .primary))),
-                              FilledButton(
-                                  onPressed: _busy ? null : _submit,
-                                  child: _busy
-                                      ? const SizedBox.square(
-                                          dimension: 20,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2))
-                                      : Text(_recovery && !_sent
-                                          ? 'Kirim kode'
-                                          : _manage
-                                              ? 'Simpan PIN'
-                                              : _recovery
-                                                  ? 'Perbarui PIN'
-                                                  : 'Masuk')),
+                              if (!_recovery || emailRecoveryAvailable)
+                                FilledButton(
+                                    onPressed: _busy ? null : _submit,
+                                    child: _busy
+                                        ? const SizedBox.square(
+                                            dimension: 20,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2))
+                                        : Text(_recovery && !_sent
+                                            ? 'Kirim kode'
+                                            : _manage
+                                                ? 'Simpan PIN'
+                                                : _recovery
+                                                    ? 'Perbarui PIN'
+                                                    : 'Masuk')),
                               if (!_recovery)
                                 TextButton(
                                     onPressed: _busy
                                         ? null
                                         : () => context.push(authMethodLocation(
                                             context, '/login/recovery')),
-                                    child: const Text(
-                                        'Pulihkan PIN melalui email')),
+                                    child: const Text('Pilihan pemulihan PIN')),
                               if (!_manage)
                                 TextButton(
                                     onPressed: _busy

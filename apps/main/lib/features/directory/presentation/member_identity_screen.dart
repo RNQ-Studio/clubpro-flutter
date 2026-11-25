@@ -144,7 +144,7 @@ class _MemberIdentityScreenState extends ConsumerState<MemberIdentityScreen> {
           account: account);
       if (mounted) {
         setState(() => _message =
-            'Undangan dikirim. Penautan baru berlaku setelah pemilik email terverifikasi mengklaim token.');
+            'Undangan dibuat. Penerima dapat membuka Akun dan Hubungan Wali setelah masuk dengan email terverifikasi. Jika menerima kode melalui email, gunakan kode tersebut.');
       }
     } catch (e) {
       if (mounted) setState(() => _message = e.toString());

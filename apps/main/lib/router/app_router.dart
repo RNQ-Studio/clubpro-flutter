@@ -308,7 +308,10 @@ String? clubAuthRedirect(BuildContext context, GoRouterState state) {
       path.startsWith('/explore') ||
       path.startsWith('/login');
   if (auth is AuthAuthenticated) {
-    if (path == '/login' || path == '/login/pin' || path == '/login/password') {
+    if ((path == '/login' ||
+            path == '/login/pin' ||
+            path == '/login/password') &&
+        state.uri.queryParameters['reauth'] != '1') {
       return safeLoginReturn(state.uri.queryParameters['from']) ??
           afterLoginLocation(auth.user);
     }

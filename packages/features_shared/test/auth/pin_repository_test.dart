@@ -128,4 +128,58 @@ void main() {
               .having((e) => e.toString(), 'message', contains(expected))));
     }
   });
+  test(
+      'PIN recovery capabilities and explicit password/Google methods match API',
+      () async {
+    final storage = _Storage();
+    final dio = Dio();
+    final requests = <RequestOptions>[];
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
+      requests.add(o);
+      if (o.method == 'GET') {
+        expect(o.path, 'v1/auth/pin/options');
+        h.resolve(Response(requestOptions: o, data: {
+          'success': true,
+          'data': {
+            'pin_length': 6,
+            'email_recovery_available': false,
+            'account_recovery_available': true,
+            'in_app_invitations': true
+          }
+        }));
+      } else {
+        expect(o.path, 'v1/auth/pin');
+        h.resolve(
+            Response(requestOptions: o, data: {'success': true, 'data': null}));
+      }
+    }));
+    final repo = PinRepositoryImpl(dio, AuthLocalDataSource(storage));
+    expect(await repo.emailRecoveryAvailable(), false);
+    await repo.save('123456',
+        currentPassword: 'account-password-test',
+        verificationMethod: 'password');
+    expect(requests.last.data, {
+      'pin': '123456',
+      'pin_confirmation': '123456',
+      'current_password': 'account-password-test',
+      'verification_method': 'password'
+    });
+    await repo.save('654321', verificationMethod: 'google');
+    expect(requests.last.data, {
+      'pin': '654321',
+      'pin_confirmation': '654321',
+      'verification_method': 'google'
+    });
+    expect(storage.values, isEmpty);
+    final user = UserModel.fromJson({
+      'id': 1,
+      'name': 'Google Uji',
+      'email': 'google@anaklangit.manahpro.web.id',
+      'pin_enabled': true,
+      'pin_google_reauthenticated': true
+    });
+    expect(user.pinGoogleReauthenticated, true);
+    expect(user.copyWith(token: 'new-token').pinGoogleReauthenticated, true);
+    expect(UserModel.fromJson(user.toJson()).pinGoogleReauthenticated, true);
+  });
 }

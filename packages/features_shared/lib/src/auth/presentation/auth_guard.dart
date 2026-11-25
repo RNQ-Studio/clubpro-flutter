@@ -80,7 +80,7 @@ String authMethodLocation(BuildContext context, String path) {
         from.startsWith('/') &&
         !from.startsWith('//') &&
         !from.startsWith('/login')) {
-      return '$path?from=${Uri.encodeComponent(from)}';
+      return '$path?from=${Uri.encodeComponent(from)}${GoRouterState.of(context).uri.queryParameters['reauth'] == '1' ? '&reauth=1' : ''}';
     }
   } catch (_) {}
   return path;

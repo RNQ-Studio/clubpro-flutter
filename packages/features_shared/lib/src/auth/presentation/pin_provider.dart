@@ -9,3 +9,8 @@ part 'pin_provider.g.dart';
 PinRepository pinRepository(Ref ref) => PinRepositoryImpl(
     ref.watch(apiClientProvider).dio,
     AuthLocalDataSource(ref.watch(storageServiceProvider)));
+
+Duration? _noPinOptionsRetry(int retryCount, Object error) => null;
+@Riverpod(retry: _noPinOptionsRetry)
+Future<bool> pinEmailRecoveryAvailable(Ref ref) =>
+    ref.watch(pinRepositoryProvider).emailRecoveryAvailable();

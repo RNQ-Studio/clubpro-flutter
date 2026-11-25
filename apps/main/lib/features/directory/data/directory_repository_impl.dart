@@ -128,9 +128,10 @@ class DirectoryRepositoryImpl implements DirectoryRepository {
         await dio.post('v1/auth/email/send-verification');
       });
   @override
-  Future<void> claim(String id, String token) => _guard(() async {
-        await dio
-            .post('v1/guardian-invitations/$id/claim', data: {'token': token});
+  Future<void> claim(String id, String token, {bool accept = false}) =>
+      _guard(() async {
+        await dio.post('v1/guardian-invitations/$id/claim',
+            data: accept ? {'accept': true} : {'token': token});
       });
   @override
   Future<List<Map<String, dynamic>>> dependents() => _guard(() async =>

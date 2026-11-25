@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'directory_providers.dart';
+import '../../community/presentation/community_providers.dart';
 import 'directory_screen.dart';
 import 'member_identity_screen.dart';
 
@@ -52,6 +53,7 @@ class _GuardianScreenState extends ConsumerState<GuardianScreen> {
       _token.clear();
       ref.invalidate(guardianInvitationsProvider);
       ref.invalidate(guardianDependentsProvider);
+      ref.invalidate(joinedCommunitiesProvider);
       if (mounted) {
         setState(() => _message = 'Penautan terverifikasi berhasil.');
       }
@@ -62,90 +64,162 @@ class _GuardianScreenState extends ConsumerState<GuardianScreen> {
     }
   }
 
+  Future<void> _acceptInvitation(Map<String, dynamic> invite) async {
+    if (_busy) return;
+    final account = invite['kind'] == 'account';
+    final issuer =
+        invite['invited_by_name']?.toString() ?? 'Pengelola komunitas';
+    final community =
+        invite['community_name']?.toString() ?? 'komunitas terkait';
+    final name = invite['member_name']?.toString() ?? 'anggota';
+    final consent = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+                title: Text(account
+                    ? 'Hubungkan akun anggota?'
+                    : 'Setujui hubungan wali?'),
+                content: Text(account
+                    ? '$issuer di $community mengundang Anda menghubungkan akun ini ke identitas $name. Hubungan wali lama pada identitas manual ini akan berakhir. Anda dapat mengundang wali kembali setelah penautan.'
+                    : '$issuer di $community mengundang Anda menjadi wali $name. Persetujuan memberi akses data dependent dan status keanggotaan, tanpa mengubah kepemilikan akun login.'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Batal')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Setujui undangan'))
+                ]));
+    if (consent != true || !mounted) return;
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      await ref
+          .read(directoryRepositoryProvider)
+          .claim(invite['id'].toString(), '', accept: true);
+      ref.invalidate(guardianInvitationsProvider);
+      ref.invalidate(guardianDependentsProvider);
+      ref.invalidate(joinedCommunitiesProvider);
+      if (mounted) {
+        setState(() => _message = account
+            ? 'Akun terhubung. Hubungan wali dapat diundang kembali oleh pemilik akun.'
+            : 'Hubungan wali terverifikasi berhasil disimpan.');
+      }
+    } catch (e) {
+      if (mounted) setState(() => _message = e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text('Akun dan Hubungan Wali')),
-      body: SafeArea(
-          child: Center(
-              child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: ListView(padding: const EdgeInsets.all(24), children: [
-                    OutlinedButton.icon(
-                        onPressed: () => context.push('/account/pin'),
-                        icon: const Icon(Icons.pin_outlined),
-                        label: const Text('Buat atau Ubah PIN')),
-                    const SizedBox(height: 24),
-                    Text('Undangan Penautan',
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 8),
-                    const Text(
-                        'Masuk dengan akun pemilik email undangan dan pastikan email terverifikasi. Kode undangan dari email hanya dapat dipakai sekali dalam 24 jam.'),
-                    ref.watch(guardianInvitationsProvider).when(
-                        loading: () => const LinearProgressIndicator(),
-                        error: (e, _) => DirectoryError(
-                            message: e.toString(),
-                            retry: () =>
-                                ref.invalidate(guardianInvitationsProvider)),
-                        data: (items) => Column(children: [
-                              if (items.isEmpty)
-                                const ListTile(
-                                    title:
-                                        Text('Tidak ada undangan menunggu.')),
-                              for (final item in items)
-                                ListTile(
-                                    title: Text(
-                                        item['member_name']?.toString() ??
-                                            'Anggota'),
-                                    subtitle: Text(
-                                        'Undangan ${item['id']} · ${item['kind'] == 'account' ? 'Akun anggota' : 'Wali'}'),
-                                    onTap: () => setState(
-                                        () => _id.text = item['id'].toString()))
-                            ])),
-                    TextButton(
-                        onPressed: _busy ? null : _verifyEmail,
-                        child: const Text('Kirim Tautan Verifikasi Email')),
-                    TextField(
-                        controller: _id,
-                        decoration:
-                            const InputDecoration(labelText: 'Nomor undangan')),
-                    const SizedBox(height: 12),
-                    TextField(
-                        controller: _token,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                            labelText: 'Kode undangan dari email')),
-                    const SizedBox(height: 12),
-                    if (_message != null) Text(_message!),
-                    FilledButton(
-                        onPressed: _busy ? null : _claim,
-                        child:
-                            Text(_busy ? 'Memverifikasi…' : 'Klaim Undangan')),
-                    const Divider(height: 40),
-                    Text('Anggota dalam Perwalian',
-                        style: Theme.of(context).textTheme.titleLarge),
-                    ref.watch(guardianDependentsProvider).when(
-                        loading: () => const LinearProgressIndicator(),
-                        error: (e, _) => DirectoryError(
-                            message: e.toString(),
-                            retry: () =>
-                                ref.invalidate(guardianDependentsProvider)),
-                        data: (items) => Column(children: [
-                              if (items.isEmpty)
-                                const ListTile(
-                                    title: Text(
-                                        'Belum ada hubungan wali terverifikasi.')),
-                              for (final item in items)
-                                ListTile(
-                                    leading: const Icon(Icons.family_restroom),
-                                    title: Text(
-                                        item['name']?.toString() ?? 'Anggota'),
-                                    subtitle: const Text(
-                                        'Data anggota, status dan kartu keanggotaan'),
-                                    trailing: const Icon(Icons.chevron_right),
-                                    onTap: () => context.push(
-                                        '/guardians/dependents/${item['id']}'))
-                            ])),
-                  ])))));
+  Widget build(BuildContext context) {
+    final invitations = ref.watch(guardianInvitationsProvider);
+    final inAppOnly = (invitations.asData?.value.isNotEmpty ?? false) &&
+        invitations.asData!.value
+            .every((i) => i['delivery_method'] == 'in_app');
+    return Scaffold(
+        appBar: AppBar(title: const Text('Akun dan Hubungan Wali')),
+        body: SafeArea(
+            child: Center(
+                child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child:
+                        ListView(padding: const EdgeInsets.all(24), children: [
+                      OutlinedButton.icon(
+                          onPressed: () => context.push('/account/pin'),
+                          icon: const Icon(Icons.pin_outlined),
+                          label: const Text('Buat atau Ubah PIN')),
+                      const SizedBox(height: 24),
+                      Text('Undangan Penautan',
+                          style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 8),
+                      const Text(
+                          'Masuk dengan akun pemilik email yang sudah terverifikasi. Setujui undangan dalam aplikasi, atau gunakan kode bila undangan dikirim melalui email. Undangan berlaku 24 jam dan hanya dapat diklaim sekali.'),
+                      invitations.when(
+                          loading: () => const LinearProgressIndicator(),
+                          error: (e, _) => DirectoryError(
+                              message: e.toString(),
+                              retry: () =>
+                                  ref.invalidate(guardianInvitationsProvider)),
+                          data: (items) => Column(children: [
+                                if (items.isEmpty)
+                                  const ListTile(
+                                      title:
+                                          Text('Tidak ada undangan menunggu.')),
+                                for (final item in items)
+                                  ListTile(
+                                      key: Key(
+                                          'guardian-invitation-${item['id']}'),
+                                      title: Text(
+                                          item['member_name']?.toString() ??
+                                              'Anggota'),
+                                      subtitle: Text(
+                                          '${item['kind'] == 'account' ? 'Akun anggota' : 'Wali'} · ${item['community_name'] ?? 'Komunitas'}\nDari ${item['invited_by_name'] ?? 'Pengelola'}'),
+                                      trailing: item['delivery_method'] ==
+                                              'in_app'
+                                          ? TextButton(
+                                              onPressed: _busy
+                                                  ? null
+                                                  : () =>
+                                                      _acceptInvitation(item),
+                                              child: const Text('Setujui'))
+                                          : null,
+                                      onTap: item['delivery_method'] == 'in_app'
+                                          ? null
+                                          : () => setState(() =>
+                                              _id.text = item['id'].toString()))
+                              ])),
+                      TextButton(
+                          onPressed: _busy ? null : _verifyEmail,
+                          child: const Text('Kirim Tautan Verifikasi Email')),
+                      if (_message != null) Text(_message!),
+                      if (!inAppOnly) ...[
+                        TextField(
+                            controller: _id,
+                            decoration: const InputDecoration(
+                                labelText: 'Nomor undangan')),
+                        const SizedBox(height: 12),
+                        TextField(
+                            controller: _token,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                                labelText: 'Kode undangan dari email')),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                            onPressed: _busy ? null : _claim,
+                            child: Text(
+                                _busy ? 'Memverifikasi…' : 'Klaim Undangan')),
+                      ],
+                      const Divider(height: 40),
+                      Text('Anggota dalam Perwalian',
+                          style: Theme.of(context).textTheme.titleLarge),
+                      ref.watch(guardianDependentsProvider).when(
+                          loading: () => const LinearProgressIndicator(),
+                          error: (e, _) => DirectoryError(
+                              message: e.toString(),
+                              retry: () =>
+                                  ref.invalidate(guardianDependentsProvider)),
+                          data: (items) => Column(children: [
+                                if (items.isEmpty)
+                                  const ListTile(
+                                      title: Text(
+                                          'Belum ada hubungan wali terverifikasi.')),
+                                for (final item in items)
+                                  ListTile(
+                                      leading:
+                                          const Icon(Icons.family_restroom),
+                                      title: Text(item['name']?.toString() ??
+                                          'Anggota'),
+                                      subtitle: const Text(
+                                          'Data anggota, status dan kartu keanggotaan'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () => context.push(
+                                          '/guardians/dependents/${item['id']}'))
+                              ])),
+                    ])))));
+  }
 }
 
 class DependentScreen extends ConsumerStatefulWidget {

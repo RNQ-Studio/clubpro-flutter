@@ -294,4 +294,58 @@ void main() {
               .having((e) => e.toString(), 'message', contains(expected))));
     });
   }
+  test('in-app invitation consent sends accept boolean without email token',
+      () async {
+    final adapter = _FixtureAdapter((o) {
+      if (o.method == 'GET') {
+        expect(o.path, 'v1/guardian-invitations');
+        return (
+          200,
+          {
+            'success': true,
+            'data': [
+              {
+                'id': 10,
+                'member_name': 'Anak Uji',
+                'kind': 'guardian',
+                'delivery_method': 'in_app',
+                'invited_by_name': 'Pendiri Uji',
+                'community_name': 'Komunitas Uji'
+              }
+            ]
+          }
+        );
+      }
+      expect(o.path, 'v1/guardian-invitations/10/claim');
+      expect(o.data, {'accept': true});
+      return (
+        200,
+        {
+          'success': true,
+          'data': {'id': 91}
+        }
+      );
+    });
+    final repo = DirectoryRepositoryImpl(_dio(adapter));
+    final invites = await repo.invitations();
+    expect(invites.single['delivery_method'], 'in_app');
+    expect(invites.single['invited_by_name'], 'Pendiri Uji');
+    await repo.claim(invites.single['id'].toString(), '', accept: true);
+    expect(adapter.requests.last.data.containsKey('token'), false);
+  });
+  test('email invitation claim retains token verification payload', () async {
+    final adapter = _FixtureAdapter((o) {
+      expect(o.path, 'v1/guardian-invitations/9/claim');
+      expect(o.data, {'token': 'test-one-time-code'});
+      return (
+        200,
+        {
+          'success': true,
+          'data': {'id': 91}
+        }
+      );
+    });
+    await DirectoryRepositoryImpl(_dio(adapter))
+        .claim('9', 'test-one-time-code');
+  });
 }

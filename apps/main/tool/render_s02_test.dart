@@ -34,9 +34,14 @@ void main() {
       'community': const PublicCommunityScreen(id: '1'),
       'manual': const MemberIdentityScreen(communityId: '1'),
       'guardian': const GuardianScreen(),
+      'guardian-in-app': const GuardianScreen(),
+      'guardian-consent': const GuardianScreen(),
       'dependent': const DependentScreen(id: '4'),
       'pin-login': const PinScreen(),
       'pin-change': const PinScreen(mode: PinMode.manage),
+      'pin-google': const PinScreen(mode: PinMode.manage),
+      'pin-password': const PinScreen(mode: PinMode.manage),
+      'pin-recovery-account': const PinScreen(mode: PinMode.recovery),
       'pin-recovery': const PinScreen(mode: PinMode.recovery)
     }.entries) {
       testWidgets('${entry.key} at $width', (t) async {
@@ -44,11 +49,28 @@ void main() {
         t.view.devicePixelRatio = 1;
         addTearDown(t.view.reset);
         final key = GlobalKey();
+        final repo = fixture.FakeDirectory()
+          ..inApp = entry.key.startsWith('guardian-in-app') ||
+              entry.key == 'guardian-consent'
+          ..mixedInvites = entry.key == 'guardian-in-app'
+          ..accountInvite = entry.key == 'guardian-consent';
+        final pin = fixture.FakePin()
+          ..emailAvailable = entry.key != 'pin-recovery-account';
+        final user = User(
+            id: '1',
+            name: 'Akun Uji',
+            email: 'uji@anaklangit.manahpro.web.id',
+            pinEnabled: entry.key != 'pin-password',
+            pinGoogleReauthenticated: entry.key == 'pin-google');
         await t.pumpWidget(RepaintBoundary(
             key: key,
             child: fixture.app(entry.value,
-                repo: fixture.FakeDirectory(), pin: fixture.FakePin())));
+                auth: AuthAuthenticated(user), repo: repo, pin: pin)));
         await t.pumpAndSettle();
+        if (entry.key == 'guardian-consent') {
+          await t.tap(find.text('Setujui'));
+          await t.pumpAndSettle();
+        }
         expect(t.takeException(), null);
         final boundary =
             key.currentContext!.findRenderObject()! as RenderRepaintBoundary;

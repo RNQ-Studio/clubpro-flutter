@@ -37,7 +37,7 @@ abstract interface class DirectoryRepository {
       {required bool account});
   Future<List<Map<String, dynamic>>> invitations();
   Future<void> sendEmailVerification();
-  Future<void> claim(String id, String token);
+  Future<void> claim(String id, String token, {bool accept = false});
   Future<List<Map<String, dynamic>>> dependents();
   Future<Map<String, dynamic>> dependent(String id);
   Future<void> updateDependent(String id, Map<String, Object?> fields);

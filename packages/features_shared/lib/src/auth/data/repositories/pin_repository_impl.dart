@@ -41,6 +41,13 @@ class PinRepositoryImpl implements PinRepository {
   }
 
   @override
+  Future<bool> emailRecoveryAvailable() => _guard(() async {
+        final response = await dio.get('v1/auth/pin/options');
+        return ((response.data as Map)['data']
+                as Map)['email_recovery_available'] ==
+            true;
+      });
+  @override
   Future<User> login(String identifier, String pin) => _guard(() async {
         final response = await dio.post('v1/auth/pin/login',
             data: {'identifier': identifier, 'pin': pin});
@@ -59,11 +66,17 @@ class PinRepositoryImpl implements PinRepository {
       });
   @override
   Future<void> save(String pin,
-          {String? currentPin, String? currentPassword}) =>
+          {String? currentPin,
+          String? currentPassword,
+          String? verificationMethod,
+          bool useRecentGoogleAuth = false}) =>
       _guard(() async {
         await dio.put('v1/auth/pin', data: {
           'pin': pin,
           'pin_confirmation': pin,
+          if (verificationMethod != null)
+            'verification_method': verificationMethod,
+          if (useRecentGoogleAuth) 'use_recent_google_auth': true,
           if (currentPin != null) 'current_pin': currentPin,
           if (currentPassword != null) 'current_password': currentPassword
         });
