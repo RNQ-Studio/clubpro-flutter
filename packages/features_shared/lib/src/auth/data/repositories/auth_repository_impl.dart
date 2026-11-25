@@ -1,4 +1,5 @@
 import 'package:image_picker/image_picker.dart';
+import 'package:core/core.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
@@ -87,6 +88,10 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final fresh = await _remote.getMe();
       return await _keepToken(fresh, cached);
+    } on UnauthorizedException {
+      // A cached identity is never evidence that a rejected session is valid.
+      await _local.clearUser();
+      return null;
     } catch (_) {
       // Gracefully fallback to cached user on connection failure/offline
       return cached;

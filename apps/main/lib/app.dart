@@ -36,7 +36,9 @@ class _AppRouterState extends ConsumerState<_AppRouter> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(authProvider.notifier).checkCurrentUser();
+      if (mounted && ref.read(authProvider) is AuthInitial) {
+        ref.read(authProvider.notifier).checkCurrentUser();
+      }
     });
     ref.listenManual(authProvider, (_, __) => appRouter.refresh());
   }

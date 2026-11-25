@@ -19,6 +19,10 @@ class AuthNotifier extends _$AuthNotifier {
   late LoginUseCase _login;
   late LogoutUseCase _logout;
   late RegisterUseCase _register;
+  int _sessionGeneration = 0;
+
+  bool _current(int generation) =>
+      ref.mounted && generation == _sessionGeneration;
 
   @override
   AuthState build() {
@@ -31,27 +35,34 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   void acceptAuthenticatedUser(User user) {
+    _sessionGeneration++;
     state = AuthAuthenticated(user);
   }
 
   /// Call this once during app bootstrap to restore a cached session.
   Future<void> checkCurrentUser() async {
+    final generation = ++_sessionGeneration;
     state = const AuthLoading();
     try {
       final user = await _getCurrentUser();
+      if (!_current(generation)) return;
       state =
           user != null ? AuthAuthenticated(user) : const AuthUnauthenticated();
     } catch (e) {
+      if (!_current(generation)) return;
       state = AuthError(e.toString());
     }
   }
 
   Future<void> login({required String email, required String password}) async {
+    final generation = ++_sessionGeneration;
     state = const AuthLoading();
     try {
       final user = await _login(email: email, password: password);
+      if (!_current(generation)) return;
       state = AuthAuthenticated(user);
     } catch (e) {
+      if (!_current(generation)) return;
       state = AuthError(e.toString());
     }
   }
@@ -67,18 +78,24 @@ class AuthNotifier extends _$AuthNotifier {
 
   /// Web: tombol Google gagal sebelum ada ID token.
   void googleSignInFailed(Object error) {
+    _sessionGeneration++;
     state = error is GoogleSignInCancelled
         ? const AuthUnauthenticated()
         : AuthError(error.toString());
   }
 
   Future<void> _runGoogleLogin(Future<User> Function() login) async {
+    final generation = ++_sessionGeneration;
     state = const AuthLoading();
     try {
-      state = AuthAuthenticated(await login());
+      final user = await login();
+      if (!_current(generation)) return;
+      state = AuthAuthenticated(user);
     } on GoogleSignInCancelled {
+      if (!_current(generation)) return;
       state = const AuthUnauthenticated();
     } catch (e) {
+      if (!_current(generation)) return;
       state = AuthError(e.toString());
     }
   }
@@ -86,11 +103,10 @@ class AuthNotifier extends _$AuthNotifier {
   /// Dipanggil saat refresh token ditolak server: sesi berakhir, kembali ke login.
   Future<void> sessionExpired() async {
     if (state is AuthUnauthenticated) return;
-    try {
-      await ref.read(authRepositoryProvider).clearSession();
-    } finally {
-      state = const AuthUnauthenticated();
-    }
+    _sessionGeneration++;
+    // Hide protected consumers immediately, before asynchronous storage cleanup.
+    state = const AuthUnauthenticated();
+    await ref.read(authRepositoryProvider).clearSession();
   }
 
   Future<void> register({
@@ -98,22 +114,28 @@ class AuthNotifier extends _$AuthNotifier {
     required String email,
     required String password,
   }) async {
+    final generation = ++_sessionGeneration;
     state = const AuthLoading();
     try {
       final user =
           await _register(name: name, email: email, password: password);
+      if (!_current(generation)) return;
       state = AuthAuthenticated(user);
     } catch (e) {
+      if (!_current(generation)) return;
       state = AuthError(e.toString());
     }
   }
 
   Future<void> logout() async {
+    final generation = ++_sessionGeneration;
     state = const AuthLoading();
     try {
       await _logout();
+      if (!_current(generation)) return;
       state = const AuthUnauthenticated();
     } catch (e) {
+      if (!_current(generation)) return;
       state = AuthError(e.toString());
     }
   }
@@ -122,8 +144,10 @@ class AuthNotifier extends _$AuthNotifier {
   /// pesan validasi bisa ditampilkan; state tetap terautentikasi.
   Future<void> updateProfile(Map<String, Object?> fields) async {
     if (state is! AuthAuthenticated) return;
+    final generation = _sessionGeneration;
     final updatedUser =
         await ref.read(authRepositoryProvider).updateProfile(fields);
+    if (!_current(generation)) return;
     state = AuthAuthenticated(updatedUser);
   }
 
@@ -133,10 +157,12 @@ class AuthNotifier extends _$AuthNotifier {
   /// If biometric verification succeeds, restores the session via
   /// [checkCurrentUser].
   Future<void> loginWithBiometric() async {
+    final generation = ++_sessionGeneration;
     state = const AuthLoading();
 
     final biometricService = ref.read(biometricAuthServiceProvider);
     final isSupported = await biometricService.isDeviceSupported();
+    if (!_current(generation)) return;
 
     if (!isSupported) {
       state = const AuthError('Biometric tidak didukung di perangkat ini');
@@ -146,6 +172,7 @@ class AuthNotifier extends _$AuthNotifier {
     final authenticated = await biometricService.authenticate(
       localizedReason: 'Verifikasi identitas Anda untuk masuk',
     );
+    if (!_current(generation)) return;
 
     if (authenticated) {
       // Biometric passed — try to restore cached session.
@@ -157,10 +184,12 @@ class AuthNotifier extends _$AuthNotifier {
 
   Future<void> uploadAvatar(XFile file) async {
     if (state is! AuthAuthenticated) return;
+    final generation = _sessionGeneration;
 
     final repository = ref.read(authRepositoryProvider);
     try {
       final updatedUser = await repository.uploadAvatar(file);
+      if (!_current(generation)) return;
       state = AuthAuthenticated(updatedUser);
     } catch (e) {
       rethrow;

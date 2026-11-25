@@ -65,6 +65,9 @@ class AuthRemoteDataSource {
       // Token digabung di lapisan repository.
       return UserModel.fromJson(_data(response));
     } on DioException catch (e) {
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        throw const UnauthorizedException();
+      }
       throw e.error ?? ServerException(e.message ?? 'Failed to fetch profile');
     }
   }

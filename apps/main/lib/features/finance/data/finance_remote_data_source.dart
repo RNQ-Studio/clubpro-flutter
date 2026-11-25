@@ -31,7 +31,7 @@ class FinanceRemoteDataSource {
         message = '${(errors.values.first as List).first}';
       }
       throw switch (e.response?.statusCode) {
-        401 => const ServerException('Sesi berakhir. Silakan masuk kembali.'),
+        401 => const FinanceAuthenticationException(),
         402 => const ServerException(
             'Masa aktif komunitas atau keanggotaan berakhir. Buka Keanggotaan & pembayaran untuk melunasi kewajiban.'),
         403 =>

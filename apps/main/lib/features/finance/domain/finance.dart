@@ -198,3 +198,9 @@ class FinanceDataException implements Exception {
   String toString() =>
       'Data nominal dari server tidak valid. Muat ulang sebelum melanjutkan pembayaran.';
 }
+
+class FinanceAuthenticationException implements Exception {
+  const FinanceAuthenticationException();
+  @override
+  String toString() => 'Sesi berakhir. Silakan masuk kembali.';
+}

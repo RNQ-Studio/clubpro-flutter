@@ -1,6 +1,6 @@
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -51,6 +51,10 @@ final appRouter = GoRouter(
   redirect: clubAuthRedirect,
   observers: [AppNavigatorObserver()],
   routes: [
+    GoRoute(
+      path: AppRoutes.authCheck,
+      builder: (context, state) => const _SessionCheckScreen(),
+    ),
     ...buildAuthRoutes(
       splash: () => const SplashScreen(
         title: ClubBrand.name,
@@ -349,6 +353,7 @@ String? safeLoginReturn(String? value) {
       !value.startsWith('/') ||
       value.startsWith('//') ||
       value.startsWith('/login') ||
+      value.startsWith(AppRoutes.authCheck) ||
       Uri.tryParse(value)?.hasScheme == true) {
     return null;
   }
@@ -360,12 +365,23 @@ String loginDestination(BuildContext context, User user) =>
     afterLoginLocation(user);
 String? clubAuthRedirect(BuildContext context, GoRouterState state) {
   final auth = ProviderScope.containerOf(context).read(authProvider);
-  if (auth is AuthInitial || auth is AuthLoading) return null;
   final path = state.uri.path;
   final public = path == '/splash' ||
       path == '/onboarding' ||
       path.startsWith('/explore') ||
       path.startsWith('/login');
+  final checking = path == AppRoutes.authCheck;
+  if (auth is AuthInitial || auth is AuthLoading) {
+    return public || checking
+        ? null
+        : '${AppRoutes.authCheck}?from=${Uri.encodeComponent(state.uri.toString())}';
+  }
+  if (checking) {
+    final destination = safeLoginReturn(state.uri.queryParameters['from']);
+    return auth is AuthAuthenticated
+        ? destination ?? afterLoginLocation(auth.user)
+        : '/login${destination == null ? '' : '?from=${Uri.encodeComponent(destination)}'}';
+  }
   if (auth is AuthAuthenticated) {
     if ((path == '/login' ||
             path == '/login/pin' ||
@@ -379,4 +395,42 @@ String? clubAuthRedirect(BuildContext context, GoRouterState state) {
   return public
       ? null
       : '/login?from=${Uri.encodeComponent(state.uri.toString())}';
+}
+
+/// Private routes never mount their consumers until session restoration settles.
+class _SessionCheckScreen extends ConsumerStatefulWidget {
+  const _SessionCheckScreen();
+  @override
+  ConsumerState<_SessionCheckScreen> createState() =>
+      _SessionCheckScreenState();
+}
+
+class _SessionCheckScreenState extends ConsumerState<_SessionCheckScreen> {
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual(authProvider, (_, next) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) GoRouter.of(context).refresh();
+      });
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ref.read(authProvider) is AuthInitial) {
+        ref.read(authProvider.notifier).checkCurrentUser();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Memeriksa sesi…'),
+            ]),
+          ),
+        ),
+      );
 }

@@ -1,6 +1,9 @@
 import 'dart:math';
+import 'dart:async';
 import 'package:core/core.dart';
+import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,11 +12,13 @@ import '../domain/finance.dart';
 
 String financeErrorMessage(Object error) => error is AppException
     ? error.message
-    : error is FinanceConflictException
-        ? error.message
-        : error is FinanceDataException
-            ? error.toString()
-            : 'Tindakan belum berhasil. Muat ulang lalu coba lagi.';
+    : error is FinanceAuthenticationException
+        ? error.toString()
+        : error is FinanceConflictException
+            ? error.message
+            : error is FinanceDataException
+                ? error.toString()
+                : 'Tindakan belum berhasil. Muat ulang lalu coba lagi.';
 
 String financeRequestId() {
   final random = Random.secure();
@@ -86,19 +91,43 @@ class FinanceError extends StatelessWidget {
   const FinanceError({super.key, required this.error, required this.retry});
   final Object error;
   final VoidCallback retry;
+
+  void _login(BuildContext context) {
+    final router = GoRouter.of(context);
+    final destination = router.routeInformationProvider.value.uri.toString();
+    final container = ProviderScope.containerOf(context);
+    unawaited(container
+        .read(authProvider.notifier)
+        .sessionExpired()
+        .catchError((Object _) {}));
+    router.go('/login?from=${Uri.encodeComponent(destination)}');
+  }
+
   @override
   Widget build(BuildContext context) => Center(
-      child: SingleChildScrollView(
-          child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.cloud_off_outlined, size: 36),
-                const SizedBox(height: 12),
-                Text(financeErrorMessage(error), textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                    onPressed: retry, child: const Text('Coba Lagi')),
-              ]))));
+      child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: SingleChildScrollView(
+              child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.cloud_off_outlined, size: 36),
+                    const SizedBox(height: 12),
+                    Text(financeErrorMessage(error),
+                        textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    if (error is FinanceAuthenticationException ||
+                        error is UnauthorizedException)
+                      FilledButton.icon(
+                        key: const Key('finance-login'),
+                        onPressed: () => _login(context),
+                        icon: const Icon(Icons.login),
+                        label: const Text('Masuk kembali'),
+                      )
+                    else
+                      OutlinedButton(
+                          onPressed: retry, child: const Text('Coba Lagi')),
+                  ])))));
 }
 
 class FinanceMessage extends StatelessWidget {
