@@ -223,7 +223,8 @@ class _MemberIdentityScreenState extends ConsumerState<MemberIdentityScreen> {
                                         labelText:
                                             'Email akun anggota (opsional)',
                                         helperText:
-                                            'Membantu memeriksa duplikasi; penautan tetap memerlukan undangan terverifikasi.'),
+                                            'Mencegah duplikasi; penautan perlu verifikasi email.',
+                                        helperMaxLines: 3),
                                     validator: (v) => v != null &&
                                             v.isNotEmpty &&
                                             !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')

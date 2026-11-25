@@ -307,8 +307,8 @@ class _DependentScreenState extends ConsumerState<DependentScreen> {
                                 TextField(
                                     controller: _birth,
                                     decoration: const InputDecoration(
-                                        labelText:
-                                            'Tanggal lahir (YYYY-MM-DD, opsional)')),
+                                        labelText: 'Tanggal lahir (opsional)',
+                                        hintText: 'YYYY-MM-DD')),
                                 const SizedBox(height: 16),
                                 DropdownButtonFormField<String>(
                                     initialValue: _gender ?? '',
