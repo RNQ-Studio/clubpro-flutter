@@ -178,7 +178,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         onPressed: _paying ? null : _renew,
                         icon: const Icon(Icons.update),
                         label: const Text('Siapkan perpanjangan')),
-                  if (!b.entitlement.active || b.entitlement.arrearsAmount > 0)
+                  if (b.entitlement.state == 'expired' &&
+                      b.entitlement.arrearsAmount > 0)
                     for (final n in b.notices) FinanceMessage(n.message),
                   Text(
                       _scope == 'platform'

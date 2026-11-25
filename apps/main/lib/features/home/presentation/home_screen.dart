@@ -110,21 +110,29 @@ class HomeScreen extends ConsumerWidget {
                   padding: EdgeInsets.fromLTRB(side, 12, side, 24),
                   children: [
                     if (user != null)
-                      HomeUserHeader(
-                        user: user,
-                        onTap: () => context.go(AppRoutes.profile),
-                      ),
+                      Row(children: [
+                        Expanded(
+                          child: HomeUserHeader(
+                            user: user,
+                            onTap: () => context.go(AppRoutes.profile),
+                          ),
+                        ),
+                        IconButton(
+                          key: const Key('home-wallet'),
+                          tooltip: 'Saldo & top up',
+                          onPressed: () => context.push(AppRoutes.wallet),
+                          icon:
+                              const Icon(Icons.account_balance_wallet_outlined),
+                        ),
+                        IconButton(
+                          key: const Key('home-billing-notices'),
+                          tooltip: 'Pengingat pembayaran',
+                          onPressed: () =>
+                              context.push(AppRoutes.billingNotices),
+                          icon: const Icon(Icons.notifications_active_outlined),
+                        ),
+                      ]),
                     const SizedBox(height: 10),
-                    const FinanceEntryCard(),
-                    ListTile(
-                        key: const Key('home-billing-notices'),
-                        leading:
-                            const Icon(Icons.notifications_active_outlined),
-                        title: const Text('Pengingat pembayaran'),
-                        subtitle:
-                            const Text('Masa aktif dan peninjauan anggota'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push(AppRoutes.billingNotices)),
                     ...clubSection,
                     if (user != null && user.isSuperAdmin) ...[
                       const SizedBox(height: 24),
@@ -182,9 +190,6 @@ class _ActiveClub extends ConsumerWidget {
               : null,
         ),
         HomeDuesCard(communityId: community.id),
-        FinanceEntryCard(
-            communityId: community.id,
-            platform: community.myRole == CommunityRole.creator),
         if (restricted) ...[
           const FinanceMessage(
               'Keanggotaan atau langganan komunitas tidak aktif. Lunasi kewajiban melalui menu pembayaran untuk membuka kegiatan.'),
@@ -213,6 +218,9 @@ class _ActiveClub extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
         ],
+        FinanceEntryCard(
+            communityId: community.id,
+            platform: community.myRole == CommunityRole.creator),
         HomeMoreCommunities(
           onFind: () => context.push(AppRoutes.communities),
           onCreate: () => context.push(AppRoutes.createCommunity),

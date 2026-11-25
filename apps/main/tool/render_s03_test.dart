@@ -1,8 +1,20 @@
+import 'package:app_main/features/home/presentation/home_screen.dart';
+import 'package:app_main/features/home/presentation/home_providers.dart';
+import 'package:app_main/features/home/domain/entities/home_banner.dart';
+import 'package:app_main/features/community/domain/entities/community.dart';
+import 'package:app_main/features/community/presentation/active_community_notifier.dart';
+import 'package:app_main/features/dues/presentation/dues_providers.dart';
+import '../test/features/home/fake_promotion_popup_store.dart';
+import '../test/features/dues/fake_dues_repository.dart';
 import 'package:app_main/features/member_card/domain/entities/member_card.dart';
 import 'package:app_main/features/member_card/presentation/member_card_providers.dart';
 import 'package:app_main/features/member_card/presentation/screens/member_card_screen.dart';
 import '../test/features/community/fake_community_repository.dart'
-    show testCommunity;
+    show
+        testCommunity,
+        testDetail,
+        FakeCommunityRepository,
+        FakeActiveCommunityStore;
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:app_main/features/finance/domain/finance.dart';
@@ -38,6 +50,8 @@ void main() {
   setUpAll(fonts);
   for (final width in [500.0, 1280.0]) {
     for (final (name, screen) in <(String, Widget)>[
+      ('home-member', const HomeScreen()),
+      ('home-manager', const HomeScreen()),
       ('wallet', const WalletScreen()),
       ('wallet-large', const WalletScreen()),
       (
@@ -145,8 +159,31 @@ void main() {
             key: key,
             child: fixture.financeApp(screen,
                 repo: repo,
+                community: name.startsWith('home-')
+                    ? FakeCommunityRepository(
+                        detail: testDetail(
+                            myRole: name == 'home-manager'
+                                ? CommunityRole.creator
+                                : CommunityRole.member),
+                        joined: [
+                            testCommunity('1',
+                                myRole: name == 'home-manager'
+                                    ? CommunityRole.creator
+                                    : CommunityRole.member)
+                          ])
+                    : null,
                 scale: name == 'wallet-large' ? 1.5 : 1,
                 extraOverrides: [
+                  if (name.startsWith('home-')) ...[
+                    homePromotionsProvider.overrideWith(
+                        (ref) async => const HomePromotions(banners: [])),
+                    promotionPopupStoreProvider.overrideWithValue(
+                        FakePromotionPopupStore({'1': DateTime.now()})),
+                    activeCommunityStoreProvider.overrideWithValue(
+                        FakeActiveCommunityStore({'1': '1'})),
+                    duesRepositoryProvider.overrideWithValue(
+                        FakeDuesRepository(overview: notConfigured)),
+                  ],
                   if (name.startsWith('kta-'))
                     memberCardProvider('1').overrideWith((ref) async =>
                         MemberCard(

@@ -879,4 +879,18 @@ void main() {
     expect(find.text('Data diarsipkan; histori transaksi dipertahankan.'),
         findsOneWidget);
   });
+  testWidgets(
+      'archived billing never promises debt payment restores archived access',
+      (t) async {
+    size(t);
+    final repo = FakeFinance()
+      ..billingValue = billingFixture(state: 'archived');
+    await t.pumpWidget(
+        financeApp(const BillingScreen(communityId: '1'), repo: repo));
+    await t.pumpAndSettle();
+    expect(find.text('Lunasi seluruh kewajiban untuk kembali aktif.'),
+        findsNothing);
+    expect(find.textContaining('tidak membatalkan keputusan pengarsipan'),
+        findsWidgets);
+  });
 }
