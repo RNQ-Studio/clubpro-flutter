@@ -13,7 +13,7 @@ const origin = new URL(process.argv[2] ?? 'https://ceo-pro.web.app');
 assert(['https://ceo-pro.web.app', 'http://localhost:5055', 'http://127.0.0.1:5055'].includes(origin.origin), 'Unexpected test origin');
 const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const routes = ['/wallet', '/billing-notices'];
+const routes = ['/wallet', '/billing-notices', '/communities/1/training', '/communities/1/training/report'];
 
 class DevTools {
   constructor(socket) {
@@ -25,7 +25,7 @@ class DevTools {
       const message = JSON.parse(event.data);
       if (message.method === 'Network.requestWillBeSent') {
         const url = message.params.request.url;
-        if (/\/api\/v1\/(wallet(?:[/?]|$)|billing-notices(?:[/?]|$))/.test(url)) this.requests.push(url);
+        if (/\/api\/v1\/(wallet(?:[/?]|$)|billing-notices(?:[/?]|$)|communities\/[^/]+\/training(?:[/?]|$))/.test(url)) this.requests.push(url);
       }
       if (message.id && this.pending.has(message.id)) {
         const pending = this.pending.get(message.id);

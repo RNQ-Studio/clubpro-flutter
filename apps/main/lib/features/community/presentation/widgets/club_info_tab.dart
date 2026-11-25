@@ -1,4 +1,5 @@
 import 'package:core/core.dart';
+import '../../../training/presentation/training_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -89,6 +90,7 @@ class ClubInfoTab extends ConsumerWidget {
                 label: const Text('Masa aktif & pembayaran')),
             const SizedBox(height: 12),
           ],
+          if (community.isMember) TrainingEntryCard(communityId: community.id),
           ClubSection(
             title: 'Tentang Komunitas',
             icon: Icons.info_outline_rounded,

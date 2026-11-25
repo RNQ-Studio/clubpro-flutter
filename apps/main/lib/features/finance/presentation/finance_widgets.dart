@@ -52,6 +52,9 @@ String operationLabel(String value) => switch (value) {
       'billing_platform' =>
         'Langganan komunitas',
       'reserve' => 'Dana dicadangkan',
+      'reserve_reserved' => 'Dana paket dicadangkan',
+      'training_attendance' => 'Pembagian hasil latihan',
+      'training_correction' => 'Koreksi teknis latihan',
       'release' => 'Cadangan dilepas',
       _ when value.startsWith('billing_pay:') => 'Pembayaran kewajiban',
       _ => value.replaceAll('_', ' '),

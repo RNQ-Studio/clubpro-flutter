@@ -31,6 +31,18 @@ abstract final class AppRoutes {
   static String communityLifecycle(String id) =>
       '${communityBilling(id)}/inactive';
 
+  // Paket, latihan, dan pembagian nominal
+  static String communityTraining(String id) => '${community(id)}/training';
+  static String trainingSettings(String id) =>
+      '${communityTraining(id)}/settings';
+  static String trainingNewLocation(String id) =>
+      '${communityTraining(id)}/locations/new';
+  static String trainingLocation(String id, String locationId) =>
+      '${communityTraining(id)}/locations/$locationId';
+  static String trainingNewSession(String id) =>
+      '${communityTraining(id)}/sessions/new';
+  static String trainingReport(String id) => '${communityTraining(id)}/report';
+
   // Iuran komunitas
   static String communityCard(String id) => '${community(id)}/card';
   static String communityDues(String id) => '${community(id)}/dues';

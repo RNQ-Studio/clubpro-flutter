@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:core/core.dart';
+import '../../training/presentation/training_screen.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -218,6 +219,7 @@ class _ActiveClub extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
         ],
+        TrainingEntryCard(communityId: community.id),
         FinanceEntryCard(
             communityId: community.id,
             platform: community.myRole == CommunityRole.creator),

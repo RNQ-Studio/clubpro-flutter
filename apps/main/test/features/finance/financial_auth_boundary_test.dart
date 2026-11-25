@@ -21,6 +21,10 @@ import 'package:mocktail/mocktail.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../community/fake_community_repository.dart';
 import 'finance_screens_test.dart' show FakeFinance;
+import '../training/fake_training_repository.dart';
+import 'package:app_main/features/training/presentation/training_providers.dart';
+
+final training = FakeTraining();
 
 class _Database extends Mock implements AppDatabase {}
 
@@ -90,6 +94,7 @@ Widget _application(_Storage storage, _AuthAdapter adapter, FakeFinance finance,
         {bool bootstrap = true}) =>
     ProviderScope(
         overrides: [
+          trainingRepositoryProvider.overrideWithValue(training),
           authRepositoryProvider
               .overrideWithValue(_repository(storage, adapter)),
           financeRepositoryProvider.overrideWithValue(finance),
@@ -115,6 +120,8 @@ ProviderContainer _container(WidgetTester t) =>
     ProviderScope.containerOf(t.element(find.byType(MaterialApp)));
 void main() {
   setUp(() {
+    training.loads = 0;
+    training.calls.clear();
     AppConfig.instance = MainConfig();
     PackageInfo.setMockInitialValues(
         appName: 'CEO',
@@ -124,6 +131,12 @@ void main() {
         buildSignature: '');
   });
   final privateRoutes = [
+    '/communities/1/training',
+    '/communities/1/training/settings',
+    '/communities/1/training/locations/new',
+    '/communities/1/training/locations/1',
+    '/communities/1/training/sessions/new',
+    '/communities/1/training/report',
     '/wallet',
     '/wallet/topup?community=1',
     '/wallet/receipts?community=1&manage=1',
@@ -156,12 +169,14 @@ void main() {
       expect(finance.walletCalls, 0);
       expect(finance.calls, isEmpty);
       expect(adapter.requests, 0);
+      expect(training.loads, 0);
       expect(find.byType(WalletScreen), findsNothing);
       storage.reads!.complete();
       await t.pumpAndSettle();
       final uri = appRouter.routeInformationProvider.value.uri;
       expect(uri.path, '/login');
       expect(uri.queryParameters['from'], route);
+      expect(training.loads, 0);
       expect(finance.walletCalls, 0);
       expect(finance.calls, isEmpty);
     });

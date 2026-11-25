@@ -32,6 +32,10 @@ import '../features/finance/presentation/topup_screen.dart';
 import '../features/finance/presentation/receipt_screen.dart';
 import '../features/finance/presentation/billing_notices_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/training/presentation/training_screen.dart';
+import '../features/training/presentation/training_settings_screen.dart';
+import '../features/training/presentation/training_session_screen.dart';
+import '../features/training/presentation/training_report_screen.dart';
 import '../features/member_card/presentation/screens/member_card_screen.dart';
 import '../features/quotes/presentation/screens/quote_form_screen.dart';
 import '../features/quotes/presentation/screens/quotes_screen.dart';
@@ -176,6 +180,33 @@ final appRouter = GoRouter(
                         ClubTab.fromName(state.uri.queryParameters['tab']),
                   )),
               routes: [
+                GoRoute(
+                    path: 'training',
+                    builder: (_, state) => TrainingScreen(
+                        communityId: state.pathParameters['id']!),
+                    routes: [
+                      GoRoute(
+                          path: 'settings',
+                          builder: (_, state) => TrainingSettingsScreen(
+                              communityId: state.pathParameters['id']!)),
+                      GoRoute(
+                          path: 'locations/new',
+                          builder: (_, state) => TrainingLocationScreen(
+                              communityId: state.pathParameters['id']!)),
+                      GoRoute(
+                          path: 'locations/:locationId',
+                          builder: (_, state) => TrainingLocationScreen(
+                              communityId: state.pathParameters['id']!,
+                              locationId: state.pathParameters['locationId']!)),
+                      GoRoute(
+                          path: 'sessions/new',
+                          builder: (_, state) => TrainingSessionScreen(
+                              communityId: state.pathParameters['id']!)),
+                      GoRoute(
+                          path: 'report',
+                          builder: (_, state) => TrainingReportScreen(
+                              communityId: state.pathParameters['id']!)),
+                    ]),
                 GoRoute(
                     path: 'billing',
                     builder: (context, state) => BillingScreen(
