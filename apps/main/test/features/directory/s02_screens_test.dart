@@ -332,10 +332,22 @@ void main() {
     await t.pumpWidget(app(const DependentScreen(id: '4'), repo: repo));
     await t.pumpAndSettle();
     await t.enterText(find.byType(TextField).first, 'Anak Diperbarui');
+    await t.enterText(find.byType(TextField).at(1), '2099-01-01');
+    await t.tap(find.text('Simpan Data'));
+    await t.pumpAndSettle();
+    expect(repo.updated, 0);
+    expect(find.textContaining('Gunakan tanggal YYYY-MM-DD yang valid'),
+        findsOneWidget);
+    await t.enterText(find.byType(TextField).at(1), '2026-02-30');
+    await t.tap(find.text('Simpan Data'));
+    await t.pumpAndSettle();
+    expect(repo.updated, 0);
+    await t.enterText(find.byType(TextField).at(1), '2016-05-20');
     await t.tap(find.text('Simpan Data'));
     await t.pumpAndSettle();
     expect(repo.updated, 1);
     expect(repo.fields!['name'], 'Anak Diperbarui');
+    expect(repo.fields!['birth_date'], '2016-05-20');
     await t.ensureVisible(find.text('Lepaskan Hubungan Wali'));
     await t.tap(find.text('Lepaskan Hubungan Wali'));
     await t.pumpAndSettle();
@@ -449,12 +461,45 @@ void main() {
     testWidgets('directory loading/error/empty accessible at $width',
         (t) async {
       size(t, width);
-      final repo = FakeDirectory()..fail = true;
+      final repo = FakeDirectory()
+        ..empty = true
+        ..pending = Completer<void>();
       await t.pumpWidget(app(const DirectoryScreen(), repo: repo));
+      await t.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(t.takeException(), null);
+      repo.pending!.complete();
+      await t.pumpAndSettle();
+      expect(
+          find.text('Belum ada hasil. Coba pencarian lain.'), findsOneWidget);
+      expect(find.text('Komunitas Uji'), findsNothing);
+      expect(t.takeException(), null);
+      repo.empty = false;
+      repo.pending = Completer<void>();
+      await t.enterText(find.byType(TextField), 'uji');
+      await t.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      repo.pending!.complete();
+      await t.pumpAndSettle();
+      expect(find.text('Komunitas Uji'), findsOneWidget);
+      expect(repo.query, 'uji');
+      expect(t.takeException(), null);
+      repo.fail = true;
+      repo.pending = Completer<void>();
+      await t.enterText(find.byType(TextField), 'gagal');
+      await t.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      repo.pending!.complete();
       await t.pumpAndSettle();
       expect(find.textContaining('Akses ditolak'), findsOneWidget);
+      expect(t.takeException(), null);
       repo.fail = false;
+      repo.pending = Completer<void>();
       await t.tap(find.text('Coba Lagi'));
+      await t.pump();
+      // Riverpod keeps the previous error during a same-query refresh.
+      expect(find.textContaining('Akses ditolak'), findsOneWidget);
+      repo.pending!.complete();
       await t.pumpAndSettle();
       expect(find.text('Komunitas Uji'), findsOneWidget);
       expect(t.takeException(), null);
