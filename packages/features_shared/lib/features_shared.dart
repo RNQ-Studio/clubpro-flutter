@@ -84,3 +84,8 @@ export 'src/region/data/region_repository_impl.dart';
 
 // region — presentation
 export 'src/region/presentation/region_providers.dart';
+
+export 'src/auth/domain/repositories/pin_repository.dart';
+export 'src/auth/data/repositories/pin_repository_impl.dart';
+export 'src/auth/presentation/pin_provider.dart';
+export 'src/auth/presentation/pin_screen.dart';

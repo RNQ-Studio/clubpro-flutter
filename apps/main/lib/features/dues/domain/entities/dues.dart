@@ -149,6 +149,7 @@ class DuesOverview {
     required this.settings,
     required this.year,
     this.canManage = false,
+    this.canConfigure = false,
     this.me,
     this.payments = const [],
     this.pendingPaymentsCount,
@@ -157,6 +158,7 @@ class DuesOverview {
   final DuesSettings settings;
   final int year;
   final bool canManage;
+  final bool canConfigure;
 
   /// Null bila pengguna bukan anggota aktif (mis. super admin).
   final MyDues? me;

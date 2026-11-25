@@ -6,6 +6,8 @@ class UserModel extends User {
     required super.id,
     required super.name,
     required super.email,
+    super.pinEnabled,
+    super.birthDate,
     super.phone,
     super.avatarUrl,
     super.roles,
@@ -30,6 +32,8 @@ class UserModel extends User {
         id: json['id'].toString(),
         name: json['name'] as String,
         email: json['email'] as String,
+        pinEnabled: json['pin_enabled'] == true,
+        birthDate: json['birth_date'] as String?,
         phone: json['phone'] as String?,
         avatarUrl: json['avatar_url'] as String?,
         roles: (json['roles'] as List<dynamic>?)
@@ -47,6 +51,8 @@ class UserModel extends User {
   /// Cache lokal (mode offline) memakai bentuk JSON yang sama dengan API.
   Map<String, dynamic> toJson() => {
         'id': id,
+        'pin_enabled': pinEnabled,
+        'birth_date': birthDate,
         'name': name,
         'email': email,
         if (phone != null) 'phone': phone,
@@ -66,6 +72,8 @@ class UserModel extends User {
         id: id,
         name: name,
         email: email,
+        pinEnabled: pinEnabled,
+        birthDate: birthDate,
         phone: phone,
         avatarUrl: avatarUrl,
         roles: roles,

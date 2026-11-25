@@ -519,7 +519,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Hanya creator dan admin'), findsOneWidget);
+      expect(find.textContaining('Hanya pendiri komunitas'), findsOneWidget);
       expect(find.byKey(const Key('dues-settings-save')), findsNothing);
     });
   });

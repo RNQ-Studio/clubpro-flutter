@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import 'package:core/core.dart';
 import 'package:dio/dio.dart';
 
@@ -80,11 +81,14 @@ class AuthRemoteDataSource {
     }
   }
 
-  Future<UserModel> uploadAvatar(String filePath) async {
+  Future<UserModel> uploadAvatar(XFile file) async {
     try {
-      final fileName = filePath.split('/').last;
+      final bytes = await file.readAsBytes();
       final formData = FormData.fromMap({
-        'avatar': await MultipartFile.fromFile(filePath, filename: fileName),
+        'avatar': MultipartFile.fromBytes(bytes,
+            filename: file.name.isEmpty
+                ? 'avatar.${file.mimeType?.split('/').last ?? 'jpg'}'
+                : file.name),
       });
 
       final response = await _dio.post('v1/auth/avatar', data: formData);
@@ -109,7 +113,9 @@ class AuthRemoteDataSource {
     final token = tokens['access_token'] as String;
     final profileResponse = await _dio.get(
       'v1/auth/me',
-      options: Options(headers: {'Authorization': 'Bearer $token'}),
+      options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          extra: {'skipTokenRefresh': true}),
     );
     return UserModel.fromJson(_data(profileResponse)).copyWith(
       token: token,

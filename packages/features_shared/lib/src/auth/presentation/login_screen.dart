@@ -104,114 +104,120 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (_appName.isNotEmpty) ...[
-                    Center(
-                      child: Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.asset(
-                              'packages/features_shared/assets/logo.png',
-                              width: 64,
-                              height: 64,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _appName,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+            child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_appName.isNotEmpty) ...[
+                        Center(
+                          child: Column(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.asset(
+                                  'packages/features_shared/assets/logo.png',
+                                  width: 64,
+                                  height: 64,
+                                  fit: BoxFit.cover,
                                 ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Versi $_appVersion',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _appName,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Versi $_appVersion',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface
                                           .withValues(alpha: 0.5),
                                     ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                  Text(
-                    l10n.signIn,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
                         ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    controller: _emailCtrl,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(labelText: l10n.email),
-                    validator: (v) => (v == null || !v.contains('@'))
-                        ? l10n.errorInvalidEmail
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordCtrl,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: l10n.password,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_rounded
-                              : Icons.visibility_rounded,
-                        ),
-                        onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
-                      ),
-                    ),
-                    validator: (v) => (v == null || v.length < 6)
-                        ? l10n.errorPasswordTooShort
-                        : null,
-                  ),
-                  const SizedBox(height: 24),
-                  if (authState is AuthError)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        authState.message,
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.error),
+                        const SizedBox(height: 32),
+                      ],
+                      Text(
+                        l10n.signIn,
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                         textAlign: TextAlign.center,
                       ),
-                    ),
-                  FilledButton(
-                    onPressed: authState is AuthLoading ? null : _submit,
-                    child: authState is AuthLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(l10n.login),
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        controller: _emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(labelText: l10n.email),
+                        validator: (v) => (v == null || !v.contains('@'))
+                            ? l10n.errorInvalidEmail
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _passwordCtrl,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: l10n.password,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_rounded
+                                  : Icons.visibility_rounded,
+                            ),
+                            onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword),
+                          ),
+                        ),
+                        validator: (v) => (v == null || v.length < 6)
+                            ? l10n.errorPasswordTooShort
+                            : null,
+                      ),
+                      const SizedBox(height: 24),
+                      if (authState is AuthError)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            authState.message,
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.error),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      FilledButton(
+                        onPressed: authState is AuthLoading ? null : _submit,
+                        child: authState is AuthLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(l10n.login),
+                      ),
+                      const SizedBox(height: 16),
+                      const _BiometricLoginButton(),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  const _BiometricLoginButton(),
-                ],
-              ),
-            ),
+                )),
           ),
         ),
       ),

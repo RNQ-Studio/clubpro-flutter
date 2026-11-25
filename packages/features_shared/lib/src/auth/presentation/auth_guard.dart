@@ -71,3 +71,16 @@ class AuthGuard extends ConsumerWidget {
     return const SizedBox.shrink();
   }
 }
+
+/// Pertahankan tujuan internal saat mengganti metode masuk/pemulihan.
+String authMethodLocation(BuildContext context, String path) {
+  try {
+    final from = GoRouterState.of(context).uri.queryParameters['from'];
+    if (from != null &&
+        from.startsWith('/') &&
+        !from.startsWith('//') &&
+        !from.startsWith('/login'))
+      return '$path?from=${Uri.encodeComponent(from)}';
+  } catch (_) {}
+  return path;
+}

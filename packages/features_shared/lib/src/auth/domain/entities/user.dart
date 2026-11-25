@@ -7,6 +7,8 @@ class User {
     required this.id,
     required this.name,
     required this.email,
+    this.pinEnabled = false,
+    this.birthDate,
     this.phone,
     this.avatarUrl,
     this.roles = const [],
@@ -17,6 +19,8 @@ class User {
     ProfileCompletion? completion,
   }) : _completion = completion;
 
+  final bool pinEnabled;
+  final String? birthDate;
   final String id;
   final String name;
   final String email;

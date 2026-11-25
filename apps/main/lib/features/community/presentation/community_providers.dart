@@ -112,7 +112,7 @@ class CommunityMembersNotifier extends _$CommunityMembersNotifier {
 
     final repository = ref.read(communityRepositoryProvider);
     final active = repository.getMembers(communityId, page: 1);
-    final requests = detail.canManage
+    final requests = (detail.myRole?.canManageMembers ?? false)
         ? repository.getMembers(communityId, page: 1, pending: true)
         : null;
 

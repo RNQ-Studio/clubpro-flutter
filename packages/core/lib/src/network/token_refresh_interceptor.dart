@@ -40,6 +40,8 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
   /// Endpoint yang 401-nya berarti kredensial salah, bukan token kedaluwarsa.
   static const _credentialEndpoints = [
     'auth/login',
+    'auth/pin/login',
+    'auth/pin/reset',
     'auth/google',
     'auth/register',
     'auth/refresh',
@@ -51,6 +53,8 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
     ErrorInterceptorHandler handler,
   ) async {
     final path = err.requestOptions.path;
+    if (err.requestOptions.extra['skipTokenRefresh'] == true)
+      return handler.next(err);
     if (err.response?.statusCode != 401 ||
         _credentialEndpoints.any(path.contains)) {
       return handler.next(err);

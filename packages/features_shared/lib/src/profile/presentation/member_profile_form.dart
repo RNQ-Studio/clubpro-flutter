@@ -22,6 +22,7 @@ class MemberProfileForm extends ConsumerStatefulWidget {
 class MemberProfileFormState extends ConsumerState<MemberProfileForm> {
   final _formKey = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.user.name);
+  late final _birth = TextEditingController(text: widget.user.birthDate);
   late final _phone = TextEditingController(text: widget.user.phone);
 
   late MemberGender? _gender = widget.user.gender;
@@ -33,6 +34,7 @@ class MemberProfileFormState extends ConsumerState<MemberProfileForm> {
   void dispose() {
     _name.dispose();
     _phone.dispose();
+    _birth.dispose();
     super.dispose();
   }
 
@@ -52,6 +54,9 @@ class MemberProfileFormState extends ConsumerState<MemberProfileForm> {
       changes['phone'] = phone.isEmpty ? null : phone;
     }
 
+    if (_birth.text.trim() != (user.birthDate ?? ''))
+      changes['birth_date'] =
+          _birth.text.trim().isEmpty ? null : _birth.text.trim();
     if (_gender != user.gender) changes['gender'] = _gender?.apiValue;
 
     void region(String prefix, _RegionChoice choice, MemberRegion? before) {
@@ -100,6 +105,26 @@ class MemberProfileFormState extends ConsumerState<MemberProfileForm> {
             validator: (v) =>
                 (v ?? '').trim().isEmpty ? 'Nama tidak boleh kosong' : null,
           ),
+          const SizedBox(height: 16),
+          TextFormField(
+              key: const Key('field-birth-date'),
+              controller: _birth,
+              decoration: const InputDecoration(
+                  labelText: 'Tanggal lahir (opsional)',
+                  hintText: 'YYYY-MM-DD',
+                  prefixIcon: Icon(Icons.cake_outlined)),
+              validator: (v) {
+                if (v == null || v.isEmpty) return null;
+                final d = DateTime.tryParse(v);
+                final n = DateTime.now();
+                return !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(v) ||
+                        d == null ||
+                        d.toIso8601String().substring(0, 10) != v ||
+                        d.isAfter(n) ||
+                        d.isBefore(DateTime(n.year - 120, n.month, n.day))
+                    ? 'Tanggal lahir tidak valid (maksimal 120 tahun).'
+                    : null;
+              }),
           const SizedBox(height: 16),
           const _FieldLabel('Jenis kelamin'),
           SegmentedButton<MemberGender>(

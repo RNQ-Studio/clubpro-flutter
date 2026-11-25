@@ -81,6 +81,61 @@ void main() {
     return dio;
   }
 
+  test('explicit login token is retained when another account is cached',
+      () async {
+    storage.values[AppConstants.keyAuthToken] = 'old-account-token';
+    final adapter = _FakeAdapter((o) {
+      expect(o.headers['Authorization'], 'Bearer new-account-token');
+      return (
+        200,
+        {
+          'data': {'id': 2}
+        }
+      );
+    });
+    final dio = buildDio(adapter);
+    await dio.get('v1/auth/me',
+        options:
+            Options(headers: {'Authorization': 'Bearer new-account-token'}));
+    expect(adapter.requests.length, 1);
+    expect(logouts, 0);
+  });
+
+  test('failed fresh login profile cannot refresh/retry as cached account',
+      () async {
+    storage.values[AppConstants.keyAuthToken] = 'old-account-token';
+    storage.values[AppConstants.keyRefreshToken] = 'old-refresh';
+    final adapter = _FakeAdapter((o) => (401, {'message': 'Invalid token'}));
+    final dio = buildDio(adapter);
+    await expectLater(
+        dio.get('v1/auth/me',
+            options: Options(
+                headers: {'Authorization': 'Bearer failed-new-token'},
+                extra: {'skipTokenRefresh': true})),
+        throwsA(isA<DioException>()));
+    expect(adapter.requests.length, 1);
+    expect(logouts, 0);
+    expect(storage.values[AppConstants.keyAuthToken], 'old-account-token');
+  });
+
+  test('PIN login 401 does not refresh, retry or log out another session',
+      () async {
+    storage.values[AppConstants.keyAuthToken] = 'existing-token';
+    storage.values[AppConstants.keyRefreshToken] = 'existing-refresh';
+    final adapter = _FakeAdapter(
+        (o) => (401, {'message': 'Pengenal akun atau PIN tidak sesuai.'}));
+    final dio = buildDio(adapter);
+    await expectLater(
+        dio.post('v1/auth/pin/login', data: {
+          'identifier': 'uji@anaklangit.manahpro.web.id',
+          'pin': '000000'
+        }),
+        throwsA(isA<DioException>()));
+    expect(adapter.requests.length, 1);
+    expect(logouts, 0);
+    expect(storage.values[AppConstants.keyAuthToken], 'existing-token');
+  });
+
   test('401 → refresh ke v1/auth/refresh (body) → simpan token → ulangi',
       () async {
     storage.values[AppConstants.keyAuthToken] = 'old-access';

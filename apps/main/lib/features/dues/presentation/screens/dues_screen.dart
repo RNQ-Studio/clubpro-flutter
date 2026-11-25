@@ -104,12 +104,13 @@ class _DuesBody extends StatelessWidget {
                 communityId: communityId,
                 pendingCount: overview.pendingPaymentsCount ?? 0,
                 configured: settings.configured,
+                canConfigure: overview.canConfigure,
               ),
               const SizedBox(height: 16),
             ],
             if (!settings.configured)
               _NotConfigured(
-                canManage: overview.canManage,
+                canManage: overview.canConfigure,
                 onSetUp: () =>
                     context.push(AppRoutes.communityDuesSettings(communityId)),
               )
@@ -315,11 +316,13 @@ class _ManagerTools extends StatelessWidget {
     required this.communityId,
     required this.pendingCount,
     required this.configured,
+    required this.canConfigure,
   });
 
   final String communityId;
   final int pendingCount;
   final bool configured;
+  final bool canConfigure;
 
   @override
   Widget build(BuildContext context) {
@@ -390,15 +393,16 @@ class _ManagerTools extends StatelessWidget {
               location: AppRoutes.communityDuesMembers(communityId),
             ),
           ],
-          tile(
-            key: const Key('dues-tool-settings'),
-            icon: Icons.tune_rounded,
-            title: 'Pengaturan Iuran',
-            subtitle: configured
-                ? 'Nominal, uang masuk, tanggal mulai, rekening'
-                : 'Belum diatur',
-            location: AppRoutes.communityDuesSettings(communityId),
-          ),
+          if (canConfigure)
+            tile(
+              key: const Key('dues-tool-settings'),
+              icon: Icons.tune_rounded,
+              title: 'Pengaturan Iuran',
+              subtitle: configured
+                  ? 'Nominal, uang masuk, tanggal mulai, rekening'
+                  : 'Belum diatur',
+              location: AppRoutes.communityDuesSettings(communityId),
+            ),
         ],
       ),
     );

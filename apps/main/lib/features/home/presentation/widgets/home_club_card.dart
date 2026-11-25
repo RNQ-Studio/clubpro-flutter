@@ -103,6 +103,8 @@ class HomeClubCard extends StatelessWidget {
                         CommunityRole.creator =>
                           Icons.workspace_premium_rounded,
                         CommunityRole.admin => Icons.shield_rounded,
+                        CommunityRole.officer => Icons.manage_accounts_rounded,
+                        CommunityRole.coach => Icons.sports_rounded,
                         CommunityRole.member => Icons.person_rounded,
                       },
                       label: role.label,

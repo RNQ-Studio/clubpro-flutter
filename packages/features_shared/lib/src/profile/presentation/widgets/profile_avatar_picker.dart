@@ -58,7 +58,7 @@ class _ProfileAvatarPickerState extends ConsumerState<ProfileAvatarPicker> {
       if (image == null) return;
 
       setState(() => _uploading = true);
-      await ref.read(authProvider.notifier).uploadAvatar(image.path);
+      await ref.read(authProvider.notifier).uploadAvatar(image);
       messenger.showSnackBar(
         const SnackBar(content: Text('Foto profil berhasil diperbarui')),
       );

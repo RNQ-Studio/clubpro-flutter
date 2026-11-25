@@ -1,8 +1,11 @@
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/directory/presentation/directory_screen.dart';
+import '../features/directory/presentation/guardian_screen.dart';
 import '../branding/club_brand.dart';
 import '../branding/club_login.dart';
 import '../branding/club_logo.dart';
@@ -41,7 +44,7 @@ final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/splash',
   // Semua halaman selain splash/onboarding/login wajib login.
-  redirect: requireAuthRedirectWith(afterLogin: afterLoginLocation),
+  redirect: clubAuthRedirect,
   observers: [AppNavigatorObserver()],
   routes: [
     ...buildAuthRoutes(
@@ -56,9 +59,49 @@ final appRouter = GoRouter(
       withOnboarding: false,
       login: () => ClubLoginPage(
         onLoggedIn: (context, state) =>
-            context.go(afterLoginLocation(state.user)),
+            context.go(loginDestination(context, state.user)),
       ),
     ),
+
+    GoRoute(
+        path: '/login/pin',
+        builder: (context, state) => PinScreen(onLoggedIn: () {
+              final auth =
+                  ProviderScope.containerOf(context).read(authProvider);
+              if (auth is AuthAuthenticated)
+                context.go(loginDestination(context, auth.user));
+            })),
+    GoRoute(
+        path: '/login/recovery',
+        builder: (context, state) => const PinScreen(mode: PinMode.recovery)),
+    GoRoute(
+        path: '/login/password',
+        builder: (context, state) => LoginScreen(onLoginSuccess: () {
+              final auth =
+                  ProviderScope.containerOf(context).read(authProvider);
+              if (auth is AuthAuthenticated)
+                context.go(loginDestination(context, auth.user));
+            })),
+    GoRoute(
+        path: '/explore', builder: (context, state) => const DirectoryScreen()),
+    GoRoute(
+        path: '/explore/communities/:id',
+        builder: (context, state) =>
+            PublicCommunityScreen(id: state.pathParameters['id']!)),
+    GoRoute(
+        path: '/explore/communities/:id/members',
+        builder: (context, state) =>
+            DirectoryScreen(communityId: state.pathParameters['id']!)),
+    GoRoute(
+        path: '/account/pin',
+        builder: (context, state) => const PinScreen(mode: PinMode.manage)),
+    GoRoute(
+        path: '/guardians',
+        builder: (context, state) => const GuardianScreen()),
+    GoRoute(
+        path: '/guardians/dependents/:id',
+        builder: (context, state) =>
+            DependentScreen(id: state.pathParameters['id']!)),
 
     // Anak `/`: tombol kembali tetap ada walau halaman dimuat ulang.
     GoRoute(
@@ -239,3 +282,34 @@ final appRouter = GoRouter(
     ),
   ],
 );
+
+String? safeLoginReturn(String? value) {
+  if (value == null ||
+      !value.startsWith('/') ||
+      value.startsWith('//') ||
+      value.startsWith('/login') ||
+      Uri.tryParse(value)?.hasScheme == true) return null;
+  return value;
+}
+
+String loginDestination(BuildContext context, User user) =>
+    safeLoginReturn(GoRouterState.of(context).uri.queryParameters['from']) ??
+    afterLoginLocation(user);
+String? clubAuthRedirect(BuildContext context, GoRouterState state) {
+  final auth = ProviderScope.containerOf(context).read(authProvider);
+  if (auth is AuthInitial || auth is AuthLoading) return null;
+  final path = state.uri.path;
+  final public = path == '/splash' ||
+      path == '/onboarding' ||
+      path.startsWith('/explore') ||
+      path.startsWith('/login');
+  if (auth is AuthAuthenticated) {
+    if (path == '/login' || path == '/login/pin' || path == '/login/password')
+      return safeLoginReturn(state.uri.queryParameters['from']) ??
+          afterLoginLocation(auth.user);
+    return null;
+  }
+  return public
+      ? null
+      : '/login?from=${Uri.encodeComponent(state.uri.toString())}';
+}

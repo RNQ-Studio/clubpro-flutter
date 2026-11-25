@@ -13,6 +13,7 @@
       "account_name": "Komunitas Pemanah Nusantara"
     },
     "can_manage": true,
+    "can_configure_dues": true,
     "year": 2026,
     "me": {
       "billable_from": "2026-11",

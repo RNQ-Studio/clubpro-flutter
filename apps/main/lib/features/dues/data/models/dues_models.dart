@@ -80,6 +80,7 @@ DuesOverview duesOverviewFromJson(Map<String, dynamic> json) {
     settings: duesSettingsFromJson(json['settings'] as Map<String, dynamic>),
     year: json['year'] as int,
     canManage: json['can_manage'] as bool? ?? false,
+    canConfigure: json['can_configure_dues'] as bool? ?? false,
     me: me == null
         ? null
         : MyDues(

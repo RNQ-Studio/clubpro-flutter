@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import 'package:features_shared/features_shared.dart';
 
 class FakeAuthRepository implements AuthRepository {
@@ -27,7 +28,7 @@ class FakeAuthRepository implements AuthRepository {
     _currentUser = const User(
       id: 'dev-001',
       name: 'Dev User',
-      email: 'dev@example.com',
+      email: 'dev@anaklangit.manahpro.web.id',
     );
     return _currentUser!;
   }
@@ -60,13 +61,13 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<User> uploadAvatar(String filePath) async {
+  Future<User> uploadAvatar(XFile file) async {
     _currentUser = User(
       id: _currentUser?.id ?? 'dev-001',
       name: _currentUser?.name ?? 'Dev User',
-      email: _currentUser?.email ?? 'dev@example.com',
+      email: _currentUser?.email ?? 'dev@anaklangit.manahpro.web.id',
       phone: _currentUser?.phone,
-      avatarUrl: filePath,
+      avatarUrl: file.path,
       roles: _currentUser?.roles ?? const [],
     );
     return _currentUser!;

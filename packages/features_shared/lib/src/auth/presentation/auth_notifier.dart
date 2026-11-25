@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/biometric_auth_service.dart';
@@ -27,6 +28,10 @@ class AuthNotifier extends _$AuthNotifier {
     _logout = LogoutUseCase(repo);
     _register = RegisterUseCase(repo);
     return const AuthInitial();
+  }
+
+  void acceptAuthenticatedUser(User user) {
+    state = AuthAuthenticated(user);
   }
 
   /// Call this once during app bootstrap to restore a cached session.
@@ -150,12 +155,12 @@ class AuthNotifier extends _$AuthNotifier {
     }
   }
 
-  Future<void> uploadAvatar(String filePath) async {
+  Future<void> uploadAvatar(XFile file) async {
     if (state is! AuthAuthenticated) return;
 
     final repository = ref.read(authRepositoryProvider);
     try {
-      final updatedUser = await repository.uploadAvatar(filePath);
+      final updatedUser = await repository.uploadAvatar(file);
       state = AuthAuthenticated(updatedUser);
     } catch (e) {
       rethrow;

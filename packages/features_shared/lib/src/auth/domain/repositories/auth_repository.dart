@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import '../entities/user.dart';
 
 abstract class AuthRepository {
@@ -25,5 +26,5 @@ abstract class AuthRepository {
   /// Simpan sebagian data diri: hanya kunci di [fields] yang diubah
   /// (kunci API, mis. `birth_date`); nilai kosong mengosongkan isian.
   Future<User> updateProfile(Map<String, Object?> fields);
-  Future<User> uploadAvatar(String filePath);
+  Future<User> uploadAvatar(XFile file);
 }

@@ -547,7 +547,7 @@ final class CommunityMembersNotifierProvider extends $AsyncNotifierProvider<
 }
 
 String _$communityMembersNotifierHash() =>
-    r'1fa086d2284ce27ac8d8e4e5777d6ced70a6be2f';
+    r'08420fc783fef29af630c1d53e074f3b2fd5c4c7';
 
 /// Anggota satu komunitas. Daftarnya hanya dimuat untuk sesama anggota, dan ikut
 /// dimuat ulang setiap detail komunitas disegarkan.

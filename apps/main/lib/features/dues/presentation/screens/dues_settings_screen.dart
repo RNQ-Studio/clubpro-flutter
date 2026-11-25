@@ -30,13 +30,12 @@ class DuesSettingsScreen extends ConsumerWidget {
                   onRetry: () => ref.invalidate(provider),
                 )
               : const Center(child: CircularProgressIndicator())
-          : !value.canManage
+          : !value.canConfigure
               ? const Center(
                   child: Padding(
                     padding: EdgeInsets.all(24),
                     child: Text(
-                      'Hanya creator dan admin komunitas yang bisa mengatur '
-                      'iuran.',
+                      'Hanya pendiri komunitas yang bisa mengatur iuran.',
                       textAlign: TextAlign.center,
                     ),
                   ),

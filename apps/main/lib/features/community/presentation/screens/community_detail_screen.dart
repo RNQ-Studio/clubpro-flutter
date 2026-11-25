@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/community.dart';
+import '../../../directory/presentation/community_edit_screen.dart';
 import '../community_providers.dart';
 import '../widgets/club_activities_tab.dart';
 import '../widgets/club_gallery_tab.dart';
@@ -79,6 +80,14 @@ class _ClubView extends ConsumerWidget {
                 foregroundColor: Colors.white,
                 surfaceTintColor: Colors.transparent,
                 actions: [
+                  if (community.myRole?.canManage ?? false)
+                    IconButton(
+                        tooltip: "Kelola komunitas",
+                        onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    CommunityEditScreen(community: community))),
+                        icon: const Icon(Icons.edit_outlined)),
                   IconButton(
                     key: const Key('club-refresh'),
                     tooltip: 'Segarkan',

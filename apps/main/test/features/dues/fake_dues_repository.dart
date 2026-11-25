@@ -37,6 +37,7 @@ DuesOverview overviewWith({
         configured ? base.settings : const DuesSettings(configured: false),
     year: base.year,
     canManage: canManage,
+    canConfigure: canManage,
     me: me ?? base.me,
     payments: payments,
     pendingPaymentsCount: pendingPaymentsCount,

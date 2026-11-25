@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/entities/community.dart';
+import '../../../directory/presentation/member_identity_screen.dart';
+import '../../../directory/presentation/internal_members_screen.dart';
 import '../community_providers.dart';
 import 'club_common.dart';
 import 'community_visuals.dart';
@@ -64,8 +66,6 @@ class _MembersList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final myId = auth is AuthAuthenticated ? auth.user.id : null;
-    final managers = state.members.where((m) => m.role.canManage).toList();
-    final members = state.members.where((m) => !m.role.canManage).toList();
 
     Widget tile(CommunityMember member) => _MemberTile(
           community: community,
@@ -76,21 +76,38 @@ class _MembersList extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => InternalMembersScreen(community: community))),
+            icon: const Icon(Icons.search),
+            label: const Text('Cari Anggota / Peran')),
         if (state.requests.isNotEmpty) ...[
           ClubGroupTitle('Permintaan Bergabung', count: state.requests.length),
           for (final request in state.requests)
             _RequestTile(community: community, member: request),
           const SizedBox(height: 14),
         ],
-        if (managers.isNotEmpty) ...[
-          ClubGroupTitle('Pengurus', count: managers.length),
-          for (final member in managers) tile(member),
-          const SizedBox(height: 14),
-        ],
-        if (members.isNotEmpty) ...[
-          ClubGroupTitle('Anggota', count: members.length),
-          for (final member in members) tile(member),
-        ],
+        if (community.myRole?.canRecordMembers ?? false)
+          Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                          builder: (_) =>
+                              MemberIdentityScreen(communityId: community.id))),
+                  icon: const Icon(Icons.person_add_alt),
+                  label: const Text('Catat Anggota Manual'))),
+        if (state.members.isEmpty)
+          const Padding(
+              padding: EdgeInsets.all(24), child: Text('Belum ada anggota.')),
+        for (final role in CommunityRole.values)
+          if (state.members.any((m) => m.role == role)) ...[
+            ClubGroupTitle(role.label,
+                count: state.members.where((m) => m.role == role).length),
+            for (final member in state.members.where((m) => m.role == role))
+              tile(member),
+            const SizedBox(height: 14),
+          ],
         if (state.hasMore)
           TextButton(
             key: const Key('club-members-more'),
@@ -210,7 +227,7 @@ class _RequestTileState extends ConsumerState<_RequestTile> {
   }
 }
 
-enum _MemberAction { promote, demote, stepDown, remove }
+enum _MemberAction { promote, officer, coach, demote, remove, identity }
 
 class _MemberTile extends ConsumerWidget {
   const _MemberTile({
@@ -225,21 +242,29 @@ class _MemberTile extends ConsumerWidget {
 
   /// Tindakan yang tersedia; server menerapkan aturan yang sama.
   List<_MemberAction> get _actions {
-    if (!community.canManage || member.role == CommunityRole.creator) {
-      return const [];
-    }
-    // Hanya admin yang dibatasi; super admin setara creator.
-    final topLevel = community.myRole != CommunityRole.admin;
-    return switch (member.role) {
-      CommunityRole.member when isSelf => const [],
-      CommunityRole.member => const [
-          _MemberAction.promote,
-          _MemberAction.remove,
-        ],
-      _ when isSelf => const [_MemberAction.stepDown],
-      _ when topLevel => const [_MemberAction.demote, _MemberAction.remove],
-      _ => const [],
-    };
+    final role = community.myRole;
+    final actions = <_MemberAction>[];
+    if ((isSelf && role == member.role) ||
+        ((role?.canRecordMembers ?? false) &&
+            (member.role != CommunityRole.creator &&
+                    member.role != CommunityRole.admin ||
+                role == CommunityRole.creator ||
+                (isSelf && member.role == CommunityRole.admin))))
+      actions.add(_MemberAction.identity);
+    if (role == null ||
+        !role.canManageMembers ||
+        member.role == CommunityRole.creator ||
+        isSelf ||
+        (member.role == CommunityRole.admin && role != CommunityRole.creator))
+      return actions;
+    if (role == CommunityRole.creator && member.role != CommunityRole.admin)
+      actions.add(_MemberAction.promote);
+    if (member.role != CommunityRole.officer)
+      actions.add(_MemberAction.officer);
+    if (member.role != CommunityRole.coach) actions.add(_MemberAction.coach);
+    if (member.role != CommunityRole.member) actions.add(_MemberAction.demote);
+    actions.add(_MemberAction.remove);
+    return actions;
   }
 
   Future<void> _perform(
@@ -247,6 +272,12 @@ class _MemberTile extends ConsumerWidget {
     WidgetRef ref,
     _MemberAction action,
   ) async {
+    if (action == _MemberAction.identity) {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) =>
+              MemberIdentityScreen(communityId: community.id, member: member)));
+      return;
+    }
     final repository = ref.read(communityRepositoryProvider);
     final id = community.id;
     final name = member.name;
@@ -256,8 +287,8 @@ class _MemberTile extends ConsumerWidget {
           confirmClubAction(
             context,
             title: 'Jadikan $name admin?',
-            message: 'Admin bisa menerima anggota, memberi akses admin, serta '
-                'mengelola kegiatan dan galeri.',
+            message:
+                'Admin dapat mengelola anggota biasa, kegiatan dan galeri. Hanya pendiri dapat mengaktifkan atau mencabut admin.',
             action: 'Jadikan Admin',
           ),
           () => repository.setMemberRole(id, member.id, CommunityRole.admin),
@@ -274,17 +305,25 @@ class _MemberTile extends ConsumerWidget {
           () => repository.setMemberRole(id, member.id, CommunityRole.member),
           'Akses admin $name dicabut',
         ),
-      _MemberAction.stepDown => (
-          confirmClubAction(
-            context,
-            title: 'Mundur dari admin?',
-            message: 'Anda kembali menjadi anggota biasa.',
-            action: 'Mundur',
-            destructive: true,
-          ),
-          () => repository.setMemberRole(id, member.id, CommunityRole.member),
-          'Anda kini anggota biasa',
+      _MemberAction.officer => (
+          confirmClubAction(context,
+              title: 'Jadikan $name pengurus?',
+              message:
+                  'Pengurus dapat mengelola kegiatan, galeri dan mencatat anggota manual.',
+              action: 'Jadikan Pengurus'),
+          () => repository.setMemberRole(id, member.id, CommunityRole.officer),
+          'Peran $name diperbarui',
         ),
+      _MemberAction.coach => (
+          confirmClubAction(context,
+              title: 'Jadikan $name pelatih?',
+              message:
+                  'Pelatih dapat membaca daftar anggota terbatas dalam komunitas.',
+              action: 'Jadikan Pelatih'),
+          () => repository.setMemberRole(id, member.id, CommunityRole.coach),
+          'Peran $name diperbarui',
+        ),
+      _MemberAction.identity => throw StateError('Handled before confirmation'),
       _MemberAction.remove => (
           confirmClubAction(
             context,
@@ -314,7 +353,13 @@ class _MemberTile extends ConsumerWidget {
       child: InkWell(
         key: Key('club-member-${member.id}'),
         borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push(AppRoutes.member(member.userId)),
+        onTap: member.userId.isNotEmpty
+            ? () => context.push(AppRoutes.member(member.userId))
+            : (community.myRole?.canRecordMembers ?? false)
+                ? () => Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (_) => MemberIdentityScreen(
+                        communityId: community.id, member: member)))
+                : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
           child: Row(
@@ -337,7 +382,7 @@ class _MemberTile extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        if (member.role.canManage) ...[
+                        if (member.role != CommunityRole.member) ...[
                           const SizedBox(width: 6),
                           ClubRoleBadge(role: member.role),
                         ],
@@ -368,7 +413,9 @@ class _MemberTile extends ConsumerWidget {
                         child: Text(switch (action) {
                           _MemberAction.promote => 'Jadikan Admin',
                           _MemberAction.demote => 'Cabut Admin',
-                          _MemberAction.stepDown => 'Mundur dari Admin',
+                          _MemberAction.officer => 'Jadikan Pengurus',
+                          _MemberAction.coach => 'Jadikan Pelatih',
+                          _MemberAction.identity => 'Kelola Identitas / Wali',
                           _MemberAction.remove => 'Keluarkan',
                         }),
                       ),

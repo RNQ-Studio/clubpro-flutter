@@ -1,6 +1,7 @@
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../features/home/presentation/widgets/home_app_version.dart';
 import 'club_brand.dart';
@@ -23,7 +24,20 @@ class ClubLoginPage extends StatelessWidget {
         title: ClubBrand.name,
         header: const ClubLoginHero(),
         background: const ClubLoginBackdrop(),
-        footer: const HomeAppVersion(),
+        footer: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextButton(
+              onPressed: () => context.push(
+                  '/login/pin${GoRouterState.of(context).uri.hasQuery ? '?${GoRouterState.of(context).uri.query}' : ''}'),
+              child: const Text('Masuk dengan PIN')),
+          TextButton(
+              onPressed: () =>
+                  context.push(authMethodLocation(context, '/login/password')),
+              child: const Text('Masuk dengan Password')),
+          TextButton(
+              onPressed: () => context.push('/explore'),
+              child: const Text('Jelajahi sebagai Pengunjung')),
+          const HomeAppVersion(),
+        ]),
         signupHint: null,
         onLoggedIn: onLoggedIn,
       ),

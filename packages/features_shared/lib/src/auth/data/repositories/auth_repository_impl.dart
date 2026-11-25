@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
@@ -99,8 +100,8 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<User> uploadAvatar(String filePath) async {
-    final updated = await _remote.uploadAvatar(filePath);
+  Future<User> uploadAvatar(XFile file) async {
+    final updated = await _remote.uploadAvatar(file);
     return _keepToken(updated, await _local.getUser());
   }
 

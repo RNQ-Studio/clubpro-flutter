@@ -135,7 +135,11 @@ CommunitiesPage communitiesPageFromJson(Map<String, dynamic> json) {
 CommunityMember communityMemberFromJson(Map<String, dynamic> json) =>
     CommunityMember(
       id: json['id'].toString(),
-      userId: json['user_id'].toString(),
+      userId: json['user_id']?.toString() ?? '',
+      identityId: json['member_identity_id']?.toString(),
+      birthDate: json['birth_date'] as String?,
+      gender: json['gender'] as String?,
+      externalReference: json['external_reference'] as String?,
       name: json['name'] as String,
       role: CommunityRole.fromApi(json['role']) ?? CommunityRole.member,
       avatarUrl: json['avatar_url'] as String?,

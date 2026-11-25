@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:features_shared/features_shared.dart';
@@ -40,6 +41,18 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
           const _SectionHeader('Keamanan'),
+          ListTile(
+              leading: const Icon(Icons.pin_outlined),
+              title: const Text('Buat atau Ubah PIN'),
+              onTap: () => context.push('/account/pin')),
+          ListTile(
+              leading: const Icon(Icons.family_restroom),
+              title: const Text('Akun dan Hubungan Wali'),
+              onTap: () => context.push('/guardians')),
+          ListTile(
+              leading: const Icon(Icons.travel_explore),
+              title: const Text('Direktori Komunitas dan Anggota'),
+              onTap: () => context.push('/explore')),
           const _BiometricToggleTile(),
           const Divider(),
           const _AboutTile(),

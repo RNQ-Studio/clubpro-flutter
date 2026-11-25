@@ -14,15 +14,19 @@ enum CommunityStatus {
 
 /// Peran di dalam satu komunitas.
 enum CommunityRole {
-  creator('creator', 'Creator'),
+  creator('creator', 'Pendiri'),
   admin('admin', 'Admin'),
+  officer('officer', 'Pengurus'),
+  coach('coach', 'Pelatih'),
   member('member', 'Anggota');
 
   const CommunityRole(this.apiValue, this.label);
   final String apiValue;
   final String label;
 
-  bool get canManage => this != member;
+  bool get canManage => this == creator || this == admin || this == officer;
+  bool get canManageMembers => this == creator || this == admin;
+  bool get canRecordMembers => canManage;
 
   static CommunityRole? fromApi(Object? value) =>
       values.where((e) => e.apiValue == value).firstOrNull;
@@ -176,10 +180,15 @@ class CommunityMember {
     this.avatarUrl,
     this.joinedAt,
     this.requestedAt,
+    this.identityId,
+    this.birthDate,
+    this.gender,
+    this.externalReference,
   });
 
   final String id;
   final String userId;
+  final String? identityId, birthDate, gender, externalReference;
   final String name;
   final CommunityRole role;
   final String? avatarUrl;

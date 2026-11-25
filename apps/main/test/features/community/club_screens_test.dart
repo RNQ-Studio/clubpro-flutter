@@ -185,7 +185,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Anda Creator komunitas ini'), findsOneWidget);
+      expect(find.text('Anda Pendiri komunitas ini'), findsOneWidget);
       expect(find.byKey(const Key('club-join')), findsNothing);
     });
 
@@ -352,7 +352,8 @@ void main() {
       await tester.pumpAndSettle();
       await _openMembers(tester);
 
-      expect(find.text('Pengurus'), findsOneWidget);
+      expect(find.text('Pendiri'), findsWidgets);
+      expect(find.text('Admin'), findsWidgets);
       expect(find.byType(ClubRoleBadge), findsNWidgets(2));
       expect(find.text('Saya (Anda)'), findsOneWidget);
     });
@@ -410,7 +411,8 @@ void main() {
       expect(find.byType(ClubRoleBadge), findsNWidgets(2));
     });
 
-    testWidgets('admin juga bisa memberi akses admin', (tester) async {
+    testWidgets('admin mengatur pelatih, tanpa hak mengaktifkan admin',
+        (tester) async {
       _tall(tester);
       final repository = FakeCommunityRepository(
         detail: testDetail(myRole: CommunityRole.admin),
@@ -420,10 +422,14 @@ void main() {
       await tester.pumpAndSettle();
       await _openMembers(tester);
 
-      await _choose(tester, '3', 'Jadikan Admin');
+      await tester.tap(find.byKey(const Key('club-member-menu-3')));
+      await tester.pumpAndSettle();
+      expect(find.text('Jadikan Admin'), findsNothing);
+      await tester.tap(find.text('Jadikan Pelatih'));
+      await tester.pumpAndSettle();
       await _confirm(tester);
 
-      expect(repository.actions, ['role:3:admin']);
+      expect(repository.actions, ['role:3:coach']);
     });
 
     testWidgets('admin tidak bisa menyentuh admin lain atau creator',
@@ -463,7 +469,8 @@ void main() {
       expect(repository.actions, ['role:2:member']);
     });
 
-    testWidgets('super admin bukan anggota setara creator', (tester) async {
+    testWidgets('admin platform tidak otomatis mendapat hak role komunitas',
+        (tester) async {
       _tall(tester);
       await tester.pumpWidget(_app(
         FakeCommunityRepository(
@@ -476,10 +483,10 @@ void main() {
       await tester.pumpAndSettle();
       await _openMembers(tester);
 
-      expect(find.byKey(const Key('club-member-menu-2')), findsOneWidget);
+      expect(find.byKey(const Key('club-member-menu-2')), findsNothing);
     });
 
-    testWidgets('super admin yang kebetulan anggota biasa tetap setara creator',
+    testWidgets('anggota dengan kapabilitas konten tidak mendapat hak role',
         (tester) async {
       _tall(tester);
       await tester.pumpWidget(_app(
@@ -493,10 +500,10 @@ void main() {
       await tester.pumpAndSettle();
       await _openMembers(tester);
 
-      expect(find.byKey(const Key('club-member-menu-2')), findsOneWidget);
+      expect(find.byKey(const Key('club-member-menu-2')), findsNothing);
     });
 
-    testWidgets('admin bisa mundur dari perannya sendiri', (tester) async {
+    testWidgets('admin tidak dapat mencabut perannya sendiri', (tester) async {
       _tall(tester);
       final repository = FakeCommunityRepository(
         detail: testDetail(myRole: CommunityRole.admin),
@@ -509,10 +516,11 @@ void main() {
       await tester.pumpAndSettle();
       await _openMembers(tester);
 
-      await _choose(tester, '1', 'Mundur dari Admin');
-      await _confirm(tester);
-
-      expect(repository.actions, ['role:1:member']);
+      await tester.tap(find.byKey(const Key('club-member-menu-1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Mundur dari Admin'), findsNothing);
+      expect(find.text('Jadikan Admin'), findsNothing);
+      expect(repository.actions, isEmpty);
     });
 
     testWidgets('mengeluarkan anggota menghapus barisnya', (tester) async {
@@ -543,7 +551,7 @@ void main() {
       await tester.pumpAndSettle();
       await _openMembers(tester);
 
-      await _choose(tester, '3', 'Jadikan Admin');
+      await _choose(tester, '3', 'Jadikan Pelatih');
       await _confirm(tester);
 
       expect(find.text('Akses Anda sudah dicabut.'), findsOneWidget);
