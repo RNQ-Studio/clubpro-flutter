@@ -207,6 +207,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               Text(i.legacyNominalUnrecorded
                                   ? 'Nominal histori tidak tercatat; hak bulan lunas tetap dipertahankan.'
                                   : 'Tagihan ${formatRupiah(i.amount)} · terbayar ${formatRupiah(i.paidAmount)}'),
+                              if (i.hasProrationDetails)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    'Tarif proporsional: ${i.coveredDays} dari ${i.nominalDays} hari · tarif normal ${formatRupiah(i.nominalAmount!)}.',
+                                    key: Key('billing-proration-${i.id}'),
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ),
                               Text(
                                   i.outstanding > 0
                                       ? 'Sisa ${formatRupiah(i.outstanding)}'

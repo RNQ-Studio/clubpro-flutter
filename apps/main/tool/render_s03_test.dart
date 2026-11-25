@@ -63,6 +63,7 @@ void main() {
       ('topup', const TopupScreen(communityId: '1')),
       ('direct-payment', const TopupScreen(communityId: '1', scope: 'member')),
       ('billing-expired', const BillingScreen(communityId: '1')),
+      ('billing-prorated', const BillingScreen(communityId: '1')),
       ('billing-trial', const BillingScreen(communityId: '1')),
       ('billing-exempt', const BillingScreen(communityId: '1')),
       (
@@ -105,6 +106,9 @@ void main() {
                 reference:
                     'Referensi pembayaran yang sangat panjang untuk pemeriksaan layar')
           ];
+        }
+        if (name == 'billing-prorated') {
+          repo.billingValue = fixture.proratedBillingFixture();
         }
         if (name == 'billing-settings') {
           repo.billingValue =

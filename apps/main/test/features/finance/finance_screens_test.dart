@@ -70,6 +70,31 @@ BillingOverview billingFixture(
           BillingNotice('n1', 'expiry',
               'Lunasi seluruh kewajiban untuk kembali aktif.', '2026-11-25')
         ]);
+BillingOverview proratedBillingFixture() => const BillingOverview(
+        scope: 'member',
+        entitlement: BillingEntitlement(
+            state: 'expired',
+            active: false,
+            arrearsAmount: 43333,
+            validUntil: '2026-05-11'),
+        settings:
+            BillingSettings(memberAmount: 50000, entryFee: 0, periodMonths: 1),
+        invoices: [
+          BillingInvoice(
+              id: 'invoice-prorated',
+              kind: 'member',
+              periodStart: '2026-04-15',
+              periodEnd: '2026-05-11',
+              amount: 43333,
+              paidAmount: 0,
+              outstanding: 43333,
+              status: 'open',
+              prorated: true,
+              coveredDays: 26,
+              nominalDays: 30,
+              nominalAmount: 50000)
+        ]);
+
 PaymentReceipt receiptFixture(
         {bool canReview = false,
         String purpose = 'topup',
@@ -892,5 +917,28 @@ void main() {
         findsNothing);
     expect(find.textContaining('tidak membatalkan keputusan pengarsipan'),
         findsWidgets);
+  });
+  testWidgets(
+      'prorated invoice explains shortened service period using frozen tariff',
+      (t) async {
+    size(t);
+    final repo = FakeFinance()..billingValue = proratedBillingFixture();
+    await t.pumpWidget(
+        financeApp(const BillingScreen(communityId: '1'), repo: repo));
+    await t.pumpAndSettle();
+    expect(find.text('Tagihan Rp43.333 · terbayar Rp0'), findsOneWidget);
+    expect(
+        find.text(
+            'Tarif proporsional: 26 dari 30 hari · tarif normal Rp50.000.'),
+        findsOneWidget);
+    expect(find.byKey(const Key('billing-proration-invoice-prorated')),
+        findsOneWidget);
+    expect(repo.payKeys, isEmpty);
+  });
+  testWidgets('ordinary invoice does not show prorata explanation', (t) async {
+    size(t);
+    await t.pumpWidget(financeApp(const BillingScreen(communityId: '1')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Tarif proporsional:'), findsNothing);
   });
 }

@@ -410,4 +410,115 @@ void main() {
       'reason': 'Tidak digunakan lagi'
     });
   });
+  test(
+      'prorated invoice decodes immutable integer charge and normal period snapshot',
+      () {
+    final invoice = billingFromJson({
+      ...billingJson,
+      'invoices': [
+        {
+          ...invoiceJson,
+          'amount': 43333,
+          'paid_amount': 0,
+          'outstanding': 43333,
+          'snapshot': {
+            'prorated': true,
+            'covered_days': 26,
+            'nominal_days': 30,
+            'nominal_amount': 50000
+          }
+        }
+      ]
+    }).invoices.single;
+    expect(invoice.prorated, true);
+    expect(invoice.coveredDays, 26);
+    expect(invoice.nominalDays, 30);
+    expect(invoice.nominalAmount, 50000);
+    expect(invoice.hasProrationDetails, true);
+    expect(invoice.amount, 43333);
+    expect(invoice.outstanding, 43333);
+  });
+  test('historical invoices without proration metadata keep prior behavior',
+      () {
+    for (final snapshot in [
+      null,
+      <String, Object?>{},
+      {
+        'prorated': null,
+        'covered_days': null,
+        'nominal_days': null,
+        'nominal_amount': null
+      }
+    ]) {
+      final invoice = billingFromJson({
+        ...billingJson,
+        'invoices': [
+          {...invoiceJson, 'snapshot': snapshot}
+        ]
+      }).invoices.single;
+      expect(invoice.prorated, false);
+      expect(invoice.coveredDays, null);
+      expect(invoice.nominalDays, null);
+      expect(invoice.nominalAmount, null);
+      expect(invoice.hasProrationDetails, false);
+    }
+  });
+  test(
+      'incomplete or invalid proration metadata cannot present misleading calculation',
+      () {
+    for (final snapshot in [
+      {'prorated': true},
+      {
+        'prorated': true,
+        'covered_days': 0,
+        'nominal_days': 30,
+        'nominal_amount': 50000
+      },
+      {
+        'prorated': true,
+        'covered_days': 31,
+        'nominal_days': 30,
+        'nominal_amount': 50000
+      },
+      {
+        'prorated': true,
+        'covered_days': 26,
+        'nominal_days': 30,
+        'nominal_amount': 0
+      },
+      {
+        'prorated': false,
+        'covered_days': 26,
+        'nominal_days': 30,
+        'nominal_amount': 50000
+      },
+    ]) {
+      expect(
+          billingFromJson({
+            ...billingJson,
+            'invoices': [
+              {...invoiceJson, 'snapshot': snapshot}
+            ]
+          }).invoices.single.hasProrationDetails,
+          false);
+    }
+    for (final amount in [1.5, '50000.5', 9007199254740992]) {
+      expect(
+          () => billingFromJson({
+                ...billingJson,
+                'invoices': [
+                  {
+                    ...invoiceJson,
+                    'snapshot': {
+                      'prorated': true,
+                      'covered_days': 26,
+                      'nominal_days': 30,
+                      'nominal_amount': amount
+                    }
+                  }
+                ]
+              }),
+          throwsA(isA<Exception>()));
+    }
+  });
 }

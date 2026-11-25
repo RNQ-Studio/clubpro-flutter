@@ -113,10 +113,22 @@ class BillingInvoice {
       required this.paidAmount,
       required this.outstanding,
       required this.status,
-      this.legacyNominalUnrecorded = false});
+      this.legacyNominalUnrecorded = false,
+      this.prorated = false,
+      this.coveredDays,
+      this.nominalDays,
+      this.nominalAmount});
   final bool legacyNominalUnrecorded;
+  final bool prorated;
+  final int? coveredDays, nominalDays, nominalAmount;
   final String id, kind, periodStart, periodEnd, status;
   final int amount, paidAmount, outstanding;
+  bool get hasProrationDetails =>
+      prorated &&
+      (coveredDays ?? 0) > 0 &&
+      (nominalDays ?? 0) > 0 &&
+      coveredDays! <= nominalDays! &&
+      (nominalAmount ?? 0) > 0;
   String get label => switch (kind) {
         'entry' => 'Uang pendaftaran',
         'platform' => 'Langganan komunitas',

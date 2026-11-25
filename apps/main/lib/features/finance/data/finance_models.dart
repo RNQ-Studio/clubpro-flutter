@@ -115,7 +115,17 @@ BillingOverview billingFromJson(Map<String, dynamic> j) {
               status: textOf(i['status']),
               legacyNominalUnrecorded:
                   financeMap(i['snapshot'])['legacy_nominal_unrecorded'] ==
-                      true)
+                      true,
+              prorated: financeMap(i['snapshot'])['prorated'] == true,
+              coveredDays: financeMap(i['snapshot'])['covered_days'] == null
+                  ? null
+                  : money(financeMap(i['snapshot'])['covered_days']),
+              nominalDays: financeMap(i['snapshot'])['nominal_days'] == null
+                  ? null
+                  : money(financeMap(i['snapshot'])['nominal_days']),
+              nominalAmount: financeMap(i['snapshot'])['nominal_amount'] == null
+                  ? null
+                  : money(financeMap(i['snapshot'])['nominal_amount']))
       ],
       settings: BillingSettings(
           memberAmount: money(s['member_amount']),
