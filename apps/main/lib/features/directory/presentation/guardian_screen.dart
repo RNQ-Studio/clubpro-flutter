@@ -75,6 +75,7 @@ class _GuardianScreenState extends ConsumerState<GuardianScreen> {
     final consent = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
+                constraints: const BoxConstraints(maxWidth: 600),
                 title: Text(account
                     ? 'Hubungkan akun anggota?'
                     : 'Setujui hubungan wali?'),
