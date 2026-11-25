@@ -23,22 +23,6 @@ class _GuardianScreenState extends ConsumerState<GuardianScreen> {
     super.dispose();
   }
 
-  Future<void> _verifyEmail() async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    try {
-      await ref.read(directoryRepositoryProvider).sendEmailVerification();
-      if (mounted) {
-        setState(() => _message =
-            'Jika email belum terverifikasi, tautan verifikasi telah dikirim. Buka tautan tersebut lalu klaim undangan.');
-      }
-    } catch (e) {
-      if (mounted) setState(() => _message = e.toString());
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   Future<void> _claim() async {
     if (_busy) return;
     if (_id.text.trim().isEmpty || _token.text.trim().isEmpty) {
@@ -173,8 +157,11 @@ class _GuardianScreenState extends ConsumerState<GuardianScreen> {
                                               _id.text = item['id'].toString()))
                               ])),
                       TextButton(
-                          onPressed: _busy ? null : _verifyEmail,
-                          child: const Text('Kirim Tautan Verifikasi Email')),
+                          onPressed: _busy
+                              ? null
+                              : () => context.go(
+                                  '/login?from=${Uri.encodeComponent('/guardians')}&reauth=1'),
+                          child: const Text('Masuk ulang dengan Google')),
                       if (_message != null) Text(_message!),
                       if (!inAppOnly) ...[
                         TextField(

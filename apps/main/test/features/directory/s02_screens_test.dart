@@ -80,7 +80,7 @@ class FakePin implements PinRepository {
 
 class FakeDirectory implements DirectoryRepository {
   bool inApp = false, mixedInvites = false, accountInvite = false;
-  int consentClaims = 0;
+  int consentClaims = 0, emailVerificationRequests = 0;
   bool fail = false, empty = false;
   Completer<void>? pending;
   String query = '';
@@ -163,7 +163,10 @@ class FakeDirectory implements DirectoryRepository {
           },
       ];
   @override
-  Future<void> sendEmailVerification() async {}
+  Future<void> sendEmailVerification() async {
+    emailVerificationRequests++;
+  }
+
   @override
   Future<void> claim(String id, String token, {bool accept = false}) async {
     claimed++;
@@ -627,6 +630,34 @@ void main() {
     expect(find.byType(TextFormField), findsNothing);
     expect(find.text('Kirim kode'), findsNothing);
     expect(pin.recovers, 0);
+    expect(t.takeException(), null);
+  });
+
+  testWidgets(
+      'guardian verification reopens Google login without pretending email delivery',
+      (t) async {
+    size(t, 500);
+    final repo = FakeDirectory();
+    final router = GoRouter(
+        initialLocation: '/guardians',
+        redirect: clubAuthRedirect,
+        routes: [
+          GoRoute(
+              path: '/guardians', builder: (_, __) => const GuardianScreen()),
+          GoRoute(
+              path: '/login',
+              builder: (_, s) => Text(
+                  'REAUTH:${s.uri.queryParameters['from']}:${s.uri.queryParameters['reauth']}'))
+        ]);
+    await t.pumpWidget(app(const SizedBox(), repo: repo, router: router));
+    await t.pumpAndSettle();
+    expect(find.text('Kirim Tautan Verifikasi Email'), findsNothing);
+    expect(
+        find.textContaining('tautan verifikasi telah dikirim'), findsNothing);
+    await t.tap(find.text('Masuk ulang dengan Google'));
+    await t.pumpAndSettle();
+    expect(find.text('REAUTH:/guardians:1'), findsOneWidget);
+    expect(repo.emailVerificationRequests, 0);
     expect(t.takeException(), null);
   });
   for (final width in [500.0, 1280.0]) {
