@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -211,7 +212,7 @@ class PublicCommunityScreen extends ConsumerWidget {
                                         final target = '/communities/$id';
                                         context.push(auth is AuthAuthenticated
                                             ? target
-                                            : '/login?from=${Uri.encodeComponent(target)}');
+                                            : '/login?from=${encodeLoginReturn(target)}');
                                       },
                                       child: Text(ref.watch(authProvider)
                                               is AuthAuthenticated

@@ -161,7 +161,7 @@ class _GuardianScreenState extends ConsumerState<GuardianScreen> {
                           onPressed: _busy
                               ? null
                               : () => context.go(
-                                  '/login?from=${Uri.encodeComponent('/guardians')}&reauth=1'),
+                                  '/login?from=${encodeLoginReturn('/guardians')}&reauth=1'),
                           child: const Text('Masuk ulang dengan Google')),
                       if (_message != null) Text(_message!),
                       if (!inAppOnly) ...[

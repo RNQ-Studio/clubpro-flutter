@@ -270,8 +270,8 @@ void main() {
               builder: (_, __) => const PublicCommunityScreen(id: '1')),
           GoRoute(
               path: '/login',
-              builder: (_, s) =>
-                  Text('LOGIN:${s.uri.queryParameters['from']}')),
+              builder: (_, s) => Text(
+                  'LOGIN:${decodeLoginReturn(s.uri.queryParameters['from'])}')),
           GoRoute(
               path: '/communities/:id',
               builder: (_, __) => const Text('PRIVATE'))
@@ -462,7 +462,8 @@ void main() {
               builder: (_, __) => const PinScreen(mode: PinMode.recovery)),
           GoRoute(
               path: '/login/pin',
-              builder: (_, s) => Text('PIN:${s.uri.queryParameters['from']}'))
+              builder: (_, s) => Text(
+                  'PIN:${decodeLoginReturn(s.uri.queryParameters['from'])}'))
         ]);
     await t.pumpWidget(app(const SizedBox(),
         pin: pin, auth: const AuthUnauthenticated(), router: router));
@@ -559,7 +560,7 @@ void main() {
           GoRoute(
               path: '/login',
               builder: (_, s) => Text(
-                  'ACCOUNT LOGIN:${s.uri.queryParameters['from']}:${s.uri.queryParameters['reauth']}')),
+                  'ACCOUNT LOGIN:${decodeLoginReturn(s.uri.queryParameters['from'])}:${s.uri.queryParameters['reauth']}')),
           GoRoute(
               path: '/account/pin',
               builder: (_, __) => const Text('MANAGE PIN'))
@@ -647,7 +648,7 @@ void main() {
           GoRoute(
               path: '/login',
               builder: (_, s) => Text(
-                  'REAUTH:${s.uri.queryParameters['from']}:${s.uri.queryParameters['reauth']}'))
+                  'REAUTH:${decodeLoginReturn(s.uri.queryParameters['from'])}:${s.uri.queryParameters['reauth']}'))
         ]);
     await t.pumpWidget(app(const SizedBox(), repo: repo, router: router));
     await t.pumpAndSettle();

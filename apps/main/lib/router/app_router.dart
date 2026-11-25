@@ -424,17 +424,7 @@ final appRouter = GoRouter(
   ],
 );
 
-String? safeLoginReturn(String? value) {
-  if (value == null ||
-      !value.startsWith('/') ||
-      value.startsWith('//') ||
-      value.startsWith('/login') ||
-      value.startsWith(AppRoutes.authCheck) ||
-      Uri.tryParse(value)?.hasScheme == true) {
-    return null;
-  }
-  return value;
-}
+String? safeLoginReturn(String? value) => decodeLoginReturn(value);
 
 String loginDestination(BuildContext context, User user) =>
     safeLoginReturn(GoRouterState.of(context).uri.queryParameters['from']) ??
@@ -442,6 +432,16 @@ String loginDestination(BuildContext context, User user) =>
 String? clubAuthRedirect(BuildContext context, GoRouterState state) {
   final auth = ProviderScope.containerOf(context).read(authProvider);
   final path = state.uri.path;
+  final rawReturn = state.uri.queryParameters['from'];
+  final legacyReturn = safeLoginReturn(rawReturn);
+  if (path.startsWith('/login') &&
+      legacyReturn != null &&
+      rawReturn != encodeLoginReturn(legacyReturn)) {
+    return state.uri.replace(queryParameters: {
+      ...state.uri.queryParameters,
+      'from': encodeLoginReturn(legacyReturn),
+    }).toString();
+  }
   final public = path == '/splash' ||
       path == '/onboarding' ||
       path.startsWith('/explore') ||
@@ -450,13 +450,13 @@ String? clubAuthRedirect(BuildContext context, GoRouterState state) {
   if (auth is AuthInitial || auth is AuthLoading) {
     return public || checking
         ? null
-        : '${AppRoutes.authCheck}?from=${Uri.encodeComponent(state.uri.toString())}';
+        : '${AppRoutes.authCheck}?from=${encodeLoginReturn(state.uri.toString())}';
   }
   if (checking) {
     final destination = safeLoginReturn(state.uri.queryParameters['from']);
     return auth is AuthAuthenticated
         ? destination ?? afterLoginLocation(auth.user)
-        : '/login${destination == null ? '' : '?from=${Uri.encodeComponent(destination)}'}';
+        : '/login${destination == null ? '' : '?from=${encodeLoginReturn(destination)}'}';
   }
   if (auth is AuthAuthenticated) {
     if ((path == '/login' ||
@@ -470,7 +470,7 @@ String? clubAuthRedirect(BuildContext context, GoRouterState state) {
   }
   return public
       ? null
-      : '/login?from=${Uri.encodeComponent(state.uri.toString())}';
+      : '/login?from=${encodeLoginReturn(state.uri.toString())}';
 }
 
 /// Private routes never mount their consumers until session restoration settles.

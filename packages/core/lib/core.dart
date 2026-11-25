@@ -28,6 +28,7 @@ export 'src/responsive/responsive_layout.dart';
 // router
 export 'src/router/app_navigator_observer.dart';
 export 'src/router/app_routes.dart';
+export 'src/router/login_return.dart';
 
 // services
 export 'src/services/firebase_service.dart';

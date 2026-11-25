@@ -1,3 +1,5 @@
+import 'package:app_main/features/money_movement/presentation/money_movement_providers.dart';
+import '../money_movement/fake_movement_repository.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -91,10 +93,12 @@ AuthRepository _repository(_Storage storage, _AuthAdapter adapter) =>
             Dio(BaseOptions(baseUrl: 'https://anaklangit.manahpro.web.id/api/'))
               ..httpClientAdapter = adapter));
 Widget _application(_Storage storage, _AuthAdapter adapter, FakeFinance finance,
-        {bool bootstrap = true}) =>
+        {bool bootstrap = true, FakeMovement? movements}) =>
     ProviderScope(
         overrides: [
           trainingRepositoryProvider.overrideWithValue(training),
+          moneyMovementRepositoryProvider
+              .overrideWithValue(movements ?? FakeMovement()),
           authRepositoryProvider
               .overrideWithValue(_repository(storage, adapter)),
           financeRepositoryProvider.overrideWithValue(finance),
@@ -138,6 +142,13 @@ void main() {
     '/communities/1/training/sessions/new',
     '/communities/1/training/report',
     '/wallet',
+    '/wallet/bank-account',
+    '/wallet/payouts',
+    '/wallet/payouts/new',
+    '/wallet/payouts?manage=1&community=1',
+    '/wallet/payouts?manage=1',
+    '/wallet/transfers',
+    '/wallet/transfers/new',
     '/wallet/topup?community=1',
     '/wallet/receipts?community=1&manage=1',
     '/wallet/transactions/journal-1?scope=community&community=1',
@@ -164,7 +175,8 @@ void main() {
       expect(appRouter.routeInformationProvider.value.uri.path,
           AppRoutes.authCheck);
       expect(
-          appRouter.routeInformationProvider.value.uri.queryParameters['from'],
+          decodeLoginReturn(appRouter
+              .routeInformationProvider.value.uri.queryParameters['from']),
           route);
       expect(finance.walletCalls, 0);
       expect(finance.calls, isEmpty);
@@ -175,7 +187,7 @@ void main() {
       await t.pumpAndSettle();
       final uri = appRouter.routeInformationProvider.value.uri;
       expect(uri.path, '/login');
-      expect(uri.queryParameters['from'], route);
+      expect(decodeLoginReturn(uri.queryParameters['from']), route);
       expect(training.loads, 0);
       expect(finance.walletCalls, 0);
       expect(finance.calls, isEmpty);
@@ -204,7 +216,8 @@ void main() {
       expect(_container(t).read(authProvider), isA<AuthUnauthenticated>());
       expect(appRouter.routeInformationProvider.value.uri.path, '/login');
       expect(
-          appRouter.routeInformationProvider.value.uri.queryParameters['from'],
+          decodeLoginReturn(appRouter
+              .routeInformationProvider.value.uri.queryParameters['from']),
           route);
       expect(finance.walletCalls, 0);
       expect(finance.calls, isEmpty);
@@ -251,7 +264,9 @@ void main() {
     expect(appRouter.routerDelegate.currentConfiguration.uri.path, '/login');
     await t.pumpAndSettle();
     expect(find.byType(WalletScreen), findsNothing);
-    expect(appRouter.routeInformationProvider.value.uri.queryParameters['from'],
+    expect(
+        decodeLoginReturn(appRouter
+            .routeInformationProvider.value.uri.queryParameters['from']),
         route);
     storage.deletes!.complete();
     await expired;
@@ -287,7 +302,9 @@ void main() {
     await logout;
     await t.pumpAndSettle();
     expect(appRouter.routeInformationProvider.value.uri.path, '/login');
-    expect(appRouter.routeInformationProvider.value.uri.queryParameters['from'],
+    expect(
+        decodeLoginReturn(appRouter
+            .routeInformationProvider.value.uri.queryParameters['from']),
         '/wallet');
   });
   testWidgets(
@@ -304,7 +321,9 @@ void main() {
     await t.pumpAndSettle();
     expect(_container(t).read(authProvider), isA<AuthError>());
     expect(appRouter.routeInformationProvider.value.uri.path, '/login');
-    expect(appRouter.routeInformationProvider.value.uri.queryParameters['from'],
+    expect(
+        decodeLoginReturn(appRouter
+            .routeInformationProvider.value.uri.queryParameters['from']),
         route);
     expect(finance.calls, isEmpty);
   });
@@ -341,7 +360,65 @@ void main() {
     await t.tap(find.byKey(const Key('finance-login')).first);
     await t.pumpAndSettle();
     expect(appRouter.routeInformationProvider.value.uri.path, '/login');
-    expect(appRouter.routeInformationProvider.value.uri.queryParameters['from'],
+    expect(
+        decodeLoginReturn(appRouter
+            .routeInformationProvider.value.uri.queryParameters['from']),
         route);
+  });
+  testWidgets(
+      'S05 scoped payout return survives browser URL decoding reload and authentication',
+      (t) async {
+    final storage = _Storage();
+    final adapter = _AuthAdapter(),
+        finance = FakeFinance(),
+        movements = FakeMovement();
+    const target = '/wallet/payouts?manage=1&community=1';
+    final loginUri = Uri(
+        path: '/login', queryParameters: {'from': encodeLoginReturn(target)});
+    final browser = Uri.decodeComponent(
+        Uri(path: loginUri.path, queryParameters: loginUri.queryParametersAll)
+            .toString());
+    appRouter.go(browser);
+    await t.pumpWidget(
+        _application(storage, adapter, finance, movements: movements));
+    await t.pumpAndSettle();
+    expect(appRouter.routeInformationProvider.value.uri.path, '/login');
+    expect(
+        decodeLoginReturn(appRouter
+            .routeInformationProvider.value.uri.queryParameters['from']),
+        target);
+    expect(movements.lastManage, null);
+    expect(finance.calls, isEmpty);
+    _container(t).read(authProvider.notifier).acceptAuthenticatedUser(_cached);
+    await t.pumpAndSettle();
+    expect(appRouter.routeInformationProvider.value.uri.toString(), target);
+    expect(movements.lastCommunity, '1');
+    expect(movements.lastManage, true);
+  });
+  testWidgets('legacy scoped login link canonicalizes before browser reload',
+      (t) async {
+    final storage = _Storage(),
+        adapter = _AuthAdapter(),
+        finance = FakeFinance();
+    const target = '/wallet/payouts?manage=1&community=1';
+    appRouter.go(Uri(
+        path: '/login/password',
+        queryParameters: {'from': target, 'reauth': '1'}).toString());
+    await t.pumpWidget(_application(storage, adapter, finance));
+    await t.pumpAndSettle();
+    final uri = appRouter.routeInformationProvider.value.uri;
+    expect(uri.path, '/login/password');
+    expect(uri.queryParameters['from'], encodeLoginReturn(target));
+    expect(uri.queryParameters['reauth'], '1');
+    final engine = Uri.decodeComponent(
+        Uri(path: uri.path, queryParameters: uri.queryParametersAll)
+            .toString());
+    appRouter.go(engine);
+    await t.pumpAndSettle();
+    expect(
+        decodeLoginReturn(appRouter
+            .routeInformationProvider.value.uri.queryParameters['from']),
+        target);
+    expect(finance.calls, isEmpty);
   });
 }

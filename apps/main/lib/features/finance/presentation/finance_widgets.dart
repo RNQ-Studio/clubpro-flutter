@@ -106,7 +106,7 @@ class FinanceError extends StatelessWidget {
         .read(authProvider.notifier)
         .sessionExpired()
         .catchError((Object _) {}));
-    router.go('/login?from=${Uri.encodeComponent(destination)}');
+    router.go('/login?from=${encodeLoginReturn(destination)}');
   }
 
   @override

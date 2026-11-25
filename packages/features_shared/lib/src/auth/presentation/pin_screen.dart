@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,7 +39,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
       ? _verification!
       : _methods(auth).first;
   void _reauthenticate() =>
-      context.go('/login?from=${Uri.encodeComponent('/account/pin')}&reauth=1');
+      context.go('/login?from=${encodeLoginReturn('/account/pin')}&reauth=1');
   @override
   void dispose() {
     for (final c in [_identifier, _pin, _confirm, _current, _code]) {

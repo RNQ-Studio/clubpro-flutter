@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -75,12 +76,10 @@ class AuthGuard extends ConsumerWidget {
 /// Pertahankan tujuan internal saat mengganti metode masuk/pemulihan.
 String authMethodLocation(BuildContext context, String path) {
   try {
-    final from = GoRouterState.of(context).uri.queryParameters['from'];
-    if (from != null &&
-        from.startsWith('/') &&
-        !from.startsWith('//') &&
-        !from.startsWith('/login')) {
-      return '$path?from=${Uri.encodeComponent(from)}${GoRouterState.of(context).uri.queryParameters['reauth'] == '1' ? '&reauth=1' : ''}';
+    final state = GoRouterState.of(context);
+    final from = decodeLoginReturn(state.uri.queryParameters['from']);
+    if (from != null) {
+      return '$path?from=${encodeLoginReturn(from)}${state.uri.queryParameters['reauth'] == '1' ? '&reauth=1' : ''}';
     }
   } catch (_) {}
   return path;
