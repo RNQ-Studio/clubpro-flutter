@@ -106,21 +106,26 @@ void main() {
                     'Referensi pembayaran yang sangat panjang untuk pemeriksaan layar')
           ];
         }
-        if (name == 'billing-settings')
+        if (name == 'billing-settings') {
           repo.billingValue =
               fixture.billingFixture(canConfigure: true, canManage: true);
-        if (name == 'billing-trial')
+        }
+        if (name == 'billing-trial') {
           repo.billingValue =
               fixture.billingFixture(state: 'trial', active: true, amount: 0);
-        if (name == 'billing-exempt')
+        }
+        if (name == 'billing-exempt') {
           repo.billingValue =
               fixture.billingFixture(state: 'exempt', active: true, amount: 0);
-        if (name == 'billing-platform')
+        }
+        if (name == 'billing-platform') {
           repo.billingValue = fixture.billingFixture(
               scope: 'platform', canConfigure: true, canManage: true);
-        if (name == 'receipt-review')
+        }
+        if (name == 'receipt-review') {
           repo.receiptValues = [fixture.receiptFixture(canReview: true)];
-        if (name == 'lifecycle-platform')
+        }
+        if (name == 'lifecycle-platform') {
           repo.inactiveValues = [
             const InactiveSubject(
                 id: '1',
@@ -133,7 +138,8 @@ void main() {
                     arrearsAmount: 300000,
                     inactiveAt: '2026-08-26'))
           ];
-        if (name == 'billing-legacy')
+        }
+        if (name == 'billing-legacy') {
           repo.billingValue = const BillingOverview(
               scope: 'member',
               entitlement: BillingEntitlement(
@@ -152,8 +158,10 @@ void main() {
                     status: 'paid',
                     legacyNominalUnrecorded: true)
               ]);
-        if (name == 'billing-archived')
+        }
+        if (name == 'billing-archived') {
           repo.billingValue = fixture.billingFixture(state: 'archived');
+        }
         final key = GlobalKey();
         await t.pumpWidget(RepaintBoundary(
             key: key,
