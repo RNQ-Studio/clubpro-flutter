@@ -92,7 +92,6 @@ Map<String, Object?> _payout({bool platform = false, bool full = true}) => {
           'amount': 100000,
           'verified_amount': 40000,
           'remaining_amount': 60000,
-          'released_amount': 0,
           'status': 'uncertain',
           'version': 4,
           'can_manage': true,
@@ -224,6 +223,30 @@ void main() {
     expect(payout.verified, 40000);
     expect(payout.remaining, 60000);
     expect(payout.parts.single.sourceAccount?.bankName, 'Bank Asal Fixture');
+  });
+
+  test('actual failed part shape derives released money without optional field',
+      () {
+    final payout = _payout();
+    final part = Map<String, Object?>.from((payout['parts']! as List).single);
+    part.addAll({
+      'verified_amount': 0,
+      'remaining_amount': 0,
+      'status': 'failed',
+      'fragments': <Object?>[],
+    });
+    payout.addAll({
+      'verified_amount': 0,
+      'remaining_amount': 0,
+      'released_amount': 100000,
+      'status': 'failed',
+      'parts': [part],
+    });
+    expect(part.containsKey('released_amount'), false);
+    final parsed = payoutFromJson(payout);
+    expect(parsed.released, 100000);
+    expect(parsed.parts.single.released, 100000);
+    expect(parsed.parts.single.remaining, 0);
   });
 
   test(
