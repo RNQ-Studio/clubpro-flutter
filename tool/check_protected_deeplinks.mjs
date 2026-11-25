@@ -46,7 +46,7 @@ class DevTools {
       if (message.method === 'Page.loadEventFired') this.loads++;
       if (message.method === 'Network.requestWillBeSent') {
         const url = message.params.request.url;
-        if (/\/api\/v1\/(bank-accounts(?:[/?]|$)|payouts(?:[/?]|$)|transfers(?:[/?]|$)|wallet(?:[/?]|$)|billing-notices(?:[/?]|$)|communities\/[^/]+\/training(?:[/?]|$))/.test(url)) this.requests.push(url);
+        if (/\/api\/v1\/(bank-accounts(?:[/?]|$)|payouts(?:[/?]|$)|payout-parts(?:[/?]|$)|payout-reconciliation(?:[/?]|$)|transfers(?:[/?]|$)|wallet(?:[/?]|$)|billing-notices(?:[/?]|$)|communities\/[^/]+\/(?:training|payout-reconciliation)(?:[/?]|$))/.test(url)) this.requests.push(url);
       }
       if (message.id && this.pending.has(message.id)) {
         const pending = this.pending.get(message.id);
