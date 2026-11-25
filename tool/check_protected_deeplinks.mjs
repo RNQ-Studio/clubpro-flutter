@@ -70,15 +70,15 @@ class DevTools {
   }
 }
 
-async function loginSnapshot(devTools, deadline) {
+async function loginSnapshot(devTools, deadline, previousDocument = null) {
   let snapshot;
   while (Date.now() < deadline) {
-    snapshot = await devTools.value(`({hash: location.hash, state_location: history.state?.state?.location ?? history.state?.location ?? null, route_writes: window.__clubproRouteWrites ?? 0, app_mounted: !!document.querySelector('flutter-view')})`);
-    if (snapshot.hash.startsWith('#/login?') && snapshot.state_location?.startsWith('/login?') && snapshot.route_writes > 0 && snapshot.app_mounted) {
+    snapshot = await devTools.value(`({hash: location.hash, state_location: history.state?.state?.location ?? history.state?.location ?? null, route_writes: window.__clubproRouteWrites ?? 0, document_id: window.__clubproDocumentId ?? null, app_mounted: !!document.querySelector('flutter-view')})`);
+    if (snapshot.hash.startsWith('#/login?') && snapshot.state_location?.startsWith('/login?') && snapshot.route_writes > 0 && snapshot.document_id && snapshot.document_id !== previousDocument && snapshot.app_mounted) {
       // A fresh document must mount Flutter and publish history before inspecting
       // its serialized state. The old hash alone survives a browser reload.
       await delay(250);
-      snapshot = await devTools.value(`({hash: location.hash, state_location: history.state?.state?.location ?? history.state?.location ?? null, route_writes: window.__clubproRouteWrites ?? 0, app_mounted: !!document.querySelector('flutter-view')})`);
+      snapshot = await devTools.value(`({hash: location.hash, state_location: history.state?.state?.location ?? history.state?.location ?? null, route_writes: window.__clubproRouteWrites ?? 0, document_id: window.__clubproDocumentId ?? null, app_mounted: !!document.querySelector('flutter-view')})`);
       return {...snapshot, return_to: loginReturn(snapshot.hash), state_return_to: loginReturn(snapshot.state_location)};
     }
     await delay(100);
@@ -106,7 +106,7 @@ for (const route of selectedRoutes) {
     const devTools = new DevTools(socket);
     await devTools.send('Network.enable');
     await devTools.send('Page.enable');
-    await devTools.send('Page.addScriptToEvaluateOnNewDocument', {source: `window.__clubproRouteWrites = 0; for (const name of ['pushState', 'replaceState']) { const original = history[name]; history[name] = function(...args) { window.__clubproRouteWrites++; return original.apply(this, args); }; }`});
+    await devTools.send('Page.addScriptToEvaluateOnNewDocument', {source: `window.__clubproDocumentId = Math.random().toString(36).slice(2); window.__clubproRouteWrites = 0; for (const name of ['pushState', 'replaceState']) { const original = history[name]; history[name] = function(...args) { window.__clubproRouteWrites++; return original.apply(this, args); }; }`});
     await devTools.send('Page.navigate', {url: `${origin.origin}/#${route}`});
     const initial = await loginSnapshot(devTools, Date.now() + 30000);
     const priorLoads = devTools.loads;
@@ -116,7 +116,7 @@ for (const route of selectedRoutes) {
       await delay(100);
     }
     assert(devTools.loads > priorLoads, 'Browser reload did not finish loading a fresh document');
-    const afterReload = await loginSnapshot(devTools, reloadDeadline);
+    const afterReload = await loginSnapshot(devTools, reloadDeadline, initial.document_id);
     const passed = initial.return_to === route && initial.state_return_to === route && afterReload.return_to === route && afterReload.state_return_to === route && devTools.requests.length === 0;
     console.log(JSON.stringify({origin: origin.origin, route, hash: initial.hash, return_to: initial.return_to, state_return_to: initial.state_return_to, after_reload: afterReload, private_requests: devTools.requests.length, result: passed ? 'PASS' : 'FAIL'}));
     if (!passed) failures++;
