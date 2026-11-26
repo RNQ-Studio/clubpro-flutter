@@ -38,12 +38,19 @@ class _PinScreenState extends ConsumerState<PinScreen> {
   String _method(AuthState auth) => _methods(auth).contains(_verification)
       ? _verification!
       : _methods(auth).first;
+  String? _returnDestination() {
+    final location =
+        GoRouter.maybeOf(context)?.routeInformationProvider.value.uri;
+    return decodeLoginReturn(location?.queryParameters['from']);
+  }
+
   void _reauthenticate() {
-    final from = decodeLoginReturn(
-        GoRouterState.of(context).uri.queryParameters['from']);
+    final router = GoRouter.maybeOf(context);
+    if (router == null) return;
+    final from = _returnDestination();
     final target =
         '/account/pin${from == null ? '' : '?from=${encodeLoginReturn(from)}'}';
-    context.go('/login?from=${encodeLoginReturn(target)}&reauth=1');
+    router.go('/login?from=${encodeLoginReturn(target)}&reauth=1');
   }
 
   @override
@@ -88,10 +95,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
             currentPassword: method == 'password' ? _current.text : null);
         // Move to the validated destination before session refresh publishes
         // AuthLoading; the app's auth-check route must capture checkout itself.
-        final destination = mounted
-            ? decodeLoginReturn(
-                GoRouterState.of(context).uri.queryParameters['from'])
-            : null;
+        final destination = mounted ? _returnDestination() : null;
         if (mounted && destination != null) context.go(destination);
         await ref.read(authProvider.notifier).checkCurrentUser();
         if (!mounted) return;
