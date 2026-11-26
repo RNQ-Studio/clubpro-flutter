@@ -39,9 +39,11 @@ class _PinScreenState extends ConsumerState<PinScreen> {
       ? _verification!
       : _methods(auth).first;
   String? _returnDestination() {
-    final location =
-        GoRouter.maybeOf(context)?.routeInformationProvider.value.uri;
-    return decodeLoginReturn(location?.queryParameters['from']);
+    // A pushed route can differ from the browser URL when imperative URL
+    // reflection is disabled. Read this page's state, when a router exists.
+    if (GoRouter.maybeOf(context) == null) return null;
+    return decodeLoginReturn(
+        GoRouterState.of(context).uri.queryParameters['from']);
   }
 
   void _reauthenticate() {
