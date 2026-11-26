@@ -251,6 +251,7 @@ class _ActiveClub extends ConsumerWidget {
             label: const Text('Keanggotaan & pembayaran'),
           ),
           OutlinedButton(
+              key: const Key('home-restricted-card'),
               onPressed: () =>
                   context.push(AppRoutes.communityCard(community.id)),
               child: const Text('Lihat status KTA')),

@@ -99,7 +99,7 @@ Widget lobbyApplication(
           .overrideWith((ref) async => SettingsRepositoryImpl(storage)),
     ], child: App(storage: storage, database: _Database()));
 
-Future<void> tapLobbyLink(WidgetTester t, String key) async {
+Future<Finder> _reachableLobbyTarget(WidgetTester t, String key) async {
   final target = find.byKey(Key(key));
   if (target.evaluate().isEmpty) {
     await t.drag(find.byType(Scrollable).first, const Offset(0, 10000));
@@ -112,6 +112,9 @@ Future<void> tapLobbyLink(WidgetTester t, String key) async {
   expect(target, findsOneWidget, reason: 'CTA $key must be reachable');
   await t.ensureVisible(target);
   await t.pumpAndSettle();
+  // Lazy dashboard sections can remount after the first scroll settles.
+  await t.ensureVisible(target);
+  await t.pumpAndSettle();
   for (var i = 0; i < 12 && target.hitTestable().evaluate().isEmpty; i++) {
     final dy = t.getCenter(target).dy;
     await t.drag(
@@ -119,6 +122,43 @@ Future<void> tapLobbyLink(WidgetTester t, String key) async {
     await t.pumpAndSettle();
   }
   expect(target.hitTestable(), findsOneWidget);
+  return target;
+}
+
+Future<void> _openLobbyGroup(WidgetTester t, String group) async {
+  final tile = await _reachableLobbyTarget(t, group);
+  await t.tap(tile);
+  await t.pumpAndSettle();
+}
+
+Future<void> tapLobbyLink(WidgetTester t, String key) async {
+  final group = switch (key) {
+    'finance-entry' ||
+    'home-platform-billing' ||
+    'member-lobby-topup' ||
+    'member-lobby-payouts' =>
+      'home-menu-finance',
+    'training-entry' ||
+    'community-member-rankings' ||
+    'community-member-ads' ||
+    'community-record-achievement' ||
+    'market-entry-community' =>
+      'home-menu-community',
+    'market-entry-main' ||
+    'market-entry-mine' ||
+    'member-lobby-ads' =>
+      'home-menu-market',
+    'home-public-directory' ||
+    'home-public-members' ||
+    'home-community-rankings' ||
+    'home-public-ads' =>
+      'home-menu-explore',
+    _ => null,
+  };
+  if (group != null && find.byKey(Key(key)).evaluate().isEmpty) {
+    await _openLobbyGroup(t, group);
+  }
+  final target = await _reachableLobbyTarget(t, key);
   await t.tap(target);
   await t.pumpAndSettle();
 }
@@ -148,19 +188,19 @@ void main() {
       role: CommunityRole.member
     ),
     (
-      key: 'member-lobby-card',
+      key: 'home-club-menu-card',
       destination: MemberCardScreen,
       evidence: 'S07-KTA-001',
       role: CommunityRole.member
     ),
     (
-      key: 'member-lobby-dues',
+      key: 'finance-entry',
       destination: BillingScreen,
       evidence: 'Siapkan perpanjangan',
       role: CommunityRole.member
     ),
     (
-      key: 'member-lobby-packages',
+      key: 'training-entry',
       destination: TrainingScreen,
       evidence: 'Komunitas Fixture',
       role: CommunityRole.coach
@@ -178,7 +218,7 @@ void main() {
       role: CommunityRole.member
     ),
     (
-      key: 'home-wallet',
+      key: 'member-lobby-balance',
       destination: WalletScreen,
       evidence: 'Saldo uang digital',
       role: CommunityRole.member
@@ -294,13 +334,14 @@ void main() {
     expect(
         find.textContaining('Keanggotaan atau langganan komunitas tidak aktif'),
         findsOneWidget);
+    await _openLobbyGroup(t, 'home-menu-community');
     expect(find.byKey(const Key('community-record-achievement')), findsNothing);
-    await tapLobbyLink(t, 'member-lobby-dues');
+    await tapLobbyLink(t, 'finance-entry');
     expect(find.byType(BillingScreen), findsOneWidget);
     expect(find.textContaining('150.000'), findsWidgets);
     appRouter.pop();
     await t.pumpAndSettle();
-    await tapLobbyLink(t, 'member-lobby-card');
+    await tapLobbyLink(t, 'home-restricted-card');
     expect(find.byType(MemberCardScreen), findsOneWidget);
     expect(find.text('S07-KTA-001'), findsOneWidget);
     final container =

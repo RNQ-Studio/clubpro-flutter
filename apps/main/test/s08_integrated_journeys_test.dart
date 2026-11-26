@@ -204,7 +204,7 @@ void main() {
         (t) async {
       final finance = _Finance();
       await _boot(t, width, finance);
-      await tapLobbyLink(t, 'member-lobby-dues');
+      await tapLobbyLink(t, 'finance-entry');
       final pay = find.byKey(const Key('billing-pay-wallet'));
       FocusManager.instance.primaryFocus?.unfocus();
       await _tabTo(t, pay);
@@ -231,7 +231,7 @@ void main() {
     testWidgets('actual App billing payment then wallet at $width', (t) async {
       final finance = _Finance();
       await _boot(t, width, finance);
-      await tapLobbyLink(t, 'member-lobby-dues');
+      await tapLobbyLink(t, 'finance-entry');
       expect(find.byType(BillingScreen), findsOneWidget);
       await _tap(t, find.byKey(const Key('billing-pay-wallet')));
       await _tap(t, find.text('Bayar sekarang'));
@@ -241,7 +241,7 @@ void main() {
       expect(finance.payKeys, hasLength(1));
       appRouter.pop();
       await t.pumpAndSettle();
-      await tapLobbyLink(t, 'home-wallet');
+      await tapLobbyLink(t, 'member-lobby-balance');
       expect(find.byType(WalletScreen), findsOneWidget);
       expect(find.text('Rp50.000'), findsWidgets);
       expect(finance.walletValue.available, 50000);
@@ -257,11 +257,11 @@ void main() {
       final finance = _Finance();
       final training = _Training(finance);
       await _boot(t, width, finance, training: training);
-      await tapLobbyLink(t, 'home-wallet');
+      await tapLobbyLink(t, 'member-lobby-balance');
       expect(find.text('Rp200.000'), findsOneWidget);
       appRouter.pop();
       await t.pumpAndSettle();
-      await tapLobbyLink(t, 'member-lobby-packages');
+      await tapLobbyLink(t, 'training-entry');
       expect(find.byType(TrainingScreen), findsOneWidget);
       await _tap(t, find.byKey(const Key('training-buy-7')));
       await _tap(t, find.byKey(const Key('training-buy-confirm')));
@@ -270,7 +270,7 @@ void main() {
       expect(find.textContaining('Paket berhasil dibeli.'), findsOneWidget);
       appRouter.pop();
       await t.pumpAndSettle();
-      await tapLobbyLink(t, 'home-wallet');
+      await tapLobbyLink(t, 'member-lobby-balance');
       expect(find.text('Rp99.997'), findsOneWidget);
       expect(find.text('Rp150.003'), findsOneWidget);
       expect(find.text('Rp25.000'), findsOneWidget);
@@ -283,7 +283,7 @@ void main() {
       final finance = _Finance();
       final market = _Market(finance);
       await _boot(t, width, finance, market: market);
-      await tapLobbyLink(t, 'home-wallet');
+      await tapLobbyLink(t, 'member-lobby-balance');
       appRouter.pop();
       await t.pumpAndSettle();
       await tapLobbyLink(t, 'market-entry-main');
@@ -317,7 +317,7 @@ void main() {
       final finance = _Finance();
       final movement = _Movement(finance);
       await _boot(t, width, finance, movement: movement);
-      await tapLobbyLink(t, 'home-wallet');
+      await tapLobbyLink(t, 'member-lobby-balance');
       await _tap(t, find.widgetWithText(OutlinedButton, 'Pencairan'));
       await _tap(t, find.widgetWithText(FilledButton, 'Ajukan pencairan'));
       expect(find.byType(PayoutRequestScreen), findsOneWidget);
