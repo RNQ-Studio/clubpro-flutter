@@ -135,9 +135,9 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ]),
                     const SizedBox(height: 10),
+                    ...clubSection,
                     const MarketplaceEntry(),
                     const MarketplaceEntry(mine: true),
-                    ...clubSection,
                     if (user != null && user.isSuperAdmin) ...[
                       const SizedBox(height: 24),
                       HomeAdminPanelCard(
