@@ -4,6 +4,7 @@ import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 
 import 'branding/club_brand.dart';
+import 'account_data_cache.dart';
 import 'router/app_router.dart';
 
 class App extends StatelessWidget {
@@ -40,7 +41,12 @@ class _AppRouterState extends ConsumerState<_AppRouter> {
         ref.read(authProvider.notifier).checkCurrentUser();
       }
     });
-    ref.listenManual(authProvider, (_, __) => appRouter.refresh());
+    ref.listenManual(authProvider, (previous, next) {
+      final before = previous is AuthAuthenticated ? previous.user.id : null;
+      final after = next is AuthAuthenticated ? next.user.id : null;
+      if (before != after) clearAccountData(ref);
+      appRouter.refresh();
+    });
   }
 
   @override
