@@ -73,13 +73,22 @@ final appRouter = GoRouter(
       builder: (context, state) => const _SessionCheckScreen(),
     ),
     ...buildAuthRoutes(
-      splash: () => const SplashScreen(
-        title: ClubBrand.name,
-        tagline: ClubBrand.tagline,
-        logo: ClubLogo(size: 80),
-        requireLogin: true,
-        // Halaman awal cukup nama app; tanpa slide penjelasan fitur.
-        showOnboarding: false,
+      splash: () => Theme(
+        data: AppTheme.dark.copyWith(
+          colorScheme: AppTheme.dark.colorScheme.copyWith(
+            primary: const Color(0xFF101312),
+            primaryContainer: const Color(0xFF23221D),
+            onPrimary: const Color(0xFFE4C580),
+          ),
+        ),
+        child: const SplashScreen(
+          title: ClubBrand.name,
+          tagline: ClubBrand.tagline,
+          logo: ClubLogo(size: 80),
+          requireLogin: true,
+          // Halaman awal cukup nama app; tanpa slide penjelasan fitur.
+          showOnboarding: false,
+        ),
       ),
       withOnboarding: false,
       login: () => ClubLoginPage(
