@@ -33,6 +33,8 @@ class AchievementsRepositoryImpl implements AchievementsRepository {
             j['actor_name'] ??
             j['created_by'] ??
             j['actor_id']),
+        createdAt: textOf(j['created_at']),
+        correctedBy: textOf(j['corrected_by_name'] ?? j['corrected_by']),
         correctedAt: textOf(j['corrected_at']),
         correctionReason: textOf(j['correction_reason']));
   }

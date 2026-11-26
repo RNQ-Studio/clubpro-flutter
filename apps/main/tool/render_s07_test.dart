@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:app_main/features/achievements/domain/achievements.dart';
 import 'dart:ui' as ui;
 import 'dart:async';
 import 'package:app_main/features/achievements/presentation/achievement_screens.dart';
@@ -24,6 +25,7 @@ void main() {
       'central-rules-bottom',
       'community-events',
       'community-events-bottom',
+      'community-corrected',
       'ad-public',
       'ad-community',
       'ad-own',
@@ -56,6 +58,22 @@ void main() {
             screen = const AchievementRulesScreen();
           case 'community-events' || 'community-events-bottom':
             screen = const CommunityAchievementsScreen(communityId: '2');
+          case 'community-corrected':
+            screen = const CommunityAchievementsScreen(communityId: '2');
+            repo.canManage = false;
+            repo.row = const AchievementRow(
+                id: 'event-1',
+                name: 'Atlet · Lomba fixture',
+                points: 0,
+                type: 'champion',
+                status: 'corrected',
+                actor: 'Pelatih Fixture',
+                createdAt: '2026-11-26T01:00:00Z',
+                occurredAt: '2026-11-25T00:00:00Z',
+                correctedBy: 'Pendiri Fixture',
+                correctedAt: '2026-11-26T02:00:00Z',
+                correctionReason:
+                    'Hasil kegiatan dibatalkan setelah pemeriksaan referensi.');
           case 'ad-public':
             screen = const MemberAdsScreen();
           case 'ad-community':

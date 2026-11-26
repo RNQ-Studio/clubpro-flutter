@@ -50,7 +50,8 @@ const rowFixture = AchievementRow(
     reference: 'HASIL/2026/11/001',
     memberId: '3',
     version: 1,
-    actor: '1');
+    actor: 'Pendiri Fixture',
+    createdAt: '2026-11-26T01:00:00Z');
 const adFixture = MemberAd(
     id: 'ad-1',
     title: 'Latihan bersama dan perlengkapan komunitas pilihan',
@@ -64,6 +65,7 @@ const adFixture = MemberAd(
     version: 2);
 
 class FakeAchievements implements AchievementsRepository {
+  AchievementRow row = rowFixture;
   Object? error, saveError;
   Completer<void>? gate, saveGate;
   bool empty = false, canManage = true, canCorrect = true;
@@ -84,7 +86,7 @@ class FakeAchievements implements AchievementsRepository {
   }
 
   AchievementPage page(int p, {bool own = false}) =>
-      AchievementPage(empty ? [] : [rowFixture],
+      AchievementPage(empty ? [] : [row],
           page: p,
           lastPage: 2,
           total: 2,

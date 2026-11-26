@@ -16,6 +16,8 @@ class AchievementRow {
       this.memberId = '',
       this.ruleVersion = 1,
       this.actor = '',
+      this.createdAt = '',
+      this.correctedBy = '',
       this.correctedAt = '',
       this.correctionReason = ''});
   final String id,
@@ -30,6 +32,8 @@ class AchievementRow {
       status,
       memberId,
       actor,
+      createdAt,
+      correctedBy,
       correctedAt,
       correctionReason;
   final int points, rank, version, ruleVersion;

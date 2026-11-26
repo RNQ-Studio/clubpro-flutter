@@ -284,7 +284,8 @@ class _MyAchievementsScreenState extends ConsumerState<MyAchievementsScreen> {
                                       '${financeDate(r.occurredAt)} · Aturan v${r.ruleVersion}'),
                                   SelectableText('Sumber: ${r.reference}'),
                                   if (r.actor.isNotEmpty)
-                                    Text('Pencatat: ${r.actor}')
+                                    Text(
+                                        'Pencatat: ${r.actor} · ${financeDate(r.createdAt)}')
                                 ]))),
                   FinancePager(
                       page: d.page,
@@ -772,10 +773,10 @@ class _CommunityAchievementsScreenState
                                       SelectableText(
                                           'Referensi: ${row.reference}'),
                                       Text(
-                                          'Aktor ${row.actor} · Versi ${row.version}'),
+                                          'Dicatat ${financeDate(row.createdAt)} oleh ${row.actor} · Versi ${row.version}'),
                                       if (row.correctedAt.isNotEmpty)
                                         Text(
-                                            'Koreksi ${financeDate(row.correctedAt)}: ${row.correctionReason}'),
+                                            'Koreksi ${financeDate(row.correctedAt)} oleh ${row.correctedBy}: ${row.correctionReason}'),
                                       if (d.canCorrect &&
                                           row.status != 'corrected')
                                         OutlinedButton(

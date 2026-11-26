@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:app_main/features/achievements/domain/achievements.dart';
 import 'package:app_main/features/training/presentation/training_providers.dart';
 import 'package:app_main/features/training/presentation/training_screen.dart';
 import '../training/fake_training_repository.dart';
@@ -393,6 +394,36 @@ void main() {
     await visibleTap(t, find.text('Koreksi dan batalkan poin'));
     expect(r.correctCalls, 1);
     expect(r.requests.single['expected_version'], 1);
+  });
+  testWidgets(
+      'correction history exposes original and correction actor and timestamps',
+      (t) async {
+    final r = FakeAchievements()
+      ..canManage = false
+      ..row = const AchievementRow(
+          id: 'event-1',
+          name: 'Atlet · Lomba fixture',
+          points: 0,
+          type: 'champion',
+          status: 'corrected',
+          actor: 'Pelatih Fixture',
+          createdAt: '2026-11-26T01:00:00Z',
+          occurredAt: '2026-11-25T00:00:00Z',
+          correctedBy: 'Pendiri Fixture',
+          correctedAt: '2026-11-26T02:00:00Z',
+          correctionReason: 'Hasil kegiatan dibatalkan');
+    await t.pumpWidget(achievementsApp(
+        const CommunityAchievementsScreen(communityId: '2'), r));
+    await t.pumpAndSettle();
+    expect(
+        find.textContaining(
+            'Dicatat 26/11/2026 08:00 WIB oleh Pelatih Fixture'),
+        findsOneWidget);
+    expect(
+        find.textContaining(
+            'Koreksi 26/11/2026 09:00 WIB oleh Pendiri Fixture'),
+        findsOneWidget);
+    expect(find.text('Koreksi prestasi'), findsNothing);
   });
   testWidgets('readonly recorder cannot create or correct', (t) async {
     final r = FakeAchievements()

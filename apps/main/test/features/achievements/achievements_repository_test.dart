@@ -56,6 +56,8 @@ void main() {
             'type': 'manual_correction',
             'points': -3,
             'source_id': 'source-1',
+            'actor_name': 'Pendiri Fixture',
+            'created_at': '2026-11-26T01:00:00Z',
             'rule_version': 2,
             'community': {'id': 2, 'name': 'Komunitas A'}
           }
@@ -69,6 +71,8 @@ void main() {
     expect(p.totalPoints, 1);
     expect(p.items.single.points, -3);
     expect(p.items.single.reference, 'source-1');
+    expect(p.items.single.actor, 'Pendiri Fixture');
+    expect(p.items.single.createdAt, '2026-11-26T01:00:00Z');
     expect(adapter.request!.path, 'v1/achievements/me');
   });
   test('central rule integer boundaries and audit history parsed', () async {
