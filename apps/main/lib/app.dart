@@ -44,7 +44,10 @@ class _AppRouterState extends ConsumerState<_AppRouter> {
     ref.listenManual(authProvider, (previous, next) {
       final before = previous is AuthAuthenticated ? previous.user.id : null;
       final after = next is AuthAuthenticated ? next.user.id : null;
-      if (before != after) clearAccountData(ref);
+      // Clear before a new session's private routes read data. Invalidating an
+      // outgoing session while its routes still mount would start fresh private
+      // requests during logout/storage cleanup instead.
+      if (after != null && before != after) clearAccountData(ref);
       appRouter.refresh();
     });
   }

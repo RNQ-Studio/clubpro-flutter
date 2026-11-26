@@ -36,17 +36,22 @@ class _AccountRouteBoundary extends ConsumerStatefulWidget {
 
 class _AccountRouteBoundaryState extends ConsumerState<_AccountRouteBoundary> {
   String? _accountId;
+  int _generation = 0;
 
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     if (auth is AuthAuthenticated) {
+      if (_accountId != null && _accountId != auth.user.id) _generation++;
       _accountId = auth.user.id;
     } else if (auth is! AuthLoading) {
+      if (_accountId != null) _generation++;
       _accountId = null;
     }
     // AuthLoading can be a refresh for this same account. Its existing route
     // state and safe return destination survive; a different ID never does.
-    return KeyedSubtree(key: ValueKey(_accountId), child: widget.child);
+    // Adopting the initial restored identity must retain the session-check
+    // screen's refresh listener, including hosts that embed the router alone.
+    return KeyedSubtree(key: ValueKey(_generation), child: widget.child);
   }
 }
