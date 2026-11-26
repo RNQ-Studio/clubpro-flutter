@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:app_main/features/achievements/domain/achievements.dart';
 import 'package:app_main/features/achievements/presentation/achievements_providers.dart';
-import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:app_main/features/directory/presentation/directory_providers.dart';
 import 'package:app_main/features/directory/presentation/directory_screen.dart';
 import 'package:app_main/features/finance/domain/finance.dart';
