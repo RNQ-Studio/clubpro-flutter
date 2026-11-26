@@ -281,6 +281,7 @@ class SharedCommunity {
 /// Profil sesama anggota: hanya data umum.
 class CommunityMemberProfile {
   const CommunityMemberProfile({
+    this.identityId,
     required this.id,
     required this.name,
     this.avatarUrl,
@@ -293,6 +294,7 @@ class CommunityMemberProfile {
   final String? avatarUrl;
   final DateTime? registeredAt;
   final List<SharedCommunity> communities;
+  final String? identityId;
 }
 
 class CommunitiesPage {

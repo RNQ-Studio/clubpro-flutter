@@ -38,8 +38,14 @@ class _PinScreenState extends ConsumerState<PinScreen> {
   String _method(AuthState auth) => _methods(auth).contains(_verification)
       ? _verification!
       : _methods(auth).first;
-  void _reauthenticate() =>
-      context.go('/login?from=${encodeLoginReturn('/account/pin')}&reauth=1');
+  void _reauthenticate() {
+    final from = decodeLoginReturn(
+        GoRouterState.of(context).uri.queryParameters['from']);
+    final target =
+        '/account/pin${from == null ? '' : '?from=${encodeLoginReturn(from)}'}';
+    context.go('/login?from=${encodeLoginReturn(target)}&reauth=1');
+  }
+
   @override
   void dispose() {
     for (final c in [_identifier, _pin, _confirm, _current, _code]) {
@@ -80,11 +86,21 @@ class _PinScreenState extends ConsumerState<PinScreen> {
             verificationMethod: method,
             currentPin: method == 'pin' ? _current.text : null,
             currentPassword: method == 'password' ? _current.text : null);
+        // Move to the validated destination before session refresh publishes
+        // AuthLoading; the app's auth-check route must capture checkout itself.
+        final destination = mounted
+            ? decodeLoginReturn(
+                GoRouterState.of(context).uri.queryParameters['from'])
+            : null;
+        if (mounted && destination != null) context.go(destination);
         await ref.read(authProvider.notifier).checkCurrentUser();
+        if (!mounted) return;
         _pin.clear();
         _confirm.clear();
         _current.clear();
-        if (mounted) setState(() => _message = 'PIN berhasil disimpan.');
+        if (mounted && destination == null) {
+          setState(() => _message = 'PIN berhasil disimpan.');
+        }
       } else {
         final user = await repo.login(_identifier.text.trim(), _pin.text);
         ref.read(authProvider.notifier).acceptAuthenticatedUser(user);

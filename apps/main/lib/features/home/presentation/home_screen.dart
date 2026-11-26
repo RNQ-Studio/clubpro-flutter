@@ -1,3 +1,4 @@
+import '../../marketplace/presentation/marketplace_widgets.dart';
 import 'dart:math' as math;
 
 import 'package:core/core.dart';
@@ -134,6 +135,8 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ]),
                     const SizedBox(height: 10),
+                    const MarketplaceEntry(),
+                    const MarketplaceEntry(mine: true),
                     ...clubSection,
                     if (user != null && user.isSuperAdmin) ...[
                       const SizedBox(height: 24),
@@ -219,6 +222,7 @@ class _ActiveClub extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
         ],
+        MarketplaceEntry(communityId: community.id),
         TrainingEntryCard(communityId: community.id),
         FinanceEntryCard(
             communityId: community.id,

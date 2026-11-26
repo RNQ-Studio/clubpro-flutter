@@ -52,6 +52,7 @@ String operationLabel(String value) => switch (value) {
       'billing_platform' =>
         'Langganan komunitas',
       'member_transfer' => 'Transfer antaranggota',
+      'marketplace_purchase' => 'Transaksi marketplace',
       'payout_hold' || 'reserve_held' => 'Saldo ditahan pencairan',
       'payout_fragment' => 'Pencairan terverifikasi',
       'reserve' => 'Dana dicadangkan',

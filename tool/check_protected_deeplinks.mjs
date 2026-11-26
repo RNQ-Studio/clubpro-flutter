@@ -13,7 +13,7 @@ const origin = new URL(process.argv[2] ?? 'https://ceo-pro.web.app');
 assert(['https://ceo-pro.web.app', 'http://localhost:5055', 'http://127.0.0.1:5055'].includes(origin.origin), 'Unexpected test origin');
 const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const routes = ['/wallet', '/billing-notices', '/communities/1/training', '/communities/1/training/report', '/wallet/bank-account', '/wallet/payouts', '/wallet/payouts/new', '/wallet/payouts/synthetic-id', '/wallet/payouts?manage=1&community=1', '/wallet/transfers', '/wallet/transfers/new', '/wallet/payouts/synthetic-id/parts/synthetic-part/proof', '/wallet/payouts/synthetic-id/parts/synthetic-part/fragments/synthetic-fragment', '/wallet/payouts?manage=1'];
+const routes = ['/wallet', '/billing-notices', '/communities/1/training', '/communities/1/training/report', '/wallet/bank-account', '/wallet/payouts', '/wallet/payouts/new', '/wallet/payouts/synthetic-id', '/wallet/payouts?manage=1&community=1', '/wallet/transfers', '/wallet/transfers/new', '/wallet/payouts/synthetic-id/parts/synthetic-part/proof', '/wallet/payouts/synthetic-id/parts/synthetic-part/fragments/synthetic-fragment', '/wallet/payouts?manage=1', '/marketplace/my-products', '/marketplace/my-products/new', '/marketplace/my-products/synthetic-id/edit', '/marketplace/checkout/synthetic-id', '/marketplace/orders', '/marketplace/orders/synthetic-id'];
 const selectedRoutes = process.argv.length > 3 ? process.argv.slice(3) : routes;
 assert(selectedRoutes.every(route => routes.includes(route)), 'Unexpected protected test route');
 
@@ -46,7 +46,7 @@ class DevTools {
       if (message.method === 'Page.loadEventFired') this.loads++;
       if (message.method === 'Network.requestWillBeSent') {
         const url = message.params.request.url;
-        if (/\/api\/v1\/(bank-accounts(?:[/?]|$)|payouts(?:[/?]|$)|payout-parts(?:[/?]|$)|payout-reconciliation(?:[/?]|$)|transfers(?:[/?]|$)|wallet(?:[/?]|$)|billing-notices(?:[/?]|$)|communities\/[^/]+\/(?:training|payout-reconciliation)(?:[/?]|$))/.test(url)) this.requests.push(url);
+        if (/\/api\/v1\/(marketplace(?:[/?]|$)|bank-accounts(?:[/?]|$)|payouts(?:[/?]|$)|payout-parts(?:[/?]|$)|payout-reconciliation(?:[/?]|$)|transfers(?:[/?]|$)|wallet(?:[/?]|$)|billing-notices(?:[/?]|$)|communities\/[^/]+\/(?:training|payout-reconciliation)(?:[/?]|$))/.test(url)) this.requests.push(url);
       }
       if (message.id && this.pending.has(message.id)) {
         const pending = this.pending.get(message.id);

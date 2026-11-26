@@ -194,6 +194,7 @@ CommunityMemberProfile communityMemberProfileFromJson(
   Map<String, dynamic> json,
 ) =>
     CommunityMemberProfile(
+      identityId: json['identity_id']?.toString(),
       id: json['id'].toString(),
       name: json['name'] as String,
       avatarUrl: json['avatar_url'] as String?,

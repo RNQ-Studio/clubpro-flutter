@@ -76,6 +76,23 @@ abstract final class AppRoutes {
   static const String adminBannerNew = '$adminBanners/new';
   static String adminBanner(String id) => '$adminBanners/$id';
 
+  // Marketplace
+  static const String marketProducts = '/explore/products';
+  static String marketProduct(String id) => '$marketProducts/$id';
+  static String marketSeller(String id) => '/explore/sellers/$id';
+  static String marketCatalogue({String? communityId, String? sellerId}) =>
+      sellerId != null
+          ? marketSeller(sellerId)
+          : Uri(path: marketProducts, queryParameters: {
+              if (communityId != null) 'community': communityId
+            }).toString();
+  static const String myMarketProducts = '/marketplace/my-products';
+  static const String newMarketProduct = '$myMarketProducts/new';
+  static String editMarketProduct(String id) => '$myMarketProducts/$id/edit';
+  static String marketCheckout(String id) => '/marketplace/checkout/$id';
+  static const String marketOrders = '/marketplace/orders';
+  static String marketOrder(String id) => '$marketOrders/$id';
+
   // Quotes
   static const String quotes = '/quotes';
   static const String createQuote = '/quotes/create';

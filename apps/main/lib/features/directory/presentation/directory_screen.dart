@@ -1,3 +1,4 @@
+import '../../marketplace/presentation/marketplace_widgets.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
@@ -70,6 +71,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                                         _role = null;
                                         _page = 1;
                                       })),
+                            MarketplaceEntry(communityId: widget.communityId),
                             const SizedBox(height: 16),
                             TextField(
                                 decoration: InputDecoration(
@@ -121,8 +123,18 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                                                 : Icons.groups_outlined),
                                             title: Text(item.name),
                                             subtitle: Text(item.subtitle),
-                                            trailing:
-                                                const Icon(Icons.chevron_right),
+                                            trailing: _members
+                                                ? IconButton(
+                                                    tooltip:
+                                                        'Profil & lapak anggota',
+                                                    onPressed: () =>
+                                                        context.push(AppRoutes
+                                                            .marketSeller(
+                                                                item.id)),
+                                                    icon: const Icon(Icons
+                                                        .storefront_outlined))
+                                                : const Icon(
+                                                    Icons.chevron_right),
                                             onTap: () => context.push(
                                                 '/explore/communities/${item.communityId ?? item.id}')),
                                       Padding(
@@ -199,6 +211,7 @@ class PublicCommunityScreen extends ConsumerWidget {
                                   Text(c.subtitle),
                                   const SizedBox(height: 24),
                                   Text(c.description),
+                                  MarketplaceEntry(communityId: id),
                                   const SizedBox(height: 24),
                                   OutlinedButton.icon(
                                       onPressed: () => context.push(

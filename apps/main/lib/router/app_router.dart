@@ -1,3 +1,8 @@
+import '../features/marketplace/presentation/marketplace_screen.dart';
+import '../features/marketplace/presentation/market_product_screen.dart';
+import '../features/marketplace/presentation/market_product_form_screen.dart';
+import '../features/marketplace/presentation/market_checkout_screen.dart';
+import '../features/marketplace/presentation/market_orders_screen.dart';
 import 'package:core/core.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
@@ -101,6 +106,36 @@ final appRouter = GoRouter(
                 context.go(loginDestination(context, auth.user));
               }
             })),
+    GoRoute(
+        path: AppRoutes.marketProducts,
+        builder: (_, s) =>
+            MarketplaceScreen(communityId: s.uri.queryParameters['community'])),
+    GoRoute(
+        path: '/explore/products/:id',
+        builder: (_, s) => MarketProductScreen(id: s.pathParameters['id']!)),
+    GoRoute(
+        path: '/explore/sellers/:id',
+        builder: (_, s) =>
+            MarketplaceScreen(sellerId: s.pathParameters['id']!)),
+    GoRoute(
+        path: AppRoutes.myMarketProducts,
+        builder: (_, s) => const MarketplaceScreen(mine: true)),
+    GoRoute(
+        path: AppRoutes.newMarketProduct,
+        builder: (_, s) => const MarketProductFormScreen()),
+    GoRoute(
+        path: '/marketplace/my-products/:id/edit',
+        builder: (_, s) =>
+            MarketProductFormScreen(id: s.pathParameters['id']!)),
+    GoRoute(
+        path: '/marketplace/checkout/:id',
+        builder: (_, s) => MarketCheckoutScreen(id: s.pathParameters['id']!)),
+    GoRoute(
+        path: AppRoutes.marketOrders,
+        builder: (_, s) => const MarketOrdersScreen()),
+    GoRoute(
+        path: '/marketplace/orders/:id',
+        builder: (_, s) => MarketOrderScreen(id: s.pathParameters['id']!)),
     GoRoute(
         path: '/explore', builder: (context, state) => const DirectoryScreen()),
     GoRoute(

@@ -1,4 +1,5 @@
 import 'package:core/core.dart';
+import '../../../marketplace/presentation/marketplace_widgets.dart';
 import '../../../training/presentation/training_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -90,6 +91,7 @@ class ClubInfoTab extends ConsumerWidget {
                 label: const Text('Masa aktif & pembayaran')),
             const SizedBox(height: 12),
           ],
+          MarketplaceEntry(communityId: community.id),
           if (community.isMember) TrainingEntryCard(communityId: community.id),
           ClubSection(
             title: 'Tentang Komunitas',
