@@ -14,6 +14,7 @@ import 'package:app_main/features/training/presentation/training_screen.dart';
 import 'package:app_main/router/app_router.dart';
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -116,6 +117,38 @@ Future<void> _boot(WidgetTester t, double width, _Finance finance,
   await t.pumpAndSettle();
 }
 
+bool _primaryFocusInside(Finder target) {
+  final roots = target.evaluate().toSet();
+  final context = FocusManager.instance.primaryFocus?.context;
+  if (context is! Element) return false;
+  if (roots.contains(context)) return true;
+  var inside = false;
+  context.visitAncestorElements((ancestor) {
+    if (roots.contains(ancestor)) inside = true;
+    return !inside;
+  });
+  return inside;
+}
+
+Future<void> _tabTo(WidgetTester t, Finder target) async {
+  expect(target, findsOneWidget);
+  for (var i = 0; i < 40 && !_primaryFocusInside(target); i++) {
+    await t.sendKeyEvent(LogicalKeyboardKey.tab);
+    await t.pumpAndSettle();
+  }
+  expect(_primaryFocusInside(target), isTrue,
+      reason: 'Keyboard focus must reach ${target.description}');
+  expect(target.hitTestable(), findsOneWidget,
+      reason: 'Focused control must be visible and usable');
+}
+
+Future<void> _shiftTab(WidgetTester t) async {
+  await t.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  await t.sendKeyEvent(LogicalKeyboardKey.tab);
+  await t.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+  await t.pumpAndSettle();
+}
+
 void main() {
   setUp(() {
     AppConfig.instance = MainConfig();
@@ -127,6 +160,74 @@ void main() {
         buildSignature: '');
   });
   for (final width in [500.0, 1280.0]) {
+    testWidgets(
+        'actual App checkout accepts keyboard only after terms at $width',
+        (t) async {
+      final finance = _Finance();
+      final market = _Market(finance);
+      await _boot(t, width, finance, market: market);
+      await tapLobbyLink(t, 'market-entry-main');
+      await _tap(t, find.byKey(const Key('product-product-1')));
+      await _tap(t, find.byKey(const Key('market-buy')));
+      final pin = find.byKey(const Key('checkout-pin'));
+      final terms = find.byKey(const Key('checkout-confirm'));
+      final pay = find.byKey(const Key('checkout-pay'));
+      FocusManager.instance.primaryFocus?.unfocus();
+      await _tabTo(t, pin);
+      await t.enterText(pin, List.generate(6, (i) => '${i + 1}').join());
+      expect(_primaryFocusInside(pin), isTrue);
+      await t.sendKeyEvent(LogicalKeyboardKey.tab);
+      await t.pumpAndSettle();
+      expect(_primaryFocusInside(terms), isTrue);
+      await _shiftTab(t);
+      expect(_primaryFocusInside(pin), isTrue);
+      await t.sendKeyEvent(LogicalKeyboardKey.tab);
+      await t.pumpAndSettle();
+      expect(_primaryFocusInside(terms), isTrue);
+      expect(t.widget<CheckboxListTile>(terms).value, isFalse);
+      await t.sendKeyEvent(LogicalKeyboardKey.space);
+      await t.pumpAndSettle();
+      expect(t.widget<CheckboxListTile>(terms).value, isTrue);
+      await t.sendKeyEvent(LogicalKeyboardKey.tab);
+      await t.pumpAndSettle();
+      expect(_primaryFocusInside(pay), isTrue);
+      await t.sendKeyEvent(LogicalKeyboardKey.enter);
+      await t.pumpAndSettle();
+      expect(market.buyCalls, 1);
+      expect(find.text('Pembelian berhasil'), findsOneWidget);
+      expect(t.takeException(), null);
+      await t.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets(
+        'actual App keyboard opens cancels and confirms billing at $width',
+        (t) async {
+      final finance = _Finance();
+      await _boot(t, width, finance);
+      await tapLobbyLink(t, 'member-lobby-dues');
+      final pay = find.byKey(const Key('billing-pay-wallet'));
+      FocusManager.instance.primaryFocus?.unfocus();
+      await _tabTo(t, pay);
+      await t.sendKeyEvent(LogicalKeyboardKey.enter);
+      await t.pumpAndSettle();
+      expect(find.text('Bayar dari saldo?'), findsOneWidget);
+      await t.sendKeyEvent(LogicalKeyboardKey.escape);
+      await t.pumpAndSettle();
+      expect(find.text('Bayar dari saldo?'), findsNothing);
+      expect(finance.payKeys, isEmpty);
+      await _tabTo(t, pay);
+      await t.sendKeyEvent(LogicalKeyboardKey.space);
+      await t.pumpAndSettle();
+      expect(find.text('Bayar dari saldo?'), findsOneWidget);
+      await _tabTo(t, find.widgetWithText(FilledButton, 'Bayar sekarang'));
+      await t.sendKeyEvent(LogicalKeyboardKey.enter);
+      await t.pumpAndSettle();
+      expect(finance.payKeys, hasLength(1));
+      expect(find.text('Aktif'), findsOneWidget);
+      expect(t.takeException(), null);
+      await t.pumpWidget(const SizedBox.shrink());
+    });
+
     testWidgets('actual App billing payment then wallet at $width', (t) async {
       final finance = _Finance();
       await _boot(t, width, finance);
