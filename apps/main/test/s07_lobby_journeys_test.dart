@@ -47,7 +47,7 @@ import 'features/training/fake_training_repository.dart';
 
 class _Database extends Mock implements AppDatabase {}
 
-class _Cards implements MemberCardRepository {
+class LobbyCards implements MemberCardRepository {
   bool expired = false;
   final calls = <String>[];
   @override
@@ -65,7 +65,7 @@ class _Cards implements MemberCardRepository {
   }
 }
 
-Widget _application(
+Widget lobbyApplication(
         {required MarketStorage storage,
         required CommunityRole role,
         required FakeCommunityRepository communities,
@@ -73,7 +73,8 @@ Widget _application(
         required FakeAchievements points,
         required FakeTraining training,
         required FakeMarketplace market,
-        required _Cards cards}) =>
+        required LobbyCards cards,
+        FakeMovement? movement}) =>
     ProviderScope(overrides: [
       authProvider.overrideWith(() => FixedAuth(const AuthAuthenticated(User(
           id: 'journey',
@@ -88,7 +89,8 @@ Widget _application(
       achievementsRepositoryProvider.overrideWithValue(points),
       trainingRepositoryProvider.overrideWithValue(training),
       marketplaceRepositoryProvider.overrideWithValue(market),
-      moneyMovementRepositoryProvider.overrideWithValue(FakeMovement()),
+      moneyMovementRepositoryProvider
+          .overrideWithValue(movement ?? FakeMovement()),
       memberCardRepositoryProvider.overrideWithValue(cards),
       directoryRepositoryProvider.overrideWithValue(FakeDirectory()),
       homePromotionsProvider
@@ -97,8 +99,12 @@ Widget _application(
           .overrideWith((ref) async => SettingsRepositoryImpl(storage)),
     ], child: App(storage: storage, database: _Database()));
 
-Future<void> _tap(WidgetTester t, String key) async {
+Future<void> tapLobbyLink(WidgetTester t, String key) async {
   final target = find.byKey(Key(key));
+  if (target.evaluate().isEmpty) {
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 10000));
+    await t.pumpAndSettle();
+  }
   for (var i = 0; i < 24 && target.evaluate().isEmpty; i++) {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -400));
     await t.pumpAndSettle();
@@ -273,9 +279,9 @@ void main() {
         joined: [testCommunity('2', myRole: CommunityRole.creator)],
         detail: detail);
     final finance = FakeFinance()..billingValue = billingFixture();
-    final cards = _Cards()..expired = true;
+    final cards = LobbyCards()..expired = true;
     appRouter.go('/');
-    await t.pumpWidget(_application(
+    await t.pumpWidget(lobbyApplication(
         storage: MarketStorage(),
         role: CommunityRole.creator,
         communities: communities,
@@ -289,12 +295,12 @@ void main() {
         find.textContaining('Keanggotaan atau langganan komunitas tidak aktif'),
         findsOneWidget);
     expect(find.byKey(const Key('community-record-achievement')), findsNothing);
-    await _tap(t, 'member-lobby-dues');
+    await tapLobbyLink(t, 'member-lobby-dues');
     expect(find.byType(BillingScreen), findsOneWidget);
     expect(find.textContaining('150.000'), findsWidgets);
     appRouter.pop();
     await t.pumpAndSettle();
-    await _tap(t, 'member-lobby-card');
+    await tapLobbyLink(t, 'member-lobby-card');
     expect(find.byType(MemberCardScreen), findsOneWidget);
     expect(find.text('S07-KTA-001'), findsOneWidget);
     final container =
@@ -321,9 +327,9 @@ void main() {
       final points = FakeAchievements(),
           training = FakeTraining(),
           market = FakeMarketplace(),
-          cards = _Cards();
+          cards = LobbyCards();
       appRouter.go('/');
-      await t.pumpWidget(_application(
+      await t.pumpWidget(lobbyApplication(
           storage: MarketStorage(),
           role: c.role,
           communities: communities,
@@ -333,7 +339,7 @@ void main() {
           market: market,
           cards: cards));
       await t.pumpAndSettle();
-      await _tap(t, c.key);
+      await tapLobbyLink(t, c.key);
       expect(find.byType(c.destination), findsOneWidget);
       expect(find.textContaining(c.evidence), findsWidgets);
       if (c.destination == MemberCardScreen) expect(cards.calls, contains('2'));
@@ -345,7 +351,7 @@ void main() {
       }
       if (c.destination == RankingScreen) expect(points.queries, isNotEmpty);
       if (c.key == 'home-public-directory') {
-        await _tap(t, 'lobby-create-community');
+        await tapLobbyLink(t, 'lobby-create-community');
         expect(find.byType(CommunityFormScreen), findsOneWidget);
         expect(find.byType(TextFormField), findsWidgets);
       }
