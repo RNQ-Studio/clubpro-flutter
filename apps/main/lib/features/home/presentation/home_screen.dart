@@ -18,6 +18,10 @@ import '../../dues/presentation/dues_providers.dart';
 import '../../finance/presentation/finance_widgets.dart';
 import 'home_providers.dart';
 import 'widgets/home_admin_panel_card.dart';
+import 'widgets/lobby_links.dart';
+import 'widgets/member_lobby_card.dart';
+import '../../achievements/presentation/achievements_providers.dart';
+import '../../finance/presentation/finance_providers.dart';
 import 'widgets/home_app_version.dart';
 import 'widgets/home_club_card.dart';
 import 'widgets/home_club_chooser.dart';
@@ -39,6 +43,10 @@ class HomeScreen extends ConsumerWidget {
 
   Future<void> _refresh(WidgetRef ref) async {
     final active = ref.read(activeCommunityProvider).value?.active;
+    ref.invalidate(walletSummaryProvider);
+    ref.invalidate(myAchievementsProvider);
+    ref.invalidate(memberAdsProvider);
+    ref.invalidate(rankingsProvider);
     ref.invalidate(homePromotionsProvider);
     ref.invalidate(joinedCommunitiesProvider);
     ref.invalidate(recommendedCommunitiesProvider);
@@ -138,6 +146,8 @@ class HomeScreen extends ConsumerWidget {
                     ...clubSection,
                     const MarketplaceEntry(),
                     const MarketplaceEntry(mine: true),
+                    const PublicLobbyLinks(),
+                    MemberLobbyCard(community: mineValue?.active),
                     if (user != null && user.isSuperAdmin) ...[
                       const SizedBox(height: 24),
                       HomeAdminPanelCard(
@@ -222,6 +232,13 @@ class _ActiveClub extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
         ],
+        CommunityLobbyLinks(
+            communityId: community.id,
+            canRecord: detail != null &&
+                detail.isMember &&
+                (detail.myRole?.canManage == true ||
+                    detail.myRole == CommunityRole.coach) &&
+                !restricted),
         MarketplaceEntry(communityId: community.id),
         TrainingEntryCard(communityId: community.id),
         FinanceEntryCard(

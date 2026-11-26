@@ -101,6 +101,14 @@ class _ProfileBody extends StatelessWidget {
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => context.push(
                               AppRoutes.marketSeller(profile.identityId!)))),
+                if (profile.identityId != null)
+                  Card(
+                      child: ListTile(
+                          leading: const Icon(Icons.campaign_outlined),
+                          title: const Text('Iklan anggota'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => context.push(
+                              '${AppRoutes.memberAds}?seller=${profile.identityId}'))),
                 ClubGroupTitle(
                   'Komunitas yang Sama',
                   count: profile.communities.length,

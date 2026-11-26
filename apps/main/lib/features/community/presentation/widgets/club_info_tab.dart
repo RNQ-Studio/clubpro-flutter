@@ -1,4 +1,5 @@
 import 'package:core/core.dart';
+import '../../../home/presentation/widgets/lobby_links.dart';
 import '../../../marketplace/presentation/marketplace_widgets.dart';
 import '../../../training/presentation/training_screen.dart';
 import 'package:flutter/material.dart';
@@ -91,6 +92,13 @@ class ClubInfoTab extends ConsumerWidget {
                 label: const Text('Masa aktif & pembayaran')),
             const SizedBox(height: 12),
           ],
+          CommunityLobbyLinks(
+              communityId: community.id,
+              canRecord: community.isMember &&
+                  (community.canManage ||
+                      community.myRole == CommunityRole.coach) &&
+                  community.entitlementActive != false &&
+                  community.platformActive != false),
           MarketplaceEntry(communityId: community.id),
           if (community.isMember) TrainingEntryCard(communityId: community.id),
           ClubSection(

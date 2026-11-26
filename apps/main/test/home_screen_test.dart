@@ -265,7 +265,13 @@ const _day = Duration(days: 1);
 
 /// Isi Beranda dibangun bertahap; gulir ke dasar agar semua bagiannya dibuat.
 Future<void> _scrollToEnd(WidgetTester tester) async {
-  await tester.drag(find.byType(ListView).first, const Offset(0, -4000));
+  await tester.scrollUntilVisible(find.byType(HomeAppVersion), 500,
+      scrollable: find
+          .descendant(
+              of: find.byType(ListView).first,
+              matching: find.byType(Scrollable))
+          .first);
+  await tester.ensureVisible(find.byType(HomeAppVersion));
   await tester.pumpAndSettle();
 }
 
@@ -835,6 +841,13 @@ void main() {
 
         await tester.tap(find.byType(BackButton));
         await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+            find.text('Mulai bersama komunitas'), -500,
+            scrollable: find
+                .descendant(
+                    of: find.byType(ListView).first,
+                    matching: find.byType(Scrollable))
+                .first);
         expect(find.text('Mulai bersama komunitas'), findsOneWidget);
       });
     }
