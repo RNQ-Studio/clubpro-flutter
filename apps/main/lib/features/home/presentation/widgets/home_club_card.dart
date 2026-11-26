@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../community/domain/entities/community.dart';
 import '../../../community/presentation/widgets/community_visuals.dart';
 
-/// Komunitas aktif di Beranda: Anda masuk sebagai anggota komunitas ini.
+/// Identitas komunitas aktif. Status dan peran tetap terlihat tanpa mengulang
+/// nama peran pada beberapa baris; pemilih komunitas memiliki ruang sendiri.
 class HomeClubCard extends StatelessWidget {
   const HomeClubCard({
     super.key,
@@ -25,18 +26,44 @@ class HomeClubCard extends StatelessWidget {
     final members = community.membersCount;
 
     return Material(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       clipBehavior: Clip.antiAlias,
       child: Ink(
-        decoration: const BoxDecoration(gradient: CommunityColors.heroGradient),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [CommunityColors.ink, CommunityColors.brown],
+          ),
+        ),
         child: InkWell(
           key: const Key('home-club-card'),
           onTap: onOpen,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Komunitas aktif',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: const Color(0xFFF0D18A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (onSwitch != null) ...[
+                      const SizedBox(width: 8),
+                      _SwitchButton(onPressed: onSwitch!),
+                    ] else
+                      const Icon(Icons.arrow_outward_rounded,
+                          color: Colors.white70, size: 18),
+                  ],
+                ),
+                const SizedBox(height: 14),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -49,54 +76,44 @@ class HomeClubCard extends StatelessWidget {
                       child: CommunityLogo(
                         name: community.name,
                         url: community.logoUrl,
-                        size: 54,
+                        size: 48,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Masuk sebagai ${role.label.toLowerCase()}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: CommunityColors.goldLight,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
                             community.name,
-                            maxLines: 2,
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium?.copyWith(
+                            style: theme.textTheme.titleLarge?.copyWith(
                               color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w700,
                               height: 1.2,
+                              letterSpacing: -0.3,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 5),
                           Text(
                             '${community.typeLabel} · ${community.cityName}',
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: Colors.white70,
+                              height: 1.4,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    if (onSwitch != null) ...[
-                      const SizedBox(width: 6),
-                      _SwitchButton(onPressed: onSwitch!),
-                    ],
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 18),
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     _Chip(
                       icon: switch (role) {
@@ -107,7 +124,7 @@ class HomeClubCard extends StatelessWidget {
                         CommunityRole.coach => Icons.sports_rounded,
                         CommunityRole.member => Icons.person_rounded,
                       },
-                      label: role.label,
+                      label: 'Masuk sebagai ${role.label.toLowerCase()}',
                     ),
                     if (members != null)
                       _Chip(
@@ -145,10 +162,10 @@ class _SwitchButton extends StatelessWidget {
       onPressed: onPressed,
       style: TextButton.styleFrom(
         foregroundColor: Colors.white,
-        backgroundColor: Colors.white.withValues(alpha: 0.14),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        visualDensity: VisualDensity.compact,
-        shape: const StadiumBorder(),
+        backgroundColor: Colors.white.withValues(alpha: 0.1),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        minimumSize: const Size(0, 44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       icon: const Icon(Icons.swap_horiz_rounded, size: 18),
       label: const Text('Ganti'),
@@ -173,26 +190,27 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) {
     final foreground = highlight ? CommunityColors.ink : Colors.white;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: highlight
-            ? CommunityColors.goldLight
-            : Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(20),
+            ? const Color(0xFFF0D18A)
+            : Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: foreground),
-          const SizedBox(width: 4),
+          Icon(icon, size: 14, color: foreground),
+          const SizedBox(width: 5),
           Flexible(
             child: Text(
               label,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: foreground,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
+                    height: 1.3,
                   ),
             ),
           ),

@@ -18,21 +18,31 @@ class HomeSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final heading = Text(
+      title,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+    );
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-          ),
-          if (action != null) action!,
-        ],
-      ),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final stack = action != null &&
+            constraints.maxWidth <
+                300 * MediaQuery.textScalerOf(context).scale(1);
+        if (stack) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              heading,
+              Align(alignment: Alignment.centerRight, child: action)
+            ],
+          );
+        }
+        return Row(
+          children: [Expanded(child: heading), if (action != null) action!],
+        );
+      }),
     );
   }
 }
@@ -79,6 +89,9 @@ class HomeClubMenu extends StatelessWidget {
         .textTheme
         .labelMedium
         ?.copyWith(height: 1.2, letterSpacing: 0);
+    final scale = MediaQuery.textScalerOf(context).scale(1);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    var itemWidth = 0.0;
     Widget item({
       required Key key,
       required String label,
@@ -88,7 +101,8 @@ class HomeClubMenu extends StatelessWidget {
       Key? badgeKey,
       int badge = 0,
     }) =>
-        Expanded(
+        SizedBox(
+          width: itemWidth,
           child: InkWell(
             key: key,
             borderRadius: BorderRadius.circular(14),
@@ -105,18 +119,23 @@ class HomeClubMenu extends StatelessWidget {
                       width: 52,
                       height: 52,
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
+                        color: (dark && color.computeLuminance() < 0.1
+                                ? CommunityColors.goldLight
+                                : color)
+                            .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Icon(icon, color: color, size: 26),
+                      child: Icon(icon,
+                          color: dark && color.computeLuminance() < 0.1
+                              ? CommunityColors.goldLight
+                              : color,
+                          size: 26),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     label,
                     textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: labelStyle,
                   ),
                 ],
@@ -126,30 +145,39 @@ class HomeClubMenu extends StatelessWidget {
         );
 
     final (cardLabel, cardIcon, cardColor) = cardItem;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        item(
-          key: const Key('home-club-menu-card'),
-          label: cardLabel,
-          icon: cardIcon,
-          color: cardColor,
-          onTap: onOpenCard,
-        ),
-        for (final (tab, label, icon, color) in items)
+    return LayoutBuilder(builder: (context, constraints) {
+      final columns = constraints.maxWidth >= 5 * 70 * scale + 32
+          ? 5
+          : constraints.maxWidth >= 3 * 70 * scale + 16
+              ? 3
+              : 2;
+      itemWidth = (constraints.maxWidth - 8 * (columns - 1)) / columns;
+      return Wrap(
+        spacing: 8,
+        runSpacing: 12,
+        children: [
           item(
-            key: Key('home-club-menu-$tab'),
-            label: label,
-            icon: icon,
-            color: color,
-            onTap: () => onOpenTab(tab),
-            badgeKey: tab == ClubTab.members
-                ? const Key('home-club-requests-badge')
-                : null,
-            badge: tab == ClubTab.members ? pendingRequests : 0,
+            key: const Key('home-club-menu-card'),
+            label: cardLabel,
+            icon: cardIcon,
+            color: cardColor,
+            onTap: onOpenCard,
           ),
-      ],
-    );
+          for (final (tab, label, icon, color) in items)
+            item(
+              key: Key('home-club-menu-$tab'),
+              label: label,
+              icon: icon,
+              color: color,
+              onTap: () => onOpenTab(tab),
+              badgeKey: tab == ClubTab.members
+                  ? const Key('home-club-requests-badge')
+                  : null,
+              badge: tab == ClubTab.members ? pendingRequests : 0,
+            ),
+        ],
+      );
+    });
   }
 }
 

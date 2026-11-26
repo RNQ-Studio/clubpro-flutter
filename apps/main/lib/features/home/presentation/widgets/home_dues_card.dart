@@ -96,6 +96,7 @@ class HomeDuesCard extends ConsumerWidget {
                     minimumSize: const Size(64, 40),
                     visualDensity: VisualDensity.compact,
                     backgroundColor: CommunityColors.brown,
+                    foregroundColor: Colors.white,
                   ),
                   child: const Text('Bayar'),
                 ),

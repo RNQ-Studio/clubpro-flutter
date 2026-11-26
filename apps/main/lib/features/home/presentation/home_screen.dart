@@ -1,8 +1,6 @@
-import '../../marketplace/presentation/marketplace_widgets.dart';
 import 'dart:math' as math;
 
 import 'package:core/core.dart';
-import '../../training/presentation/training_screen.dart';
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,8 +16,6 @@ import '../../dues/presentation/dues_providers.dart';
 import '../../finance/presentation/finance_widgets.dart';
 import 'home_providers.dart';
 import 'widgets/home_admin_panel_card.dart';
-import 'widgets/lobby_links.dart';
-import 'widgets/member_lobby_card.dart';
 import '../../achievements/presentation/achievements_providers.dart';
 import '../../finance/presentation/finance_providers.dart';
 import 'widgets/home_app_version.dart';
@@ -27,6 +23,7 @@ import 'widgets/home_club_card.dart';
 import 'widgets/home_club_chooser.dart';
 import 'widgets/home_club_sections.dart';
 import 'widgets/home_dues_card.dart';
+import 'widgets/home_dashboard_sections.dart';
 import 'widgets/home_user_header.dart';
 import 'widgets/promotion_popup_gate.dart';
 
@@ -39,7 +36,7 @@ class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   /// Lebar isi di layar lebar agar kartu tidak melar.
-  static const maxContentWidth = 760.0;
+  static const maxContentWidth = 1120.0;
 
   Future<void> _refresh(WidgetRef ref) async {
     final active = ref.read(activeCommunityProvider).value?.active;
@@ -64,6 +61,37 @@ class HomeScreen extends ConsumerWidget {
     final user = authState is AuthAuthenticated ? authState.user : null;
     final mine = ref.watch(activeCommunityProvider);
     final mineValue = mine.value;
+    final active = mineValue?.active;
+    final detail = active == null
+        ? null
+        : ref.watch(communityDetailProvider(active.id)).value;
+    final restricted =
+        (detail?.entitlementActive ?? active?.entitlementActive) == false ||
+            (detail?.platformActive ?? active?.platformActive) == false;
+    final secondary = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (user != null) ...[
+          const HomeAccountSummary(),
+          const SizedBox(height: 20),
+        ],
+        HomeMenuGroups(
+          community: active,
+          detail: detail,
+          restricted: restricted,
+        ),
+        if (user?.isSuperAdmin == true) ...[
+          const SizedBox(height: 20),
+          HomeAdminPanelCard(onTap: () => context.push(AppRoutes.adminPanel)),
+          TextButton.icon(
+            key: const Key('member-lobby-point-rules'),
+            onPressed: () => context.push(AppRoutes.achievementRules),
+            icon: const Icon(Icons.tune_rounded, size: 18),
+            label: const Text('Pengaturan poin pusat'),
+          ),
+        ],
+      ],
+    );
 
     final List<Widget> clubSection;
     if (mineValue == null) {
@@ -116,8 +144,15 @@ class HomeScreen extends ConsumerWidget {
               builder: (context, constraints) {
                 final side = math.max(
                     16.0, (constraints.maxWidth - maxContentWidth) / 2);
+                final primary = Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: clubSection,
+                );
+                final wide = constraints.maxWidth >= 980;
                 return ListView(
-                  padding: EdgeInsets.fromLTRB(side, 12, side, 24),
+                  key: const Key('home-scroll'),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(side, 20, side, 24),
                   children: [
                     if (user != null)
                       Row(children: [
@@ -127,32 +162,29 @@ class HomeScreen extends ConsumerWidget {
                             onTap: () => context.go(AppRoutes.profile),
                           ),
                         ),
-                        IconButton(
-                          key: const Key('home-wallet'),
-                          tooltip: 'Saldo & top up',
-                          onPressed: () => context.push(AppRoutes.wallet),
-                          icon:
-                              const Icon(Icons.account_balance_wallet_outlined),
-                        ),
-                        IconButton(
+                        IconButton.outlined(
                           key: const Key('home-billing-notices'),
                           tooltip: 'Pengingat pembayaran',
                           onPressed: () =>
                               context.push(AppRoutes.billingNotices),
-                          icon: const Icon(Icons.notifications_active_outlined),
+                          icon: const Icon(Icons.notifications_none_rounded),
                         ),
                       ]),
-                    const SizedBox(height: 10),
-                    ...clubSection,
-                    const MarketplaceEntry(),
-                    const MarketplaceEntry(mine: true),
-                    const PublicLobbyLinks(),
-                    MemberLobbyCard(community: mineValue?.active),
-                    if (user != null && user.isSuperAdmin) ...[
+                    const SizedBox(height: 22),
+                    if (wide)
+                      Row(
+                        key: const Key('home-desktop-columns'),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 7, child: primary),
+                          const SizedBox(width: 24),
+                          Expanded(flex: 5, child: secondary),
+                        ],
+                      )
+                    else ...[
+                      primary,
                       const SizedBox(height: 24),
-                      HomeAdminPanelCard(
-                        onTap: () => context.push(AppRoutes.adminPanel),
-                      ),
+                      secondary,
                     ],
                     const SizedBox(height: 28),
                     const HomeAppVersion(),
@@ -207,6 +239,17 @@ class _ActiveClub extends ConsumerWidget {
         if (restricted) ...[
           const FinanceMessage(
               'Keanggotaan atau langganan komunitas tidak aktif. Lunasi kewajiban melalui menu pembayaran untuk membuka kegiatan.'),
+          FilledButton.icon(
+            key: const Key('home-restricted-billing'),
+            style: FilledButton.styleFrom(
+              backgroundColor: CommunityColors.brown,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => context.push(
+                '${AppRoutes.communityBilling(community.id)}${(detail?.myRole ?? community.myRole) == CommunityRole.creator ? '?scope=platform' : ''}'),
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: const Text('Keanggotaan & pembayaran'),
+          ),
           OutlinedButton(
               onPressed: () =>
                   context.push(AppRoutes.communityCard(community.id)),
@@ -214,40 +257,45 @@ class _ActiveClub extends ConsumerWidget {
         ],
         if (!restricted) ...[
           const SizedBox(height: 20),
-          const HomeSectionTitle('Menu Komunitas'),
-          HomeClubMenu(
-            onOpenTab: openTab,
-            onOpenCard: () =>
-                context.push(AppRoutes.communityCard(community.id)),
-            pendingRequests: manager?.pendingMembersCount ?? 0,
-          ),
-          if (manager != null) ...[
-            const SizedBox(height: 20),
-            HomeManagerPanel(community: manager, onOpenTab: openTab),
-          ],
+          HomeSurface(
+              child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const HomeSectionTitle('Menu Komunitas'),
+              const SizedBox(height: 8),
+              HomeClubMenu(
+                onOpenTab: openTab,
+                onOpenCard: () =>
+                    context.push(AppRoutes.communityCard(community.id)),
+                pendingRequests: manager?.pendingMembersCount ?? 0,
+              ),
+            ],
+          )),
           const SizedBox(height: 20),
-          HomeUpcomingActivities(
+          HomeSurface(
+              child: HomeUpcomingActivities(
             communityId: community.id,
             onSeeAll: () => openTab(ClubTab.activities),
-          ),
+          )),
           const SizedBox(height: 20),
         ],
-        CommunityLobbyLinks(
-            communityId: community.id,
-            canRecord: detail != null &&
-                detail.isMember &&
-                (detail.myRole?.canManage == true ||
-                    detail.myRole == CommunityRole.coach) &&
-                !restricted),
-        MarketplaceEntry(communityId: community.id),
-        TrainingEntryCard(communityId: community.id),
-        FinanceEntryCard(
-            communityId: community.id,
-            platform: community.myRole == CommunityRole.creator),
-        HomeMoreCommunities(
-          onFind: () => context.push(AppRoutes.communities),
-          onCreate: () => context.push(AppRoutes.createCommunity),
-        ),
+        if (manager != null && !restricted)
+          HomeSurface(
+            padding: 0,
+            child: HomeMenuGroup(
+              tileKey: const Key('home-manage-expand'),
+              icon: Icons.admin_panel_settings_outlined,
+              title: 'Kelola Komunitas',
+              subtitle: manager.pendingMembersCount +
+                          manager.pendingDuesPaymentsCount >
+                      0
+                  ? '${manager.pendingMembersCount + manager.pendingDuesPaymentsCount} perlu ditindaklanjuti'
+                  : 'Anggota, kegiatan & pengaturan',
+              children: [
+                HomeManagerPanel(community: manager, onOpenTab: openTab)
+              ],
+            ),
+          ),
       ],
     );
   }

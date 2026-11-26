@@ -1,8 +1,10 @@
 import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 
-/// Info singkat anggota yang login: foto, nama, email. Pintu masuk halaman
-/// Profil; titik merah di foto menandai data diri yang belum lengkap.
+import '../../../community/presentation/widgets/community_visuals.dart';
+
+/// Sapaan singkat sekaligus pintu masuk Profil. Titik merah menandai data diri
+/// yang belum lengkap; rincian akun tersedia di halaman Profil.
 class HomeUserHeader extends StatelessWidget {
   const HomeUserHeader({super.key, required this.user, this.onTap, this.now});
 
@@ -24,6 +26,9 @@ class HomeUserHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final avatarForeground = theme.brightness == Brightness.dark
+        ? const Color(0xFFF0D18A)
+        : CommunityColors.brown;
     final avatarUrl = user.avatarUrl;
     final hasPhoto = avatarUrl != null && avatarUrl.isNotEmpty;
     final initial =
@@ -40,22 +45,22 @@ class HomeUserHeader extends StatelessWidget {
             Badge(
               key: const Key('home-profile-badge'),
               isLabelVisible: !user.completion.isComplete,
-              smallSize: 12,
+              smallSize: 10,
               child: CircleAvatar(
-                radius: 28,
-                backgroundColor: colorScheme.primaryContainer,
+                radius: 22,
+                backgroundColor: CommunityColors.gold.withValues(alpha: 0.12),
                 foregroundImage: hasPhoto ? NetworkImage(avatarUrl) : null,
                 child: Text(
                   initial,
                   style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onPrimaryContainer,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: avatarForeground,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,33 +71,31 @@ class HomeUserHeader extends StatelessWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     user.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    user.email,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
                     ),
                   ),
                 ],
               ),
             ),
             if (user.completion.isComplete)
-              const Tooltip(
-                message: 'Profil lengkap',
-                child: Icon(Icons.verified_rounded, color: Color(0xFF178A5B)),
+              const Padding(
+                padding: EdgeInsets.only(left: 6),
+                child: Tooltip(
+                  message: 'Profil lengkap',
+                  child: Icon(Icons.verified_rounded,
+                      color: CommunityColors.success, size: 18),
+                ),
               )
             else
               Icon(Icons.chevron_right_rounded,
-                  color: colorScheme.onSurfaceVariant),
+                  size: 20, color: colorScheme.onSurfaceVariant),
           ],
         ),
       ),

@@ -275,6 +275,15 @@ Future<void> _scrollToEnd(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _openManager(WidgetTester tester) async {
+  final group = find.byKey(const Key('home-manage-expand'));
+  await tester.ensureVisible(group);
+  await tester.pumpAndSettle();
+  await tester
+      .tap(find.descendant(of: group, matching: find.byType(ListTile)).first);
+  await tester.pumpAndSettle();
+}
+
 void _phoneScreen(WidgetTester tester) {
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 2.7;
@@ -288,9 +297,9 @@ void main() {
     await tester.pumpWidget(_app(communities: _member()));
     await tester.pumpAndSettle();
 
-    // Info singkat user: foto (inisial bila tanpa foto), nama, email.
+    // Identitas ringkas: foto dan nama, email tetap di halaman profil.
     expect(find.text('Rina Ayu'), findsOneWidget);
-    expect(find.text('rina@gmail.com'), findsOneWidget);
+    expect(find.text('rina@gmail.com'), findsNothing);
     expect(find.text('R'), findsOneWidget);
 
     // Komunitas aktif di bawah info user, lalu menu; banner tidak lagi di sini.
@@ -436,8 +445,10 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
+      await _openManager(tester);
+
       expect(find.text('Masuk sebagai pendiri'), findsOneWidget);
-      expect(find.text('Kelola Komunitas'), findsOneWidget);
+      expect(find.text('Kelola Komunitas'), findsNWidgets(2));
       expect(find.text('Anda Pendiri di komunitas ini'), findsOneWidget);
       expect(find.text('2 menunggu persetujuan'), findsOneWidget);
       expect(find.text('Belum ada kegiatan terjadwal'), findsOneWidget);
@@ -464,6 +475,8 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
+
+      await _openManager(tester);
 
       expect(find.text('Anda Admin di komunitas ini'), findsOneWidget);
       expect(find.text('Tidak ada yang menunggu'), findsOneWidget);
@@ -515,6 +528,8 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
+
+      await _openManager(tester);
 
       expect(
         find.descendant(
@@ -591,6 +606,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
+      await _openManager(tester);
+
       expect(find.text('2 bukti transfer menunggu'), findsOneWidget);
       for (final (key, page) in [
         ('home-manage-dues-payments', 'IURAN 1 payments'),
@@ -614,6 +631,8 @@ void main() {
         communities: _member(role: CommunityRole.creator),
       ));
       await tester.pumpAndSettle();
+
+      await _openManager(tester);
 
       expect(find.byKey(const Key('home-manage-dues-payments')), findsNothing);
       expect(find.byKey(const Key('home-manage-dues-calendar')), findsNothing);
@@ -1010,7 +1029,8 @@ void main() {
         tester.getSize(find.byType(HomeClubCard)).width,
         lessThanOrEqualTo(HomeScreen.maxContentWidth),
       );
-      expect(tester.getCenter(find.byType(HomeClubCard)).dx, 640);
+      expect(find.byKey(const Key('home-desktop-columns')), findsOneWidget);
+      expect(tester.getCenter(find.byType(HomeClubCard)).dx, lessThan(640));
     });
   });
 
@@ -1536,7 +1556,7 @@ void main() {
       // Menu langsung di bawah kartu komunitas, tanpa celah bekas banner.
       final gap = tester.getTopLeft(find.text('Menu Komunitas')).dy -
           tester.getBottomLeft(find.byType(HomeClubCard)).dy;
-      expect(gap, lessThanOrEqualTo(24));
+      expect(gap, lessThanOrEqualTo(48));
     });
   });
 
