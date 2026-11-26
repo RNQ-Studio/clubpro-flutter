@@ -42,66 +42,76 @@ class HomeDuesCard extends ConsumerWidget {
           onTap: () => context.push(AppRoutes.communityDues(communityId)),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: headline.color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
+            child: LayoutBuilder(builder: (context, constraints) {
+              final stacked = constraints.maxWidth <
+                  300 * MediaQuery.textScalerOf(context).scale(1);
+              final summary = Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: headline.color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(Icons.account_balance_wallet_rounded,
+                        color: headline.color),
                   ),
-                  child: Icon(
-                    Icons.account_balance_wallet_rounded,
-                    color: headline.color,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Iuran Saya',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Iuran Saya',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant)),
+                        Text(
+                          headline.text,
+                          key: const Key('home-dues-headline'),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: headline.color,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      Text(
-                        headline.text,
-                        key: const Key('home-dues-headline'),
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: headline.color,
-                          fontWeight: FontWeight.bold,
+                        Text(
+                          pending > 0
+                              ? '$pending bulan menunggu verifikasi'
+                              : '${formatRupiah(overview.settings.monthlyAmount ?? 0)}'
+                                  '/bulan · jatuh tempo tgl '
+                                  '${overview.settings.dueDay}',
+                          style: theme.textTheme.bodySmall,
                         ),
-                      ),
-                      Text(
-                        pending > 0
-                            ? '$pending bulan menunggu verifikasi'
-                            : '${formatRupiah(overview.settings.monthlyAmount ?? 0)}'
-                                '/bulan · jatuh tempo tgl '
-                                '${overview.settings.dueDay}',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                ],
+              );
+              final pay = FilledButton(
+                key: const Key('home-dues-pay'),
+                onPressed: () =>
+                    context.push(AppRoutes.communityDuesPay(communityId)),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(64, 40),
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: CommunityColors.brown,
+                  foregroundColor: Colors.white,
                 ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  key: const Key('home-dues-pay'),
-                  onPressed: () =>
-                      context.push(AppRoutes.communityDuesPay(communityId)),
-                  // Tema app memberi tombol lebar penuh; di dalam Row harus
-                  // selebar isinya.
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(64, 40),
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: CommunityColors.brown,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Bayar'),
-                ),
-              ],
-            ),
+                child: const Text('Bayar'),
+              );
+              return stacked
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        summary,
+                        const SizedBox(height: 10),
+                        Align(alignment: Alignment.centerRight, child: pay)
+                      ],
+                    )
+                  : Row(children: [
+                      Expanded(child: summary),
+                      const SizedBox(width: 8),
+                      pay
+                    ]);
+            }),
           ),
         ),
       ),
