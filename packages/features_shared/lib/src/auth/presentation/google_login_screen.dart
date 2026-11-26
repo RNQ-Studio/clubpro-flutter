@@ -28,6 +28,7 @@ class GoogleLoginScreen extends ConsumerStatefulWidget {
     this.header,
     this.background,
     this.footer,
+    this.contentBuilder,
     this.signupHint = defaultSignupHint,
     this.onLoggedIn,
   });
@@ -50,6 +51,12 @@ class GoogleLoginScreen extends ConsumerStatefulWidget {
 
   /// Di bawah tombol masuk, menggantikan baris versi bawaan.
   final Widget? footer;
+
+  /// Komposisi responsif khusus app, tetap memakai aksi autentikasi bersama.
+  /// Builder menerima identitas dan kelompok aksi (galat, Google, footer).
+  /// Hasilnya perlu menyediakan SafeArea dan scroll untuk layar pendek.
+  final Widget Function(BuildContext context, Widget header, Widget actions)?
+      contentBuilder;
 
   /// Null = tanpa petunjuk di bawah tombol.
   final String? signupHint;
@@ -108,91 +115,110 @@ class _GoogleLoginScreenState extends ConsumerState<GoogleLoginScreen> {
     });
 
     final hint = widget.signupHint;
-    final content = SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          // Layar lebar: isi tetap selebar ponsel di tengah.
-          padding: EdgeInsets.symmetric(
-            horizontal: math.max(
-                28, (constraints.maxWidth - GoogleLoginScreen.maxWidth) / 2),
+    final header = widget.header ??
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.logo != null) ...[
+              widget.logo!,
+              const SizedBox(height: 28),
+            ],
+            Text(
+              widget.title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (widget.subtitle != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                widget.subtitle!,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ],
+        );
+    final actions = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (authState is AuthError) ...[
+          _ErrorBanner(message: authState.message),
+          const SizedBox(height: 16),
+        ],
+        if (_webIdTokens != null && !isLoading)
+          SizedBox(
+            height: 56,
+            child: widget.contentBuilder == null
+                ? Center(child: googleWebButton())
+                : LayoutBuilder(
+                    builder: (context, constraints) => Center(
+                      child: googleWebButton(
+                        minimumWidth: math.min(400, constraints.maxWidth),
+                      ),
+                    ),
+                  ),
+          )
+        else
+          _GoogleButton(
+            isLoading: isLoading,
+            onPressed: () => ref.read(authProvider.notifier).loginWithGoogle(),
           ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
-              child: Column(
-                children: [
-                  const Spacer(flex: 2),
-                  if (widget.header case final header?)
-                    header
-                  else ...[
-                    if (widget.logo != null) ...[
-                      widget.logo!,
-                      const SizedBox(height: 28),
+        if (hint != null) ...[
+          const SizedBox(height: 14),
+          Text(
+            hint,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+        ],
+        const SizedBox(height: 24),
+        if (widget.footer case final footer?)
+          footer
+        else if (_version.isNotEmpty)
+          Text(
+            _version,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+          ),
+      ],
+    );
+    final content = widget.contentBuilder?.call(context, header, actions) ??
+        SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              // Layar lebar: isi tetap selebar ponsel di tengah.
+              padding: EdgeInsets.symmetric(
+                horizontal: math.max(28,
+                    (constraints.maxWidth - GoogleLoginScreen.maxWidth) / 2),
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
+                      const Spacer(flex: 2),
+                      header,
+                      const Spacer(flex: 3),
+                      actions,
+                      const SizedBox(height: 16),
                     ],
-                    Text(
-                      widget.title,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (widget.subtitle != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        widget.subtitle!,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
-                  ],
-                  const Spacer(flex: 3),
-                  if (authState is AuthError) ...[
-                    _ErrorBanner(message: authState.message),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_webIdTokens != null && !isLoading)
-                    SizedBox(
-                      height: 56,
-                      child: Center(child: googleWebButton()),
-                    )
-                  else
-                    _GoogleButton(
-                      isLoading: isLoading,
-                      onPressed: () =>
-                          ref.read(authProvider.notifier).loginWithGoogle(),
-                    ),
-                  if (hint != null) ...[
-                    const SizedBox(height: 14),
-                    Text(
-                      hint,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  if (widget.footer case final footer?)
-                    footer
-                  else if (_version.isNotEmpty)
-                    Text(
-                      _version,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.4),
-                      ),
-                    ),
-                  const SizedBox(height: 16),
-                ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    );
+        );
 
     final background = widget.background;
     return Scaffold(

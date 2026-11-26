@@ -9,6 +9,7 @@ import 'package:features_shared/features_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class _FixedAuthNotifier extends AuthNotifier {
@@ -120,10 +121,12 @@ void main() {
     expect(top(name), lessThan(top(tagline)));
     expect(top(tagline), lessThan(top(google)));
     expect(top(google), lessThan(top(version)));
-    // Huruf nama di tengah layar: kotak teks memuat jarak sesudah huruf
-    // terakhir (12), yang tidak terlihat.
+    // Huruf nama tetap sejajar dengan pusat logo. Kotak teks juga memuat
+    // jarak sesudah huruf terakhir, yang tidak terlihat.
     final box = tester.getRect(name);
-    expect(box.left + (box.width - 12) / 2, closeTo(195, 1));
+    final spacing = tester.widget<Text>(name).style!.letterSpacing!;
+    expect(box.center.dx - spacing / 2,
+        closeTo(tester.getCenter(find.byType(Image).first).dx, 1));
   });
 
   testWidgets('nama app terlihat penuh sejak frame pertama, tanpa animasi',
@@ -171,20 +174,42 @@ void main() {
     expect(notifier.googleCalls, 1);
   });
 
-  testWidgets('galat masuk tampil di atas tombol', (tester) async {
+  testWidgets('tombol Google nonaktif selama proses masuk', (tester) async {
     _screen(tester, const Size(390, 844));
-    await tester.pumpWidget(
-      _page(auth: const AuthError('Login Google dibatalkan.')),
-    );
-    await tester.pumpAndSettle();
+    final notifier = _FixedAuthNotifier(const AuthLoading());
+    await tester.pumpWidget(_page(notifier: notifier));
+    await tester.pump();
 
-    expect(find.text('Login Google dibatalkan.'), findsOneWidget);
+    final google = find.byKey(const Key('google-sign-in-button'));
+    expect(tester.widget<OutlinedButton>(google).onPressed, isNull);
     expect(
-      tester.getTopLeft(find.text('Login Google dibatalkan.')).dy,
-      lessThan(
-          tester.getTopLeft(find.byKey(const Key('google-sign-in-button'))).dy),
-    );
+        find.descendant(
+            of: google, matching: find.byType(CircularProgressIndicator)),
+        findsOneWidget);
+    await tester.tap(google);
+    await tester.pump();
+    expect(notifier.googleCalls, 0);
   });
+
+  for (final size in [const Size(390, 844), const Size(1280, 800)]) {
+    testWidgets('galat masuk tampil di atas tombol pada ${size.width}px',
+        (tester) async {
+      _screen(tester, size);
+      await tester.pumpWidget(
+        _page(auth: const AuthError('Login Google dibatalkan.')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Login Google dibatalkan.'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Login Google dibatalkan.')).dy,
+        lessThan(tester
+            .getTopLeft(find.byKey(const Key('google-sign-in-button')))
+            .dy),
+      );
+    });
+  }
 
   group('perbarui paksa ke versi web terbaru', () {
     Finder button() => find.byKey(const Key('home-refresh-app'));
@@ -230,12 +255,39 @@ void main() {
       expect(button(), findsNothing);
       expect(find.text('v1.0.0+86'), findsOneWidget);
     });
+
+    testWidgets('layar pendek dan teks besar: akses bawah tetap terjangkau',
+        (tester) async {
+      _screen(tester, const Size(320, 568), textScale: 1.5);
+      final refresher = _FakeRefresher();
+      await tester.pumpWidget(_page(refresher: refresher));
+      await tester.pumpAndSettle();
+
+      final guest = find.text('Jelajahi sebagai Pengunjung');
+      await tester.ensureVisible(guest);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(guest).bottom, lessThanOrEqualTo(568));
+
+      await tester.ensureVisible(button());
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.byKey(const Key('home-app-version'))).top,
+          greaterThanOrEqualTo(0));
+      expect(tester.getRect(button()).bottom, lessThanOrEqualTo(568));
+      await tester.tap(button());
+      await tester.pumpAndSettle();
+
+      expect(refresher.calls, 1);
+      expect(tester.takeException(), isNull);
+    });
   });
 
   for (final (label, size, scale) in [
+    ('ponsel sempit + teks besar', const Size(320, 568), 1.5),
     ('ponsel kecil + teks besar', const Size(360, 640), 1.3),
     ('ponsel', const Size(390, 844), 1.0),
+    ('web 500px', const Size(500, 900), 1.0),
     ('desktop', const Size(1280, 800), 1.0),
+    ('desktop + teks besar', const Size(1280, 800), 1.5),
   ]) {
     testWidgets('tanpa overflow: $label', (tester) async {
       _screen(tester, size, textScale: scale);
@@ -243,11 +295,79 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+      final panel = tester.getRect(find.byKey(const Key('login-panel')));
+      expect(panel.left, greaterThanOrEqualTo(16));
+      expect(panel.right, lessThanOrEqualTo(size.width - 16));
+      expect(panel.center.dx, closeTo(size.width / 2, 1));
+      expect(panel.width, lessThanOrEqualTo(1000));
+      expect(tester.getTopLeft(find.byKey(const Key('home-app-version'))).dy,
+          greaterThan(panel.bottom));
       final google =
           tester.getRect(find.byKey(const Key('google-sign-in-button')));
-      expect(google.center.dx, closeTo(size.width / 2, 1));
+      final brand = tester.getRect(find.byType(ClubLoginHero));
+      if (size.width >= 900 && scale <= 1.3) {
+        expect(brand.right, lessThan(google.left));
+        expect(google.center.dx, greaterThan(size.width / 2));
+      } else {
+        expect(panel.width, lessThanOrEqualTo(440));
+        expect(google.center.dx, closeTo(size.width / 2, 1));
+        expect(brand.bottom, lessThan(google.top));
+      }
+      expect(google.width, lessThanOrEqualTo(GoogleLoginScreen.maxWidth));
     });
   }
+
+  group('navigasi metode masuk dan pengunjung', () {
+    for (final (label, destination) in [
+      ('Masuk dengan PIN', '/login/pin'),
+      ('Masuk dengan Password', '/login/password'),
+      ('Jelajahi sebagai Pengunjung', '/explore'),
+    ]) {
+      testWidgets('$label menuju rute yang benar', (tester) async {
+        _screen(tester, const Size(390, 844));
+        final returnToken = encodeLoginReturn(
+            '/marketplace/checkout/42?community=7&amount=100000');
+        final query = {'from': returnToken, 'reauth': '1'};
+        final router = GoRouter(
+          initialLocation:
+              Uri(path: '/login', queryParameters: query).toString(),
+          routes: [
+            GoRoute(
+              path: '/login',
+              builder: (_, __) => const ClubLoginPage(),
+            ),
+            for (final path in ['/login/pin', '/login/password', '/explore'])
+              GoRoute(path: path, builder: (_, __) => Text(path)),
+          ],
+        );
+        addTearDown(router.dispose);
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            authProvider.overrideWith(
+                () => _FixedAuthNotifier(const AuthUnauthenticated())),
+            appRefresherProvider.overrideWithValue(null),
+          ],
+          child: MaterialApp.router(
+            theme: AppTheme.light,
+            routerConfig: router,
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+
+        final location =
+            GoRouterState.of(tester.element(find.text(destination))).uri;
+        expect(location.path, destination);
+        if (destination.startsWith('/login')) {
+          expect(location.queryParameters, query);
+          expect(decodeLoginReturn(location.queryParameters['from']),
+              '/marketplace/checkout/42?community=7&amount=100000');
+        }
+      });
+    }
+  });
 
   group('rute app', () {
     Future<void> pump(WidgetTester tester, String location) async {
