@@ -1,4 +1,5 @@
 import 'package:core/core.dart';
+import '../../achievements/presentation/achievements_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -42,6 +43,7 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> {
     ref.invalidate(trainingOverviewProvider(widget.communityId));
     ref.invalidate(trainingReportProvider);
     invalidateFinance(ref.invalidate);
+    invalidateAchievements(ref.invalidate);
   }
 
   Future<void> _action(

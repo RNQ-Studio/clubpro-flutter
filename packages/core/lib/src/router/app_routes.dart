@@ -93,6 +93,17 @@ abstract final class AppRoutes {
   static const String marketOrders = '/marketplace/orders';
   static String marketOrder(String id) => '$marketOrders/$id';
 
+  // Prestasi dan iklan anggota
+  static const String rankings = '/explore/rankings';
+  static const String myAchievements = '/achievements';
+  static const String achievementRules = '/admin/achievement-rules';
+  static String communityAchievements(String id) =>
+      '${community(id)}/achievements';
+  static const String memberAds = '/explore/advertisements';
+  static const String myAds = '/advertisements';
+  static const String newAd = '$myAds/new';
+  static String editAd(String id) => '$myAds/$id/edit';
+
   // Quotes
   static const String quotes = '/quotes';
   static const String createQuote = '/quotes/create';
