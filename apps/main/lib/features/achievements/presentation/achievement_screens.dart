@@ -337,6 +337,7 @@ class _AchievementRulesScreenState
         'reason': _reason.text.trim()
       });
       ref.invalidate(achievementRulesProvider);
+      invalidateAchievements(ref.invalidate);
       _version = null;
       _reason.clear();
       if (mounted) {

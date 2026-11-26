@@ -7,6 +7,9 @@ import 'package:app_main/features/home/presentation/widgets/member_lobby_card.da
 import 'package:app_main/features/finance/presentation/finance_providers.dart';
 import 'package:app_main/features/finance/domain/finance.dart';
 import 'package:app_main/features/marketplace/presentation/market_product_screen.dart';
+import 'package:app_main/features/marketplace/presentation/marketplace_screen.dart';
+import 'package:app_main/features/marketplace/domain/marketplace.dart';
+import 'package:app_main/features/marketplace/presentation/market_product_form_screen.dart';
 import 'package:app_main/features/achievements/presentation/achievement_screens.dart';
 import 'package:app_main/features/achievements/presentation/member_ads_screens.dart';
 import 'package:app_main/features/achievements/presentation/achievements_providers.dart';
@@ -39,7 +42,10 @@ class MemberAchievementAuth extends AuthNotifier {
 }
 
 Widget achievementsApp(Widget screen, FakeAchievements repo,
-        {double scale = 1, bool admin = true, FakeMarketplace? market}) =>
+        {double scale = 1,
+        bool admin = true,
+        FakeMarketplace? market,
+        bool watchAds = false}) =>
     ProviderScope(
         overrides: [
           achievementsRepositoryProvider.overrideWithValue(repo),
@@ -63,10 +69,13 @@ Widget achievementsApp(Widget screen, FakeAchievements repo,
             locale: const Locale('id'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            builder: (c, child) => MediaQuery(
-                data: MediaQuery.of(c)
-                    .copyWith(textScaler: TextScaler.linear(scale)),
-                child: child!),
+            builder: (c, child) => Consumer(builder: (c, ref, _) {
+                  if (watchAds) ref.watch(memberAdsProvider());
+                  return MediaQuery(
+                      data: MediaQuery.of(c)
+                          .copyWith(textScaler: TextScaler.linear(scale)),
+                      child: child!);
+                }),
             routerConfig: GoRouter(initialLocation: '/screen', routes: [
               GoRoute(path: '/screen', builder: (_, s) => screen),
               GoRoute(
@@ -79,6 +88,9 @@ Widget achievementsApp(Widget screen, FakeAchievements repo,
                       initialAsOf: s.uri.queryParameters['as_of'],
                       initialGender: s.uri.queryParameters['gender'],
                       initialAgeGroup: s.uri.queryParameters['age_group'])),
+              GoRoute(
+                  path: AppRoutes.myMarketProducts,
+                  builder: (_, s) => const MarketplaceScreen(mine: true)),
               GoRoute(
                   path: AppRoutes.myAchievements,
                   builder: (_, s) => const MyAchievementsScreen()),
@@ -176,6 +188,46 @@ void main() {
     expect(r.requests.last['title'], 'Iklan dari lobi anggota');
   });
 
+  testWidgets('central age rule save refreshes retained public ranking',
+      (t) async {
+    final r = FakeAchievements();
+    await t.pumpWidget(achievementsApp(Consumer(builder: (context, ref, _) {
+      ref.watch(rankingsProvider());
+      return const AchievementRulesScreen();
+    }), r));
+    await t.pumpAndSettle();
+    final before = r.queries.length;
+    await t.enterText(find.widgetWithText(TextFormField, 'Alasan perubahan'),
+        'Perubahan batas usia operasional');
+    await visibleTap(t, find.text('Simpan versi baru'));
+    expect(r.queries.length, greaterThan(before));
+  });
+  testWidgets(
+      'product deactivation refreshes retained advertisement eligibility',
+      (t) async {
+    final r = FakeAchievements();
+    final market = FakeMarketplace()
+      ..value = const MarketProduct(
+          id: 'product-1',
+          name: 'Produk Fixture',
+          description: 'Deskripsi produk fixture',
+          price: 75000,
+          stock: 3,
+          version: 2,
+          sellerId: '2',
+          sellerName: 'Penjual Fixture',
+          communityId: '2',
+          communityName: 'Komunitas Fixture',
+          photoAssetId: 'asset-synthetic');
+    await t.pumpWidget(achievementsApp(
+        const MarketProductFormScreen(id: 'product-1'), r,
+        market: market, watchAds: true));
+    await t.pumpAndSettle();
+    final before = r.queries.length;
+    await visibleTap(t, find.byType(SwitchListTile));
+    await visibleTap(t, find.text('Simpan barang'));
+    expect(r.queries.length, greaterThan(before));
+  });
   testWidgets('final package purchase refreshes retained own point summary',
       (t) async {
     final r = FakeAchievements();

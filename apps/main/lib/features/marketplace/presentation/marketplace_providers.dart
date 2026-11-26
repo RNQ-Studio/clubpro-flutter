@@ -1,6 +1,7 @@
 import 'package:features_shared/features_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../domain/marketplace.dart';
+import '../../achievements/presentation/achievements_providers.dart';
 import '../domain/marketplace_repository.dart';
 import '../data/marketplace_repository_impl.dart';
 import '../data/marketplace_remote_data_source.dart';
@@ -37,6 +38,7 @@ Future<MarketPage<MarketOrder>> marketOrders(Ref ref,
 Future<MarketOrder> marketOrder(Ref ref, String id) =>
     ref.watch(marketplaceRepositoryProvider).order(id);
 void invalidateMarketplace(void Function(ProviderOrFamily) invalidate) {
+  invalidate(memberAdsProvider);
   invalidate(marketProductsProvider);
   invalidate(marketProductProvider);
   invalidate(marketOrdersProvider);
