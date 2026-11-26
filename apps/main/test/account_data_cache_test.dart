@@ -57,10 +57,36 @@ class _WalletAdapter implements HttpClientAdapter {
   String owner = 'a';
   final gates = <String, Completer<void>>{};
   final requests = <String>[];
+  final adGates = <String, Completer<void>>{};
+  final adRequests = <String>[];
 
   @override
   Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? stream,
       Future<void>? cancel) async {
+    if (options.path.contains('/advertisements/')) {
+      final requestedOwner = owner;
+      adRequests.add(requestedOwner);
+      await adGates[requestedOwner]?.future;
+      if (requestedOwner == 'b') {
+        return ResponseBody.fromString(
+            jsonEncode({'success': false, 'message': 'Forbidden.'}), 403,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType]
+            });
+      }
+      return _json({
+        'success': true,
+        'data': {
+          'id': 'private-ad',
+          'title': 'PRIVATE_A_TITLE_FIXTURE',
+          'body': 'PRIVATE_A_BODY_FIXTURE',
+          'community': {'id': 1, 'name': 'Komunitas A'},
+          'seller': {'identity_id': 1, 'name': 'Akun A'},
+          'version': 1,
+          'is_active': false,
+        }
+      });
+    }
     if (options.path.endsWith('/transactions')) {
       return _json({
         'success': true,
@@ -198,6 +224,49 @@ void main() {
       expect(joined.read().requireValue.single.id, 'b');
       expect(find.text(formatRupiah(222222)), findsWidgets);
       expect(find.text(formatRupiah(111111)), findsNothing);
+      expect(tester.takeException(), null);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets(
+        'actual App disposes private editor; late A load=$lateFirstResponse',
+        (tester) async {
+      tester.view.physicalSize = const Size(500, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final storage = MarketStorage()
+        ..values['auth_user'] = jsonEncode(_accountA.toJson());
+      final api = _WalletAdapter();
+      if (lateFirstResponse) api.adGates['a'] = Completer<void>();
+      appRouter.go('/advertisements/private-ad/edit');
+      await tester.pumpWidget(_application(storage, api, _Communities()));
+      await _ticks(tester);
+      expect(api.adRequests, contains('a'));
+      if (!lateFirstResponse) {
+        expect(find.text('PRIVATE_A_TITLE_FIXTURE'), findsOneWidget);
+        expect(find.text('PRIVATE_A_BODY_FIXTURE'), findsOneWidget);
+      }
+      final container =
+          ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
+      api.adGates['b'] = Completer<void>();
+      api.owner = 'b';
+      container.read(authProvider.notifier).acceptAuthenticatedUser(_accountB);
+      await _ticks(tester);
+      expect(find.text('PRIVATE_A_TITLE_FIXTURE'), findsNothing);
+      expect(find.text('PRIVATE_A_BODY_FIXTURE'), findsNothing);
+      expect(api.adRequests.last, 'b');
+      if (lateFirstResponse) {
+        api.adGates['a']!.complete();
+        await _ticks(tester);
+        expect(find.text('PRIVATE_A_TITLE_FIXTURE'), findsNothing);
+        expect(find.text('PRIVATE_A_BODY_FIXTURE'), findsNothing);
+      }
+      api.adGates['b']!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Anda tidak berhak melakukan tindakan ini.'),
+          findsOneWidget);
+      expect(find.text('PRIVATE_A_TITLE_FIXTURE'), findsNothing);
+      expect(find.byKey(const Key('ad-save')), findsNothing);
       expect(tester.takeException(), null);
       await tester.pumpWidget(const SizedBox.shrink());
     });

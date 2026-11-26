@@ -61,6 +61,7 @@ void clearAccountData(WidgetRef ref) {
     achievementRulesProvider,
     myAchievementsProvider,
     communityAchievementsProvider,
+    achievementMembersProvider,
     memberAdsProvider,
     adminSummaryProvider,
     adminUsersProvider,

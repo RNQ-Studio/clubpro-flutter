@@ -1,3 +1,4 @@
+import 'account_go_route.dart';
 import '../features/marketplace/presentation/marketplace_screen.dart';
 import '../features/marketplace/presentation/market_product_screen.dart';
 import '../features/marketplace/presentation/market_product_form_screen.dart';
@@ -42,6 +43,8 @@ import '../features/finance/presentation/topup_screen.dart';
 import '../features/finance/presentation/receipt_screen.dart';
 import '../features/finance/presentation/billing_notices_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/achievements/presentation/achievement_screens.dart';
+import '../features/achievements/presentation/member_ads_screens.dart';
 import '../features/training/presentation/training_screen.dart';
 import '../features/training/presentation/training_settings_screen.dart';
 import '../features/training/presentation/training_session_screen.dart';
@@ -65,7 +68,7 @@ final appRouter = GoRouter(
   redirect: clubAuthRedirect,
   observers: [AppNavigatorObserver()],
   routes: [
-    GoRoute(
+    AccountGoRoute(
       path: AppRoutes.authCheck,
       builder: (context, state) => const _SessionCheckScreen(),
     ),
@@ -85,7 +88,7 @@ final appRouter = GoRouter(
       ),
     ),
 
-    GoRoute(
+    AccountGoRoute(
         path: '/login/pin',
         builder: (context, state) => PinScreen(onLoggedIn: () {
               final auth =
@@ -94,10 +97,10 @@ final appRouter = GoRouter(
                 context.go(loginDestination(context, auth.user));
               }
             })),
-    GoRoute(
+    AccountGoRoute(
         path: '/login/recovery',
         builder: (context, state) => const PinScreen(mode: PinMode.recovery)),
-    GoRoute(
+    AccountGoRoute(
         path: '/login/password',
         builder: (context, state) => LoginScreen(onLoginSuccess: () {
               final auth =
@@ -106,93 +109,125 @@ final appRouter = GoRouter(
                 context.go(loginDestination(context, auth.user));
               }
             })),
-    GoRoute(
+    AccountGoRoute(
+        path: AppRoutes.rankings,
+        builder: (_, s) => RankingScreen(
+            key: ValueKey(s.uri.toString()),
+            communityId: s.uri.queryParameters['community'],
+            initialPeriod: s.uri.queryParameters['period'] ?? 'month',
+            initialMonth: s.uri.queryParameters['month'],
+            initialAsOf: s.uri.queryParameters['as_of'],
+            initialGender: s.uri.queryParameters['gender'],
+            initialAgeGroup: s.uri.queryParameters['age_group'])),
+    AccountGoRoute(
+        path: AppRoutes.myAchievements,
+        builder: (_, s) => const MyAchievementsScreen()),
+    AccountGoRoute(
+        path: AppRoutes.achievementRules,
+        builder: (_, s) => const AchievementRulesScreen()),
+    AccountGoRoute(
+        path: AppRoutes.memberAds,
+        builder: (_, s) => MemberAdsScreen(
+            key: ValueKey(s.uri.toString()),
+            communityId: s.uri.queryParameters['community'],
+            sellerId: s.uri.queryParameters['seller'])),
+    AccountGoRoute(
+        path: AppRoutes.myAds,
+        builder: (_, s) => const MemberAdsScreen(mine: true)),
+    AccountGoRoute(
+        path: AppRoutes.newAd, builder: (_, s) => const MemberAdFormScreen()),
+    AccountGoRoute(
+        path: '/advertisements/:id/edit',
+        builder: (_, s) => MemberAdFormScreen(id: s.pathParameters['id']!)),
+    AccountGoRoute(
         path: AppRoutes.marketProducts,
         builder: (_, s) =>
             MarketplaceScreen(communityId: s.uri.queryParameters['community'])),
-    GoRoute(
+    AccountGoRoute(
         path: '/explore/products/:id',
         builder: (_, s) => MarketProductScreen(id: s.pathParameters['id']!)),
-    GoRoute(
+    AccountGoRoute(
         path: '/explore/sellers/:id',
         builder: (_, s) =>
             MarketplaceScreen(sellerId: s.pathParameters['id']!)),
-    GoRoute(
+    AccountGoRoute(
         path: AppRoutes.myMarketProducts,
         builder: (_, s) => const MarketplaceScreen(mine: true)),
-    GoRoute(
+    AccountGoRoute(
         path: AppRoutes.newMarketProduct,
         builder: (_, s) => const MarketProductFormScreen()),
-    GoRoute(
+    AccountGoRoute(
         path: '/marketplace/my-products/:id/edit',
         builder: (_, s) =>
             MarketProductFormScreen(id: s.pathParameters['id']!)),
-    GoRoute(
+    AccountGoRoute(
         path: '/marketplace/checkout/:id',
         builder: (_, s) => MarketCheckoutScreen(id: s.pathParameters['id']!)),
-    GoRoute(
+    AccountGoRoute(
         path: AppRoutes.marketOrders,
         builder: (_, s) => const MarketOrdersScreen()),
-    GoRoute(
+    AccountGoRoute(
         path: '/marketplace/orders/:id',
         builder: (_, s) => MarketOrderScreen(id: s.pathParameters['id']!)),
-    GoRoute(
-        path: '/explore', builder: (context, state) => const DirectoryScreen()),
-    GoRoute(
+    AccountGoRoute(
+        path: '/explore',
+        builder: (context, state) => DirectoryScreen(
+            initialMembers: state.uri.queryParameters['members'] == '1')),
+    AccountGoRoute(
         path: '/explore/communities/:id',
         builder: (context, state) =>
             PublicCommunityScreen(id: state.pathParameters['id']!)),
-    GoRoute(
+    AccountGoRoute(
         path: '/explore/communities/:id/members',
         builder: (context, state) =>
             DirectoryScreen(communityId: state.pathParameters['id']!)),
-    GoRoute(
+    AccountGoRoute(
         path: '/account/pin',
         builder: (context, state) => const PinScreen(mode: PinMode.manage)),
-    GoRoute(
+    AccountGoRoute(
         path: '/guardians',
         builder: (context, state) => const GuardianScreen()),
-    GoRoute(
+    AccountGoRoute(
         path: '/guardians/dependents/:id',
         builder: (context, state) =>
             DependentScreen(id: state.pathParameters['id']!)),
 
-    GoRoute(
+    AccountGoRoute(
         path: AppRoutes.notifications,
         redirect: (context, state) => AppRoutes.billingNotices),
-    GoRoute(
+    AccountGoRoute(
         path: AppRoutes.billingNotices,
         builder: (context, state) => const BillingNoticesScreen()),
-    GoRoute(
+    AccountGoRoute(
         path: AppRoutes.wallet,
         builder: (context, state) => WalletScreen(
             scope: state.uri.queryParameters['scope'] ?? 'identity',
             communityId: state.uri.queryParameters['community']),
         routes: [
-          GoRoute(
+          AccountGoRoute(
               path: 'bank-account',
               builder: (_, state) => const PrimaryBankScreen()),
-          GoRoute(
+          AccountGoRoute(
               path: 'payouts',
               builder: (_, state) => PayoutsScreen(
                   communityId: state.uri.queryParameters['community'],
                   manage: state.uri.queryParameters['manage'] == '1'),
               routes: [
-                GoRoute(
+                AccountGoRoute(
                     path: 'new',
                     builder: (_, state) => PayoutRequestScreen(
                         communityId: state.uri.queryParameters['community'])),
-                GoRoute(
+                AccountGoRoute(
                     path: ':id',
                     builder: (_, state) =>
                         PayoutDetailScreen(id: state.pathParameters['id']!),
                     routes: [
-                      GoRoute(
+                      AccountGoRoute(
                           path: 'parts/:partId/proof',
                           builder: (_, state) => PayoutProofRouteScreen(
                               id: state.pathParameters['id']!,
                               partId: state.pathParameters['partId']!)),
-                      GoRoute(
+                      AccountGoRoute(
                           path: 'parts/:partId/fragments/:fragmentId',
                           builder: (_, state) => PayoutProofRouteScreen(
                               id: state.pathParameters['id']!,
@@ -200,27 +235,27 @@ final appRouter = GoRouter(
                               fragmentId: state.pathParameters['fragmentId']!)),
                     ]),
               ]),
-          GoRoute(
+          AccountGoRoute(
               path: 'transfers',
               builder: (_, state) => const TransferHistoryScreen(),
               routes: [
-                GoRoute(
+                AccountGoRoute(
                     path: 'new',
                     builder: (_, state) => TransferScreen(
                         communityId: state.uri.queryParameters['community'])),
               ]),
-          GoRoute(
+          AccountGoRoute(
               path: 'topup',
               builder: (context, state) => TopupScreen(
                   communityId: state.uri.queryParameters['community'],
                   scope: state.uri.queryParameters['scope'],
                   targetMemberId: state.uri.queryParameters['member'])),
-          GoRoute(
+          AccountGoRoute(
               path: 'receipts',
               builder: (context, state) => ReceiptScreen(
                   communityId: state.uri.queryParameters['community'],
                   manage: state.uri.queryParameters['manage'] == '1')),
-          GoRoute(
+          AccountGoRoute(
               path: 'transactions/:transactionId',
               builder: (context, state) => WalletTransactionScreen(
                   id: state.pathParameters['transactionId']!,
@@ -229,28 +264,28 @@ final appRouter = GoRouter(
         ]),
 
     // Anak `/`: tombol kembali tetap ada walau halaman dimuat ulang.
-    GoRoute(
+    AccountGoRoute(
       path: '/',
       builder: (context, state) => const HomeScreen(),
       routes: [
-        GoRoute(
+        AccountGoRoute(
           path: 'profile',
           builder: (context, state) => const ProfileScreen(),
         ),
-        GoRoute(
+        AccountGoRoute(
           path: 'members/:id',
           builder: (context, state) =>
               MemberProfileScreen(userId: state.pathParameters['id']!),
         ),
-        GoRoute(
+        AccountGoRoute(
           path: 'communities',
           builder: (context, state) => const CommunitiesScreen(),
           routes: [
-            GoRoute(
+            AccountGoRoute(
               path: 'new',
               builder: (context, state) => const CommunityFormScreen(),
             ),
-            GoRoute(
+            AccountGoRoute(
               path: ':id',
               builder: (context, state) => BillingAccessGate(
                   communityId: state.pathParameters['id']!,
@@ -260,88 +295,92 @@ final appRouter = GoRouter(
                         ClubTab.fromName(state.uri.queryParameters['tab']),
                   )),
               routes: [
-                GoRoute(
+                AccountGoRoute(
+                    path: 'achievements',
+                    builder: (_, s) => CommunityAchievementsScreen(
+                        communityId: s.pathParameters['id']!)),
+                AccountGoRoute(
                     path: 'training',
                     builder: (_, state) => TrainingScreen(
                         communityId: state.pathParameters['id']!),
                     routes: [
-                      GoRoute(
+                      AccountGoRoute(
                           path: 'settings',
                           builder: (_, state) => TrainingSettingsScreen(
                               communityId: state.pathParameters['id']!)),
-                      GoRoute(
+                      AccountGoRoute(
                           path: 'locations/new',
                           builder: (_, state) => TrainingLocationScreen(
                               communityId: state.pathParameters['id']!)),
-                      GoRoute(
+                      AccountGoRoute(
                           path: 'locations/:locationId',
                           builder: (_, state) => TrainingLocationScreen(
                               communityId: state.pathParameters['id']!,
                               locationId: state.pathParameters['locationId']!)),
-                      GoRoute(
+                      AccountGoRoute(
                           path: 'sessions/new',
                           builder: (_, state) => TrainingSessionScreen(
                               communityId: state.pathParameters['id']!)),
-                      GoRoute(
+                      AccountGoRoute(
                           path: 'report',
                           builder: (_, state) => TrainingReportScreen(
                               communityId: state.pathParameters['id']!)),
                     ]),
-                GoRoute(
+                AccountGoRoute(
                     path: 'billing',
                     builder: (context, state) => BillingScreen(
                         communityId: state.pathParameters['id']!,
                         scope: state.uri.queryParameters['scope'] ?? 'member',
                         targetMemberId: state.uri.queryParameters['member']),
                     routes: [
-                      GoRoute(
+                      AccountGoRoute(
                           path: 'settings',
                           builder: (context, state) => BillingSettingsScreen(
                               communityId: state.pathParameters['id']!)),
-                      GoRoute(
+                      AccountGoRoute(
                           path: 'inactive',
                           builder: (context, state) => LifecycleScreen(
                               communityId: state.pathParameters['id']!)),
                     ]),
-                GoRoute(
+                AccountGoRoute(
                   path: 'card',
                   builder: (context, state) => MemberCardScreen(
                       communityId: state.pathParameters['id']!),
                 ),
-                GoRoute(
+                AccountGoRoute(
                   path: 'dues',
                   builder: (context, state) =>
                       BillingScreen(communityId: state.pathParameters['id']!),
                   routes: [
-                    GoRoute(
+                    AccountGoRoute(
                         path: 'calendar',
                         builder: (context, state) => DuesScreen(
                             communityId: state.pathParameters['id']!)),
-                    GoRoute(
+                    AccountGoRoute(
                       path: 'pay',
                       builder: (context, state) => BillingScreen(
                         communityId: state.pathParameters['id']!,
                       ),
                     ),
-                    GoRoute(
+                    AccountGoRoute(
                       path: 'settings',
                       builder: (context, state) => BillingSettingsScreen(
                         communityId: state.pathParameters['id']!,
                       ),
                     ),
-                    GoRoute(
+                    AccountGoRoute(
                       path: 'payments',
                       builder: (context, state) => DuesPaymentsScreen(
                         communityId: state.pathParameters['id']!,
                       ),
                     ),
-                    GoRoute(
+                    AccountGoRoute(
                       path: 'members',
                       builder: (context, state) => DuesMembersScreen(
                         communityId: state.pathParameters['id']!,
                       ),
                       routes: [
-                        GoRoute(
+                        AccountGoRoute(
                           path: ':userId',
                           builder: (context, state) => DuesMemberScreen(
                             communityId: state.pathParameters['id']!,
@@ -363,18 +402,18 @@ final appRouter = GoRouter(
       ],
     ),
 
-    GoRoute(
+    AccountGoRoute(
       path: AppRoutes.profileSetup,
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) =>
           const ProfileSetupScreen(doneLocation: AppRoutes.communityStart),
     ),
-    GoRoute(
+    AccountGoRoute(
       path: AppRoutes.communityStart,
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const CommunityStartScreen(),
     ),
-    GoRoute(
+    AccountGoRoute(
       path: AppRoutes.editProfile,
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const EditProfileScreen(),
@@ -382,17 +421,17 @@ final appRouter = GoRouter(
     settingsRoute,
 
     // Khusus super admin: layar menolak selain itu, begitu juga API-nya.
-    GoRoute(
+    AccountGoRoute(
       path: AppRoutes.adminPanel,
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const AdminPanelScreen(),
       routes: [
-        GoRoute(
+        AccountGoRoute(
           path: 'users',
           parentNavigatorKey: _rootNavigatorKey,
           builder: (context, state) => const AdminUsersScreen(),
           routes: [
-            GoRoute(
+            AccountGoRoute(
               path: ':id',
               parentNavigatorKey: _rootNavigatorKey,
               builder: (context, state) =>
@@ -400,12 +439,12 @@ final appRouter = GoRouter(
             ),
           ],
         ),
-        GoRoute(
+        AccountGoRoute(
           path: 'communities',
           parentNavigatorKey: _rootNavigatorKey,
           builder: (context, state) => const AdminCommunitiesScreen(),
           routes: [
-            GoRoute(
+            AccountGoRoute(
               path: ':id',
               parentNavigatorKey: _rootNavigatorKey,
               builder: (context, state) => AdminCommunityDetailScreen(
@@ -414,17 +453,17 @@ final appRouter = GoRouter(
             ),
           ],
         ),
-        GoRoute(
+        AccountGoRoute(
           path: 'banners',
           parentNavigatorKey: _rootNavigatorKey,
           builder: (context, state) => const AdminBannersScreen(),
           routes: [
-            GoRoute(
+            AccountGoRoute(
               path: 'new',
               parentNavigatorKey: _rootNavigatorKey,
               builder: (context, state) => const AdminBannerFormScreen(),
             ),
-            GoRoute(
+            AccountGoRoute(
               path: ':id',
               parentNavigatorKey: _rootNavigatorKey,
               builder: (context, state) => AdminBannerFormScreen(
@@ -437,19 +476,19 @@ final appRouter = GoRouter(
     ),
 
     // Contoh bawaan starter (tidak ditautkan dari menu club).
-    GoRoute(
+    AccountGoRoute(
       path: '/ui-gallery',
       builder: (context, state) => const UiGalleryHomeScreen(),
     ),
-    GoRoute(
+    AccountGoRoute(
       path: AppRoutes.quotes,
       builder: (context, state) => const QuotesScreen(),
     ),
-    GoRoute(
+    AccountGoRoute(
       path: AppRoutes.createQuote,
       builder: (context, state) => const QuoteFormScreen(),
     ),
-    GoRoute(
+    AccountGoRoute(
       path: '${AppRoutes.editQuote}/:localId',
       builder: (context, state) {
         final localId = int.parse(state.pathParameters['localId']!);
