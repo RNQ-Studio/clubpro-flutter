@@ -137,7 +137,7 @@ Future<void> _tabTo(WidgetTester t, Finder target) async {
     await t.pumpAndSettle();
   }
   expect(_primaryFocusInside(target), isTrue,
-      reason: 'Keyboard focus must reach ${target.description}');
+      reason: 'Keyboard focus must reach the requested control');
   expect(target.hitTestable(), findsOneWidget,
       reason: 'Focused control must be visible and usable');
 }
