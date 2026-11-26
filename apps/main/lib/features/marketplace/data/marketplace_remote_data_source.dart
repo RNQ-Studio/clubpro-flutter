@@ -28,6 +28,22 @@ class MarketplaceRemoteDataSource {
           (errors.values.first as List).isNotEmpty) {
         message = '${(errors.values.first as List).first}';
       }
+      if (code == 404) {
+        message =
+            'Data marketplace tidak ditemukan atau sudah tidak tersedia. Muat ulang katalog.';
+      }
+      final normalized =
+          message.trim().toLowerCase().replaceFirst(RegExp(r'[.!]+$'), '');
+      if (code == 403 &&
+          {
+            'forbidden',
+            'this action is unauthorized',
+            'unauthorized',
+            'you do not have permission to perform this action',
+          }.contains(normalized)) {
+        message =
+            'Anda tidak berhak mengakses data atau melakukan tindakan ini.';
+      }
       if (message.isEmpty || message == 'The given data was invalid.') {
         message =
             'Permintaan ditolak. Periksa data, stok, saldo, dan hak akses Anda.';

@@ -161,6 +161,36 @@ void main() {
     adapter.status = 500;
     expect(repo.orderByKey('same-key'), throwsA(isA<ServerException>()));
   });
+  test('missing product detail is translated while order lookup stays absent',
+      () async {
+    adapter.status = 404;
+    adapter.payload = {'message': 'Resource not found.'};
+    await expectLater(
+        repo.product('missing-id'),
+        throwsA(isA<MarketRejected>().having((e) => e.message, 'message',
+            'Data marketplace tidak ditemukan atau sudah tidak tersedia. Muat ulang katalog.')));
+    expect(await repo.orderByKey('same-key'), null);
+  });
+  test('generic forbidden is translated and Indonesian business reason is kept',
+      () async {
+    adapter.status = 403;
+    for (final message in [
+      'Forbidden',
+      'Forbidden.',
+      'This action is unauthorized.'
+    ]) {
+      adapter.payload = {'message': message};
+      await expectLater(
+          repo.saveProduct({}),
+          throwsA(isA<MarketRejected>().having((e) => e.message, 'message',
+              'Anda tidak berhak mengakses data atau melakukan tindakan ini.')));
+    }
+    adapter.payload = {'message': 'Produk ini bukan milik Anda.'};
+    await expectLater(
+        repo.saveProduct({}),
+        throwsA(isA<MarketRejected>().having(
+            (e) => e.message, 'message', 'Produk ini bukan milik Anda.')));
+  });
   test('definitive error uses field message and auth error remains distinct',
       () async {
     adapter.status = 422;
