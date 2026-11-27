@@ -5,6 +5,7 @@ import 'package:app_main/features/achievements/presentation/achievements_provide
 import 'package:app_main/features/community/domain/entities/community.dart';
 import 'package:app_main/features/community/presentation/active_community_notifier.dart';
 import 'package:app_main/features/community/presentation/community_providers.dart';
+import 'package:app_main/features/community/presentation/widgets/club_hero.dart';
 import 'package:app_main/features/dues/presentation/dues_providers.dart';
 import 'package:app_main/features/finance/domain/finance.dart';
 import 'package:app_main/features/finance/presentation/finance_providers.dart';
@@ -207,6 +208,7 @@ void main() {
     await tester.pumpAndSettle();
     for (final key in [
       'home-menu-community',
+      'home-menu-activity',
       'home-menu-finance',
       'home-menu-market',
       'home-menu-explore',
@@ -214,27 +216,96 @@ void main() {
       await homeRedesignScrollTo(tester, key);
       expect(find.byKey(Key(key)), findsOneWidget);
     }
-    expect(find.byKey(const Key('market-entry-main')), findsNothing);
-    expect(find.byKey(const Key('home-public-members')), findsNothing);
+    for (final key in [
+      'home-club-menu-card',
+      'home-club-menu-${ClubTab.info}',
+      'home-club-menu-${ClubTab.activities}',
+      'training-entry',
+      'member-lobby-topup',
+      'market-entry-main',
+      'home-public-members',
+    ]) {
+      expect(find.byKey(Key(key)), findsNothing, reason: key);
+    }
     await homeRedesignExpand(tester, 'home-menu-explore');
     expect(find.byKey(const Key('home-public-members')), findsOneWidget);
   });
 
+  testWidgets('only one submenu opens and tapping it again closes it',
+      (tester) async {
+    await tester.pumpWidget(homeRedesignApp());
+    await tester.pumpAndSettle();
+    await homeRedesignExpand(tester, 'home-menu-community');
+    expect(find.byKey(const Key('home-club-menu-card')), findsOneWidget);
+    expect(find.byKey(const Key('training-entry')), findsNothing);
+
+    await homeRedesignExpand(tester, 'home-menu-activity');
+    expect(find.byKey(const Key('home-club-menu-card')), findsNothing);
+    expect(find.byKey(const Key('training-entry')), findsOneWidget);
+
+    await homeRedesignExpand(tester, 'home-menu-activity');
+    expect(find.byKey(const Key('training-entry')), findsNothing);
+    expect(find.byKey(const Key('home-upcoming-activities')), findsNothing);
+  });
+
+  testWidgets('phone overview shows all main groups before scrolling',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(homeRedesignApp(dues: true));
+    await tester.pumpAndSettle();
+
+    for (final group in [
+      'community',
+      'activity',
+      'finance',
+      'market',
+      'explore'
+    ]) {
+      final tile = find.byKey(Key('home-menu-$group'));
+      expect(tile.hitTestable(), findsOneWidget, reason: group);
+      final bounds = tester.getRect(tile);
+      expect(bounds.left, greaterThanOrEqualTo(16), reason: group);
+      expect(bounds.right, lessThanOrEqualTo(374), reason: group);
+      expect(bounds.bottom, lessThanOrEqualTo(844), reason: group);
+    }
+    expect(find.byKey(const Key('home-upcoming-activities')), findsNothing);
+    expect(find.byKey(const Key('home-manager-panel')), findsNothing);
+  });
+
   for (final (group, entry, destination) in [
-    ('community', 'training-entry', AppRoutes.communityTraining('1')),
+    ('community', 'home-club-menu-card', AppRoutes.communityCard('1')),
+    ('community', 'home-club-menu-${ClubTab.info}', AppRoutes.community('1')),
     (
       'community',
+      'home-club-menu-${ClubTab.members}',
+      ClubTab.location('1', ClubTab.members)
+    ),
+    (
+      'community',
+      'home-club-menu-${ClubTab.gallery}',
+      ClubTab.location('1', ClubTab.gallery)
+    ),
+    (
+      'activity',
+      'home-club-menu-${ClubTab.activities}',
+      ClubTab.location('1', ClubTab.activities)
+    ),
+    ('activity', 'training-entry', AppRoutes.communityTraining('1')),
+    (
+      'activity',
       'community-member-rankings',
       '${AppRoutes.rankings}?community=1'
     ),
-    ('community', 'community-member-ads', '${AppRoutes.memberAds}?community=1'),
+    ('market', 'community-member-ads', '${AppRoutes.memberAds}?community=1'),
     (
-      'community',
+      'market',
       'market-entry-community',
       AppRoutes.marketCatalogue(communityId: '1')
     ),
-    ('community', 'home-more-find', AppRoutes.communities),
-    ('community', 'home-more-create', AppRoutes.createCommunity),
+    ('explore', 'home-more-find', AppRoutes.communities),
+    ('explore', 'home-more-create', AppRoutes.createCommunity),
     ('finance', 'member-lobby-topup', '${AppRoutes.topup}?community=1'),
     ('finance', 'member-lobby-payouts', AppRoutes.payouts),
     ('finance', 'finance-entry', AppRoutes.communityBilling('1')),
@@ -268,7 +339,7 @@ void main() {
       }
       expect(find.byKey(const Key('home-manage-expand')),
           role.canManage ? findsOneWidget : findsNothing);
-      await homeRedesignExpand(tester, 'home-menu-community');
+      await homeRedesignExpand(tester, 'home-menu-activity');
       expect(
           find.byKey(const Key('community-record-achievement')),
           role.canManage || role == CommunityRole.coach
@@ -276,6 +347,7 @@ void main() {
               : findsNothing);
       expect(find.byKey(const Key('home-admin-panel')), findsNothing);
       expect(find.byKey(const Key('member-lobby-point-rules')), findsNothing);
+      expect(find.byKey(const Key('home-menu-admin')), findsNothing);
     });
   }
 
@@ -287,7 +359,7 @@ void main() {
             summaryRole: CommunityRole.creator,
             canManage: false)));
     await tester.pumpAndSettle();
-    await homeRedesignExpand(tester, 'home-menu-community');
+    await homeRedesignExpand(tester, 'home-menu-activity');
     expect(find.byKey(const Key('home-manage-expand')), findsNothing);
     expect(find.byKey(const Key('community-record-achievement')), findsNothing);
   });
@@ -333,6 +405,8 @@ void main() {
               email: 'admin@anaklangit.manahpro.web.id',
               roles: [User.superAdminRole])));
       await tester.pumpAndSettle();
+      expect(find.byKey(Key(entry)), findsNothing);
+      await homeRedesignExpand(tester, 'home-menu-admin');
       await homeRedesignScrollTo(tester, entry);
       await tester.tap(find.byKey(Key(entry)));
       await tester.pumpAndSettle();
@@ -348,7 +422,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('home-manage-expand')), findsNothing);
     expect(find.byKey(const Key('home-club-menu-card')), findsNothing);
-    await homeRedesignExpand(tester, 'home-menu-community');
+    expect(find.byKey(const Key('home-menu-community')), findsNothing);
+    expect(find.byKey(const Key('home-menu-activity')), findsNothing);
     expect(find.byKey(const Key('community-record-achievement')), findsNothing);
     await homeRedesignExpand(tester, 'home-menu-finance');
     await homeRedesignScrollTo(tester, 'finance-entry');
@@ -397,6 +472,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('home-club-option-2')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('member-lobby-topup')), findsNothing);
+    expect(find.byKey(const Key('home-club-menu-card')), findsNothing);
     await homeRedesignExpand(tester, 'home-menu-finance');
     await homeRedesignScrollTo(tester, 'member-lobby-topup');
     await tester.tap(find.byKey(const Key('member-lobby-topup')));
@@ -410,6 +487,7 @@ void main() {
         homeRedesignApp(communities: homeRedesignRepository(joined: false)));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('home-menu-community')), findsNothing);
+    expect(find.byKey(const Key('home-menu-activity')), findsNothing);
     expect(find.byKey(const Key('home-manage-expand')), findsNothing);
     await homeRedesignExpand(tester, 'home-menu-finance');
     await homeRedesignScrollTo(tester, 'member-lobby-topup');
@@ -440,14 +518,15 @@ void main() {
     points.completeError(Exception('offline'));
     await tester.pumpAndSettle();
     expect(find.text('0 poin'), findsNothing);
-    expect(find.textContaining('Coba lagi'), findsWidgets);
-    for (final label in [
-      'Saldo gagal dimuat · Coba lagi',
-      'Poin gagal dimuat · Coba lagi',
+    for (final key in [
+      'home-wallet-retry',
+      'home-points-retry',
     ]) {
-      await tester.ensureVisible(find.text(label));
+      final retry = find.byKey(Key(key));
+      expect(retry, findsOneWidget);
+      await tester.ensureVisible(retry);
       await tester.pumpAndSettle();
-      await tester.tap(find.text(label));
+      await tester.tap(retry);
       await tester.pumpAndSettle();
     }
     expect(find.text('Rp0'), findsOneWidget);
@@ -457,22 +536,52 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  for (final (size, scale) in [
-    (const Size(320, 700), 1.5),
-    (const Size(1280, 900), 1.0),
+  testWidgets('collapsed manager group keeps pending attention visible',
+      (tester) async {
+    await tester.pumpWidget(homeRedesignApp(
+        communities: homeRedesignRepository(role: CommunityRole.creator)));
+    await tester.pumpAndSettle();
+    await homeRedesignScrollTo(tester, 'home-manage-expand');
+
+    expect(find.byKey(const Key('home-manager-panel')), findsNothing);
+    final badge = find.byKey(const Key('home-manager-pending-badge'));
+    expect(tester.widget<Badge>(badge).isLabelVisible, isTrue);
+    expect(
+        find.descendant(of: badge, matching: find.text('6')), findsOneWidget);
+    await homeRedesignExpand(tester, 'home-manage-expand');
+    expect(find.byKey(const Key('home-manager-panel')), findsOneWidget);
+    await homeRedesignExpand(tester, 'home-menu-finance');
+    expect(find.byKey(const Key('home-manager-panel')), findsNothing);
+    expect(tester.widget<Badge>(badge).isLabelVisible, isTrue);
+  });
+
+  for (final (size, scale, dark) in [
+    (const Size(320, 700), 1.5, false),
+    (const Size(500, 900), 1.0, false),
+    (const Size(500, 900), 1.5, true),
+    (const Size(1280, 900), 1.0, false),
+    (const Size(1280, 900), 1.5, true),
   ]) {
-    testWidgets('overview and opened menus fit ${size.width}px at $scale',
+    testWidgets(
+        'overview and opened menus fit ${size.width}px at $scale dark=$dark',
         (tester) async {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(homeRedesignApp(
           textScale: scale,
+          dark: dark,
           dues: true,
           communities: homeRedesignRepository(role: CommunityRole.creator)));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      for (final group in ['community', 'finance', 'market', 'explore']) {
+      for (final group in [
+        'community',
+        'activity',
+        'finance',
+        'market',
+        'explore'
+      ]) {
         await homeRedesignExpand(tester, 'home-menu-$group');
         expect(tester.takeException(), isNull);
       }

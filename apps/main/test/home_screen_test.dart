@@ -275,14 +275,22 @@ Future<void> _scrollToEnd(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _openManager(WidgetTester tester) async {
-  final group = find.byKey(const Key('home-manage-expand'));
+Future<void> _openGroup(WidgetTester tester, String key) async {
+  final group = find.byKey(Key(key));
+  await tester.scrollUntilVisible(group, 250,
+      scrollable: find
+          .descendant(
+              of: find.byKey(const Key('home-scroll')),
+              matching: find.byType(Scrollable))
+          .first);
   await tester.ensureVisible(group);
   await tester.pumpAndSettle();
-  await tester
-      .tap(find.descendant(of: group, matching: find.byType(ListTile)).first);
+  await tester.tap(group);
   await tester.pumpAndSettle();
 }
+
+Future<void> _openManager(WidgetTester tester) =>
+    _openGroup(tester, 'home-manage-expand');
 
 void _phoneScreen(WidgetTester tester) {
   tester.view.physicalSize = const Size(1080, 2400);
@@ -304,14 +312,21 @@ void main() {
 
     // Komunitas aktif di bawah info user, lalu menu; banner tidak lagi di sini.
     expect(find.text('Pemanah Nusantara'), findsOneWidget);
-    expect(find.text('Masuk sebagai anggota'), findsOneWidget);
-    expect(find.text('24 anggota'), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byType(HomeClubCard), matching: find.text('Anggota')),
+        findsOneWidget);
+    expect(find.byTooltip('24 anggota'), findsOneWidget);
     final header = tester.getRect(find.byType(HomeUserHeader));
     final card = tester.getRect(find.byType(HomeClubCard));
-    final menu = tester.getTopLeft(find.text('Menu Komunitas')).dy;
+    final menu =
+        tester.getTopLeft(find.byKey(const Key('home-menu-community'))).dy;
     expect(header.bottom, lessThanOrEqualTo(card.top));
     expect(card.bottom, lessThanOrEqualTo(menu));
     expect(find.byKey(const Key('home-banner-slider')), findsNothing);
+
+    expect(find.byKey(const Key('home-club-menu-card')), findsNothing);
+    await _openGroup(tester, 'home-menu-community');
 
     for (final (tab, label, _, _) in HomeClubMenu.items) {
       expect(
@@ -323,13 +338,12 @@ void main() {
         reason: label,
       );
     }
-    expect(HomeClubMenu.items.map((i) => i.$2),
-        ['Info', 'Anggota', 'Kegiatan', 'Galeri']);
+    expect(HomeClubMenu.items.map((i) => i.$2), ['Info', 'Anggota', 'Galeri']);
     // Kartu Anggota paling depan.
     expect(
       find.descendant(
         of: find.byKey(const Key('home-club-menu-card')),
-        matching: find.text('Kartu Anggota'),
+        matching: find.text('KTA'),
       ),
       findsOneWidget,
     );
@@ -382,6 +396,11 @@ void main() {
         await tester.pumpWidget(_app(communities: _member()));
         await tester.pumpAndSettle();
 
+        await _openGroup(
+            tester,
+            tab == ClubTab.activities
+                ? 'home-menu-activity'
+                : 'home-menu-community');
         await tester.tap(find.byKey(Key('home-club-menu-$tab')));
         await tester.pumpAndSettle();
         expect(find.text('KLUB 1$query'), findsOneWidget);
@@ -398,6 +417,7 @@ void main() {
       await tester.pumpWidget(_app(communities: _member()));
       await tester.pumpAndSettle();
 
+      await _openGroup(tester, 'home-menu-community');
       await tester.tap(find.byKey(const Key('home-club-menu-card')));
       await tester.pumpAndSettle();
       expect(find.text('KARTU 1'), findsOneWidget);
@@ -407,7 +427,7 @@ void main() {
       expect(find.byType(HomeClubCard), findsOneWidget);
     });
 
-    testWidgets('lima menu muat di ponsel kecil dengan teks besar',
+    testWidgets('submenu komunitas muat di ponsel kecil dengan teks besar',
         (tester) async {
       tester.view.physicalSize = const Size(320, 700) * 3;
       tester.view.devicePixelRatio = 3;
@@ -417,6 +437,7 @@ void main() {
       await tester.pumpWidget(_app(communities: _member()));
       await tester.pumpAndSettle();
 
+      await _openGroup(tester, 'home-menu-community');
       expect(tester.takeException(), isNull);
       expect(find.byKey(const Key('home-club-menu-card')), findsOneWidget);
     });
@@ -447,14 +468,17 @@ void main() {
 
       await _openManager(tester);
 
-      expect(find.text('Masuk sebagai pendiri'), findsOneWidget);
-      expect(find.text('Kelola Komunitas'), findsNWidgets(2));
-      expect(find.text('Anda Pendiri di komunitas ini'), findsOneWidget);
-      expect(find.text('2 menunggu persetujuan'), findsOneWidget);
-      expect(find.text('Belum ada kegiatan terjadwal'), findsOneWidget);
-      expect(find.text('Belum ada foto'), findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byType(HomeClubCard), matching: find.text('Pendiri')),
+          findsOneWidget);
+      expect(find.byKey(const Key('home-manager-panel')), findsOneWidget);
+      expect(
+          find.byTooltip('Permintaan bergabung: 2 menunggu'), findsOneWidget);
+      expect(find.byKey(const Key('home-manage-activities')), findsOneWidget);
+      expect(find.byKey(const Key('home-manage-gallery')), findsOneWidget);
       final badge = tester
-          .widget<Badge>(find.byKey(const Key('home-club-requests-badge')));
+          .widget<Badge>(find.byKey(const Key('home-manager-pending-badge')));
       expect(badge.isLabelVisible, isTrue);
 
       await tester.ensureVisible(find.byKey(const Key('home-manage-requests')));
@@ -478,12 +502,12 @@ void main() {
 
       await _openManager(tester);
 
-      expect(find.text('Anda Admin di komunitas ini'), findsOneWidget);
-      expect(find.text('Tidak ada yang menunggu'), findsOneWidget);
-      expect(find.text('1 kegiatan mendatang'), findsOneWidget);
+      expect(find.byKey(const Key('home-manager-panel')), findsOneWidget);
+      expect(
+          find.byTooltip('Permintaan bergabung: 0 menunggu'), findsOneWidget);
       expect(
         tester
-            .widget<Badge>(find.byKey(const Key('home-club-requests-badge')))
+            .widget<Badge>(find.byKey(const Key('home-manager-pending-badge')))
             .isLabelVisible,
         isFalse,
       );
@@ -509,7 +533,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Kelola Komunitas'), findsNothing);
+      expect(find.byKey(const Key('home-manage-expand')), findsNothing);
+      await _openGroup(tester, 'home-menu-community');
       expect(
         tester
             .widget<Badge>(find.byKey(const Key('home-club-requests-badge')))
@@ -534,12 +559,12 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(HomeClubCard),
-          matching: find.text('Menunggu Verifikasi'),
+          matching: find.byTooltip('Menunggu Verifikasi'),
         ),
         findsOneWidget,
       );
       expect(find.byKey(const Key('home-manager-notice')), findsOneWidget);
-      expect(find.textContaining('belum bisa ditemukan'), findsOneWidget);
+      expect(find.text('Menunggu verifikasi komunitas.'), findsOneWidget);
     });
   });
 
@@ -552,9 +577,10 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Iuran Saya'), findsOneWidget);
-      expect(find.text('Menunggak 3 bulan'), findsOneWidget);
-      expect(find.text('2 bulan menunggu verifikasi'), findsOneWidget);
+      expect(find.text('Iuran'), findsOneWidget);
+      expect(find.text('Tunggakan 3 bln'), findsOneWidget);
+      expect(find.byTooltip('Menunggak 3 bulan'), findsOneWidget);
+      expect(find.byTooltip('2 bulan menunggu verifikasi'), findsOneWidget);
       // Tepat di bawah kartu komunitas.
       expect(
         tester.getTopLeft(find.byKey(const Key('home-dues-card'))).dy,
@@ -608,7 +634,7 @@ void main() {
 
       await _openManager(tester);
 
-      expect(find.text('2 bukti transfer menunggu'), findsOneWidget);
+      expect(find.byTooltip('2 bukti transfer menunggu'), findsOneWidget);
       for (final (key, page) in [
         ('home-manage-dues-payments', 'IURAN 1 payments'),
         ('home-manage-dues-calendar', 'IURAN 1 members'),
@@ -636,7 +662,7 @@ void main() {
 
       expect(find.byKey(const Key('home-manage-dues-payments')), findsNothing);
       expect(find.byKey(const Key('home-manage-dues-calendar')), findsNothing);
-      expect(find.textContaining('Belum diatur'), findsOneWidget);
+      expect(find.byTooltip('Iuran belum diatur'), findsOneWidget);
     });
 
     testWidgets('anggota biasa: tanpa baris kelola iuran', (tester) async {
@@ -668,6 +694,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
+      await _openGroup(tester, 'home-menu-activity');
       for (var i = 1; i <= 3; i++) {
         expect(find.text('Kegiatan $i'), findsOneWidget);
       }
@@ -684,6 +711,7 @@ void main() {
       await tester.pumpWidget(_app(communities: _member()));
       await tester.pumpAndSettle();
 
+      await _openGroup(tester, 'home-menu-activity');
       expect(find.text('Belum ada kegiatan terjadwal.'), findsOneWidget);
     });
   });
@@ -1029,8 +1057,10 @@ void main() {
         tester.getSize(find.byType(HomeClubCard)).width,
         lessThanOrEqualTo(HomeScreen.maxContentWidth),
       );
-      expect(find.byKey(const Key('home-desktop-columns')), findsOneWidget);
-      expect(tester.getCenter(find.byType(HomeClubCard)).dx, lessThan(640));
+      expect(
+        tester.getSize(find.byKey(const Key('home-menu-community'))).width,
+        lessThanOrEqualTo(HomeScreen.maxContentWidth),
+      );
     });
   });
 
@@ -1481,6 +1511,7 @@ void main() {
 
     await _scrollToEnd(tester);
     expect(find.byKey(const Key('home-admin-panel')), findsNothing);
+    expect(find.byKey(const Key('home-menu-admin')), findsNothing);
     expect(find.text('Admin Panel'), findsNothing);
   });
 
@@ -1499,6 +1530,7 @@ void main() {
 
     await _scrollToEnd(tester);
     expect(find.byKey(const Key('home-admin-panel')), findsNothing);
+    expect(find.byKey(const Key('home-menu-admin')), findsNothing);
   });
 
   testWidgets('super admin melihat Admin Panel dan bisa membukanya',
@@ -1507,10 +1539,12 @@ void main() {
     await tester.pumpWidget(_app(user: _superAdmin));
     await tester.pump();
 
+    expect(find.byKey(const Key('home-admin-panel')), findsNothing);
+    await _openGroup(tester, 'home-menu-admin');
     final card = find.byKey(const Key('home-admin-panel'));
     await _scrollToEnd(tester);
     expect(card, findsOneWidget);
-    expect(find.text('Admin Panel'), findsOneWidget);
+    expect(find.text('Admin panel'), findsOneWidget);
 
     await tester.tap(card);
     await tester.pumpAndSettle();
@@ -1553,10 +1587,10 @@ void main() {
 
       expect(find.byKey(const Key('promotion-popup')), findsNothing);
       expect(store.marks, isEmpty);
-      // Menu langsung di bawah kartu komunitas, tanpa celah bekas banner.
-      final gap = tester.getTopLeft(find.text('Menu Komunitas')).dy -
-          tester.getBottomLeft(find.byType(HomeClubCard)).dy;
-      expect(gap, lessThanOrEqualTo(48));
+      // Menu utama tetap tersedia, tanpa kartu banner atau submenu terbuka.
+      expect(find.byKey(const Key('home-menu-community')), findsOneWidget);
+      expect(find.byKey(const Key('home-club-menu-card')), findsNothing);
+      expect(find.byKey(const Key('home-banner-slider')), findsNothing);
     });
   });
 

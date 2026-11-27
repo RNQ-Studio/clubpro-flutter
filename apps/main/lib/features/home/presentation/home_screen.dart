@@ -15,13 +15,11 @@ import '../../community/presentation/widgets/community_visuals.dart';
 import '../../dues/presentation/dues_providers.dart';
 import '../../finance/presentation/finance_widgets.dart';
 import 'home_providers.dart';
-import 'widgets/home_admin_panel_card.dart';
 import '../../achievements/presentation/achievements_providers.dart';
 import '../../finance/presentation/finance_providers.dart';
 import 'widgets/home_app_version.dart';
 import 'widgets/home_club_card.dart';
 import 'widgets/home_club_chooser.dart';
-import 'widgets/home_club_sections.dart';
 import 'widgets/home_dues_card.dart';
 import 'widgets/home_dashboard_sections.dart';
 import 'widgets/home_user_header.dart';
@@ -68,30 +66,6 @@ class HomeScreen extends ConsumerWidget {
     final restricted =
         (detail?.entitlementActive ?? active?.entitlementActive) == false ||
             (detail?.platformActive ?? active?.platformActive) == false;
-    final secondary = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (user != null) ...[
-          const HomeAccountSummary(),
-          const SizedBox(height: 20),
-        ],
-        HomeMenuGroups(
-          community: active,
-          detail: detail,
-          restricted: restricted,
-        ),
-        if (user?.isSuperAdmin == true) ...[
-          const SizedBox(height: 20),
-          HomeAdminPanelCard(onTap: () => context.push(AppRoutes.adminPanel)),
-          TextButton.icon(
-            key: const Key('member-lobby-point-rules'),
-            onPressed: () => context.push(AppRoutes.achievementRules),
-            icon: const Icon(Icons.tune_rounded, size: 18),
-            label: const Text('Pengaturan poin pusat'),
-          ),
-        ],
-      ],
-    );
 
     final List<Widget> clubSection;
     if (mineValue == null) {
@@ -124,8 +98,7 @@ class HomeScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Anda belum tergabung di komunitas mana pun. Cari komunitas yang '
-          'sudah ada atau daftarkan komunitas Anda.',
+          'Cari atau buat komunitas untuk memulai.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -148,11 +121,12 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: clubSection,
                 );
-                final wide = constraints.maxWidth >= 980;
+                final wide = constraints.maxWidth >= 980 &&
+                    MediaQuery.textScalerOf(context).scale(1) <= 1.3;
                 return ListView(
                   key: const Key('home-scroll'),
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(side, 20, side, 24),
+                  padding: EdgeInsets.fromLTRB(side, 12, side, 20),
                   children: [
                     if (user != null)
                       Row(children: [
@@ -170,23 +144,35 @@ class HomeScreen extends ConsumerWidget {
                           icon: const Icon(Icons.notifications_none_rounded),
                         ),
                       ]),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 14),
                     if (wide)
                       Row(
                         key: const Key('home-desktop-columns'),
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(flex: 7, child: primary),
-                          const SizedBox(width: 24),
-                          Expanded(flex: 5, child: secondary),
+                          if (user != null) ...[
+                            const SizedBox(width: 12),
+                            const Expanded(
+                                flex: 5, child: HomeAccountSummary()),
+                          ],
                         ],
                       )
                     else ...[
                       primary,
-                      const SizedBox(height: 24),
-                      secondary,
+                      if (user != null) ...[
+                        const SizedBox(height: 12),
+                        const HomeAccountSummary(),
+                      ],
                     ],
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 16),
+                    HomeMenuGroups(
+                      community: active,
+                      detail: detail,
+                      restricted: restricted,
+                      isSuperAdmin: user?.isSuperAdmin == true,
+                    ),
+                    const SizedBox(height: 18),
                     const HomeAppVersion(),
                   ],
                 );
@@ -212,7 +198,6 @@ class _ActiveClub extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Angka untuk pengelola baru ada di detail; ringkasan cukup untuk sisanya.
     final detail = ref.watch(communityDetailProvider(community.id)).value;
-    final manager = detail != null && detail.canManage ? detail : null;
     final restricted =
         (detail?.entitlementActive ?? community.entitlementActive) == false ||
             (detail?.platformActive ?? community.platformActive) == false;
@@ -238,7 +223,7 @@ class _ActiveClub extends ConsumerWidget {
         HomeDuesCard(communityId: community.id),
         if (restricted) ...[
           const FinanceMessage(
-              'Keanggotaan atau langganan komunitas tidak aktif. Lunasi kewajiban melalui menu pembayaran untuk membuka kegiatan.'),
+              'Akses dibatasi. Selesaikan pembayaran untuk aktif kembali.'),
           FilledButton.icon(
             key: const Key('home-restricted-billing'),
             style: FilledButton.styleFrom(
@@ -248,55 +233,14 @@ class _ActiveClub extends ConsumerWidget {
             onPressed: () => context.push(
                 '${AppRoutes.communityBilling(community.id)}${(detail?.myRole ?? community.myRole) == CommunityRole.creator ? '?scope=platform' : ''}'),
             icon: const Icon(Icons.receipt_long_outlined),
-            label: const Text('Keanggotaan & pembayaran'),
+            label: const Text('Pembayaran'),
           ),
           OutlinedButton(
               key: const Key('home-restricted-card'),
               onPressed: () =>
                   context.push(AppRoutes.communityCard(community.id)),
-              child: const Text('Lihat status KTA')),
+              child: const Text('Status KTA')),
         ],
-        if (!restricted) ...[
-          const SizedBox(height: 20),
-          HomeSurface(
-              child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const HomeSectionTitle('Menu Komunitas'),
-              const SizedBox(height: 8),
-              HomeClubMenu(
-                onOpenTab: openTab,
-                onOpenCard: () =>
-                    context.push(AppRoutes.communityCard(community.id)),
-                pendingRequests: manager?.pendingMembersCount ?? 0,
-              ),
-            ],
-          )),
-          const SizedBox(height: 20),
-          HomeSurface(
-              child: HomeUpcomingActivities(
-            communityId: community.id,
-            onSeeAll: () => openTab(ClubTab.activities),
-          )),
-          const SizedBox(height: 20),
-        ],
-        if (manager != null && !restricted)
-          HomeSurface(
-            padding: 0,
-            child: HomeMenuGroup(
-              tileKey: const Key('home-manage-expand'),
-              icon: Icons.admin_panel_settings_outlined,
-              title: 'Kelola Komunitas',
-              subtitle: manager.pendingMembersCount +
-                          manager.pendingDuesPaymentsCount >
-                      0
-                  ? '${manager.pendingMembersCount + manager.pendingDuesPaymentsCount} perlu ditindaklanjuti'
-                  : 'Anggota, kegiatan & pengaturan',
-              children: [
-                HomeManagerPanel(community: manager, onOpenTab: openTab)
-              ],
-            ),
-          ),
       ],
     );
   }

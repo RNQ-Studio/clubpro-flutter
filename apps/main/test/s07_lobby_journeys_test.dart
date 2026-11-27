@@ -133,26 +133,35 @@ Future<void> _openLobbyGroup(WidgetTester t, String group) async {
 
 Future<void> tapLobbyLink(WidgetTester t, String key) async {
   final group = switch (key) {
+    'home-club-menu-card' ||
+    'home-club-menu-0' ||
+    'home-club-menu-1' ||
+    'home-club-menu-2' =>
+      'home-menu-community',
     'finance-entry' ||
     'home-platform-billing' ||
     'member-lobby-topup' ||
     'member-lobby-payouts' =>
       'home-menu-finance',
     'training-entry' ||
+    'home-club-menu-3' ||
     'community-member-rankings' ||
-    'community-member-ads' ||
-    'community-record-achievement' ||
-    'market-entry-community' =>
-      'home-menu-community',
+    'community-record-achievement' =>
+      'home-menu-activity',
     'market-entry-main' ||
     'market-entry-mine' ||
+    'market-entry-community' ||
+    'community-member-ads' ||
     'member-lobby-ads' =>
       'home-menu-market',
     'home-public-directory' ||
     'home-public-members' ||
     'home-community-rankings' ||
+    'home-more-find' ||
+    'home-more-create' ||
     'home-public-ads' =>
       'home-menu-explore',
+    'home-admin-panel' || 'member-lobby-point-rules' => 'home-menu-admin',
     _ => null,
   };
   if (group != null && find.byKey(Key(key)).evaluate().isEmpty) {
@@ -331,10 +340,10 @@ void main() {
         market: FakeMarketplace(),
         cards: cards));
     await t.pumpAndSettle();
-    expect(
-        find.textContaining('Keanggotaan atau langganan komunitas tidak aktif'),
-        findsOneWidget);
-    await _openLobbyGroup(t, 'home-menu-community');
+    expect(find.byKey(const Key('home-restricted-billing')), findsOneWidget);
+    expect(find.byKey(const Key('home-restricted-card')), findsOneWidget);
+    expect(find.byKey(const Key('home-menu-community')), findsNothing);
+    expect(find.byKey(const Key('home-menu-activity')), findsNothing);
     expect(find.byKey(const Key('community-record-achievement')), findsNothing);
     await tapLobbyLink(t, 'finance-entry');
     expect(find.byType(BillingScreen), findsOneWidget);

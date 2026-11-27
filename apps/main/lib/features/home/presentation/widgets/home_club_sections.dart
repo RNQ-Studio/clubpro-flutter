@@ -47,7 +47,88 @@ class HomeSectionTitle extends StatelessWidget {
   }
 }
 
-/// Menu komunitas aktif; tiap menu membuka halaman komunitas di tabnya.
+/// Aksi ringkas dengan ikon, label singkat dan badge bernilai nyata.
+class HomeMenuAction extends StatelessWidget {
+  const HomeMenuAction({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.color = CommunityColors.gold,
+    this.count = 0,
+    this.badgeKey,
+    this.tooltip,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color color;
+  final int count;
+  final Key? badgeKey;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foreground =
+        theme.brightness == Brightness.dark && color.computeLuminance() < .18
+            ? Color.lerp(color, Colors.white, .4)!
+            : color;
+    final content = InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 52),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.onSurface.withValues(alpha: .035),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(children: [
+          Badge(
+            key: badgeKey,
+            isLabelVisible: count > 0,
+            label: Text(count > 99 ? '99+' : '$count'),
+            child: Icon(icon, size: 21, color: foreground),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Text(label,
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w500))),
+        ]),
+      ),
+    );
+    return Semantics(
+      button: true,
+      label: count > 0 ? '$count menunggu' : null,
+      child: tooltip == null
+          ? content
+          : Tooltip(message: tooltip!, child: content),
+    );
+  }
+}
+
+/// Grid dengan tinggi alami: teks besar membentuk kolom lebih sedikit.
+class HomeActionGrid extends StatelessWidget {
+  const HomeActionGrid({super.key, required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) =>
+      LayoutBuilder(builder: (context, constraints) {
+        final scale = MediaQuery.textScalerOf(context).scale(1);
+        final columns =
+            (constraints.maxWidth / (140 * scale)).floor().clamp(1, 4);
+        final width = (constraints.maxWidth - 8 * (columns - 1)) / columns;
+        return Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final child in children) SizedBox(width: width, child: child),
+        ]);
+      });
+}
+
+/// Menu komunitas tampil setelah kelompok Komunitas dipilih.
 class HomeClubMenu extends StatelessWidget {
   const HomeClubMenu({
     super.key,
@@ -57,352 +138,121 @@ class HomeClubMenu extends StatelessWidget {
   });
 
   final ValueChanged<int> onOpenTab;
-
-  /// Kartu Anggota saya di komunitas ini.
   final VoidCallback onOpenCard;
-
-  /// Penanda di menu Anggota; hanya terisi untuk pengelola.
   final int pendingRequests;
 
-  /// Kartu Anggota tampil paling depan; bukan tab detail komunitas.
-  static const cardItem = (
-    'Kartu Anggota',
-    Icons.badge_rounded,
-    Color(0xFF5C3A02),
-  );
-
+  static const cardItem = ('KTA', Icons.badge_rounded, Color(0xFF5C3A02));
   static const items = [
     (ClubTab.info, 'Info', Icons.info_rounded, Color(0xFFBE8815)),
     (ClubTab.members, 'Anggota', Icons.groups_rounded, Color(0xFF1E6FD9)),
-    (
-      ClubTab.activities,
-      'Kegiatan',
-      Icons.event_note_rounded,
-      Color(0xFFE8710A)
-    ),
     (ClubTab.gallery, 'Galeri', Icons.photo_library_rounded, Color(0xFF178A5B)),
   ];
 
   @override
-  Widget build(BuildContext context) {
-    final labelStyle = Theme.of(context)
-        .textTheme
-        .labelMedium
-        ?.copyWith(height: 1.2, letterSpacing: 0);
-    final scale = MediaQuery.textScalerOf(context).scale(1);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    var itemWidth = 0.0;
-    Widget item({
-      required Key key,
-      required String label,
-      required IconData icon,
-      required Color color,
-      required VoidCallback onTap,
-      Key? badgeKey,
-      int badge = 0,
-    }) =>
-        SizedBox(
-          width: itemWidth,
-          child: InkWell(
-            key: key,
-            borderRadius: BorderRadius.circular(14),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Column(
-                children: [
-                  Badge(
-                    key: badgeKey,
-                    isLabelVisible: badge > 0,
-                    label: Text('$badge'),
-                    child: Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: (dark && color.computeLuminance() < 0.1
-                                ? CommunityColors.goldLight
-                                : color)
-                            .withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(icon,
-                          color: dark && color.computeLuminance() < 0.1
-                              ? CommunityColors.goldLight
-                              : color,
-                          size: 26),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: labelStyle,
-                  ),
-                ],
-              ),
-            ),
+  Widget build(BuildContext context) => HomeActionGrid(children: [
+        HomeMenuAction(
+          key: const Key('home-club-menu-card'),
+          label: cardItem.$1,
+          tooltip: 'Kartu anggota komunitas',
+          icon: cardItem.$2,
+          color: cardItem.$3,
+          onTap: onOpenCard,
+        ),
+        for (final (tab, label, icon, color) in items)
+          HomeMenuAction(
+            key: Key('home-club-menu-$tab'),
+            label: label,
+            icon: icon,
+            color: color,
+            onTap: () => onOpenTab(tab),
+            badgeKey: tab == ClubTab.members
+                ? const Key('home-club-requests-badge')
+                : null,
+            count: tab == ClubTab.members ? pendingRequests : 0,
           ),
-        );
-
-    final (cardLabel, cardIcon, cardColor) = cardItem;
-    return LayoutBuilder(builder: (context, constraints) {
-      final columns = constraints.maxWidth >= 5 * 70 * scale + 32
-          ? 5
-          : constraints.maxWidth >= 3 * 70 * scale + 16
-              ? 3
-              : 2;
-      itemWidth = (constraints.maxWidth - 8 * (columns - 1)) / columns;
-      return Wrap(
-        spacing: 8,
-        runSpacing: 12,
-        children: [
-          item(
-            key: const Key('home-club-menu-card'),
-            label: cardLabel,
-            icon: cardIcon,
-            color: cardColor,
-            onTap: onOpenCard,
-          ),
-          for (final (tab, label, icon, color) in items)
-            item(
-              key: Key('home-club-menu-$tab'),
-              label: label,
-              icon: icon,
-              color: color,
-              onTap: () => onOpenTab(tab),
-              badgeKey: tab == ClubTab.members
-                  ? const Key('home-club-requests-badge')
-                  : null,
-              badge: tab == ClubTab.members ? pendingRequests : 0,
-            ),
-        ],
-      );
-    });
-  }
+      ]);
 }
 
-/// Sisi pengelola (creator/admin): yang perlu ditindaklanjuti di komunitas ini.
+/// Submenu pengelola; ringkasan tindak lanjut ada pada badge kelompok Kelola.
 class HomeManagerPanel extends StatelessWidget {
-  const HomeManagerPanel({
-    super.key,
-    required this.community,
-    required this.onOpenTab,
-  });
-
+  const HomeManagerPanel(
+      {super.key, required this.community, required this.onOpenTab});
   final CommunityDetail community;
   final ValueChanged<int> onOpenTab;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final muted = theme.colorScheme.onSurfaceVariant;
-    final role = community.myRole ?? CommunityRole.admin;
-    final requests = community.pendingMembersCount;
-    final upcoming = community.upcomingActivitiesCount;
-    final photos = community.photos.length;
-    final duesPayments = community.pendingDuesPaymentsCount;
     final notice = switch (community.status) {
-      CommunityStatus.pending => 'Menunggu verifikasi: komunitas belum bisa '
-          'ditemukan dan diikuti anggota lain.',
-      CommunityStatus.rejected => 'Pengajuan ditolak. Lihat alasannya di '
-          'halaman komunitas.',
+      CommunityStatus.pending => 'Menunggu verifikasi komunitas.',
+      CommunityStatus.rejected =>
+        'Pengajuan ditolak. Lihat alasan di info komunitas.',
       CommunityStatus.approved => null,
     };
-
-    return Container(
+    return Column(
       key: const Key('home-manager-panel'),
-      padding: const EdgeInsets.fromLTRB(14, 14, 6, 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: communityHairline(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: CommunityColors.gold.withValues(alpha: 0.13),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    role == CommunityRole.creator
-                        ? Icons.workspace_premium_rounded
-                        : Icons.shield_rounded,
-                    color: CommunityColors.gold,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Kelola Komunitas',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Anda ${role.label} di komunitas ini',
-                        style:
-                            theme.textTheme.bodySmall?.copyWith(color: muted),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (notice != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 10, 8, 0),
-              child: Text(
-                notice,
-                key: const Key('home-manager-notice'),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: community.status == CommunityStatus.rejected
-                      ? theme.colorScheme.error
-                      : CommunityColors.brown,
-                ),
-              ),
-            ),
-          const SizedBox(height: 6),
-          _ManageRow(
-            rowKey: const Key('home-manage-requests'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (notice != null) ...[
+          Text(notice,
+              key: const Key('home-manager-notice'),
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.error)),
+          const SizedBox(height: 12),
+        ],
+        HomeActionGrid(children: [
+          HomeMenuAction(
+            key: const Key('home-manage-requests'),
             icon: Icons.person_add_alt_1_rounded,
-            title: 'Permintaan bergabung',
-            subtitle: requests > 0
-                ? '$requests menunggu persetujuan'
-                : 'Tidak ada yang menunggu',
-            count: requests,
+            label: 'Permintaan',
+            tooltip:
+                'Permintaan bergabung: ${community.pendingMembersCount} menunggu',
+            count: community.pendingMembersCount,
             onTap: () => onOpenTab(ClubTab.members),
           ),
-          _ManageRow(
-            rowKey: const Key('home-manage-activities'),
+          HomeMenuAction(
+            key: const Key('home-manage-activities'),
             icon: Icons.event_available_rounded,
-            title: 'Kegiatan',
-            subtitle: upcoming > 0
-                ? '$upcoming kegiatan mendatang'
-                : 'Belum ada kegiatan terjadwal',
+            label: 'Kegiatan',
             onTap: () => onOpenTab(ClubTab.activities),
           ),
-          _ManageRow(
-            rowKey: const Key('home-manage-gallery'),
+          HomeMenuAction(
+            key: const Key('home-manage-gallery'),
             icon: Icons.add_photo_alternate_rounded,
-            title: 'Galeri',
-            subtitle: photos > 0 ? '$photos foto' : 'Belum ada foto',
+            label: 'Galeri',
             onTap: () => onOpenTab(ClubTab.gallery),
           ),
           if (community.duesConfigured) ...[
-            _ManageRow(
-              rowKey: const Key('home-manage-dues-payments'),
+            HomeMenuAction(
+              key: const Key('home-manage-dues-payments'),
               icon: Icons.fact_check_rounded,
-              title: 'Verifikasi iuran',
-              subtitle: duesPayments > 0
-                  ? '$duesPayments bukti transfer menunggu'
-                  : 'Tidak ada yang menunggu',
-              count: duesPayments,
+              label: 'Verifikasi iuran',
+              tooltip:
+                  '${community.pendingDuesPaymentsCount} bukti transfer menunggu',
+              count: community.pendingDuesPaymentsCount,
               onTap: () =>
                   context.push(AppRoutes.communityDuesPayments(community.id)),
             ),
-            _ManageRow(
-              rowKey: const Key('home-manage-dues-calendar'),
+            HomeMenuAction(
+              key: const Key('home-manage-dues-calendar'),
               icon: Icons.calendar_month_rounded,
-              title: 'Kalender iuran',
-              subtitle: 'Bulan yang lunas dan tunggakan tiap anggota',
+              label: 'Kalender iuran',
               onTap: () =>
                   context.push(AppRoutes.communityDuesMembers(community.id)),
             ),
           ],
-          _ManageRow(
-            rowKey: const Key('home-manage-dues-settings'),
+          HomeMenuAction(
+            key: const Key('home-manage-dues-settings'),
             icon: Icons.tune_rounded,
-            title: 'Pengaturan iuran',
-            subtitle: community.duesConfigured
-                ? 'Nominal, uang masuk, tanggal mulai, rekening'
-                : 'Belum diatur — atur agar anggota bisa membayar',
+            label: 'Atur iuran',
+            tooltip: community.duesConfigured
+                ? 'Nominal, uang masuk, tanggal mulai dan rekening'
+                : 'Iuran belum diatur',
             onTap: () =>
                 context.push(AppRoutes.communityDuesSettings(community.id)),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ManageRow extends StatelessWidget {
-  const _ManageRow({
-    required this.rowKey,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.count = 0,
-  });
-
-  final Key rowKey;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final muted = theme.colorScheme.onSurfaceVariant;
-    return InkWell(
-      key: rowKey,
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        child: Row(
-          children: [
-            Icon(icon, size: 22, color: CommunityColors.brown),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                  ),
-                ],
-              ),
-            ),
-            if (count > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.error,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '$count',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onError,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            Icon(Icons.chevron_right_rounded, color: muted),
-          ],
-        ),
-      ),
+        ]),
+      ],
     );
   }
 }
